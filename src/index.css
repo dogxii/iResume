@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+/* 自定义滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 打印样式核心逻辑 */
+@media print {
+  @page {
+    margin: 0; /* 移除浏览器默认页边距 */
+    size: auto;
+  }
+
+  body {
+    background: white;
+  }
+
+  /* 隐藏所有带有 print:hidden 类的元素 (导航栏、编辑器) */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 确保预览区域占满全屏 */
+  .print\:w-full {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:bg-white {
+    background-color: white !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+}
