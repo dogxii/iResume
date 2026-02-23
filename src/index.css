@@ -1,54 +1,97 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 /* 自定义滚动条样式 */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+	width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+	background: #f1f5f9;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+	background: #cbd5e1;
+	border-radius: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+	background: #94a3b8;
 }
 
 /* 打印样式核心逻辑 */
 @media print {
-  @page {
-    margin: 0; /* 移除浏览器默认页边距 */
-    size: auto;
-  }
+	@page {
+		margin: 0; /* 移除浏览器默认页边距 */
+		size: auto;
+	}
 
-  body {
-    background: white;
-  }
+	body {
+		background: white;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
 
-  /* 隐藏所有带有 print:hidden 类的元素 (导航栏、编辑器) */
-  .print\:hidden {
-    display: none !important;
-  }
+	/* 隐藏所有带有 print:hidden 类的元素 (导航栏、编辑器) */
+	.print\:hidden {
+		display: none !important;
+	}
 
-  /* 确保预览区域占满全屏 */
-  .print\:w-full {
-    width: 100% !important;
-    max-width: none !important;
-  }
+	/* 确保预览区域占满全屏且不被裁剪 */
+	.print\:w-full {
+		width: 100% !important;
+		max-width: none !important;
+	}
 
-  .print\:p-0 {
-    padding: 0 !important;
-  }
+	.print\:p-0 {
+		padding: 0 !important;
+	}
 
-  .print\:bg-white {
-    background-color: white !important;
-  }
+	.print\:bg-white {
+		background-color: white !important;
+	}
 
-  .print\:shadow-none {
-    box-shadow: none !important;
-  }
+	.print\:shadow-none {
+		box-shadow: none !important;
+	}
 
-  .print\:overflow-visible {
-    overflow: visible !important;
-  }
+	.print\:overflow-visible {
+		overflow: visible !important;
+	}
+
+	.print\:h-auto {
+		height: auto !important;
+	}
+
+	.print\:max-w-none {
+		max-width: none !important;
+	}
+
+	.print\:block {
+		display: block !important;
+	}
+
+	.print\:min-h-0 {
+		min-height: 0 !important;
+	}
+
+	/* 防止区块在分页时被折断 */
+	section {
+		break-inside: avoid;
+	}
+
+	/* 防止工作经历、项目经历等子条目被折断 */
+	section > div {
+		break-inside: avoid;
+	}
+
+	/* 列表项不折断 */
+	li {
+		break-inside: avoid;
+	}
+
+	/* 头部信息区域不折断 */
+	header {
+		break-inside: avoid;
+	}
+
+	/* 技能栈 grid 不折断 */
+	.grid {
+		break-inside: avoid;
+	}
 }
