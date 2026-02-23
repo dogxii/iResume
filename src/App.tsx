@@ -9,15 +9,19 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import ResumeEditor from "./components/ResumeEditor";
 import ResumePreview from "./components/ResumePreview";
+import ThemePicker from "./components/ThemePicker";
 import { initialResumeState } from "./data/initialData";
+import { DEFAULT_THEME_ID } from "./data/themes";
 import type {
 	Education,
 	ResumeData,
 	SectionKey,
 	SkillItem,
 } from "./types/resume";
+import type { ThemeId } from "./types/theme";
 
 const STORAGE_KEY = "resume-data";
+const THEME_STORAGE_KEY = "resume-theme";
 
 const ALL_SECTION_KEYS: SectionKey[] = [
 	"skills",
@@ -148,6 +152,22 @@ function migrateData(raw: Record<string, unknown>): ResumeData {
 function App() {
 	const importInputRef = useRef<HTMLInputElement>(null);
 	const [importError, setImportError] = useState<string | null>(null);
+
+	// ─── 主题状态 ─────────────────────────────────────
+	const [themeId, setThemeId] = useState<ThemeId>(() => {
+		const saved = localStorage.getItem(THEME_STORAGE_KEY);
+		if (
+			saved &&
+			["classic", "minimal", "executive", "fresh", "elegant"].includes(saved)
+		) {
+			return saved as ThemeId;
+		}
+		return DEFAULT_THEME_ID;
+	});
+
+	useEffect(() => {
+		localStorage.setItem(THEME_STORAGE_KEY, themeId);
+	}, [themeId]);
 
 	const [resumeData, setResumeData] = useState<ResumeData>(() => {
 		const saved = localStorage.getItem(STORAGE_KEY);
@@ -320,6 +340,7 @@ function App() {
 							href="https://github.com/dogxii/iResume"
 							target="_blank"
 							rel="noreferrer"
+							aria-label="GitHub 仓库"
 							className="hidden lg:flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors"
 						>
 							<svg
@@ -328,7 +349,9 @@ function App() {
 								height="24"
 								viewBox="0 0 24 24"
 								fill="currentColor"
+								aria-hidden="true"
 							>
+								<title>GitHub</title>
 								<path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
 							</svg>
 						</a>
@@ -341,6 +364,11 @@ function App() {
 								{importError}
 							</span>
 						)}
+
+						<ThemePicker current={themeId} onChange={setThemeId} />
+
+						{/* 分隔线 */}
+						<div className="w-px h-5 bg-slate-200" />
 
 						<button
 							type="button"
@@ -408,7 +436,7 @@ function App() {
 					<div className="flex-1 bg-slate-100 overflow-y-auto p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible print:h-auto h-full">
 						{/* A4 纸张容器 */}
 						<div className="w-[210mm] min-h-[297mm] bg-white shadow-2xl print:shadow-none print:w-full print:min-h-0">
-							<ResumePreview data={resumeData} />
+							<ResumePreview data={resumeData} themeId={themeId} />
 						</div>
 					</div>
 				</main>
