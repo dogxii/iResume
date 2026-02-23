@@ -222,12 +222,7 @@ function App() {
 
 		// 用姓名 + 时间戳命名，方便管理多份简历
 		const name = resumeData.personal.name.trim() || "resume";
-		const ts = new Date()
-			.toISOString()
-			.slice(0, 16)
-			.replace("T", "_")
-			.replace(":", "-");
-		const filename = `${name}_${ts}.json`;
+		const filename = `${name}_iResume.json`;
 
 		const a = document.createElement("a");
 		a.href = url;
