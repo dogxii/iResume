@@ -249,7 +249,7 @@ function App() {
 	return (
 		<div className="min-h-screen bg-slate-100 font-sans text-slate-900">
 			{/* ===== 移动端引导页（md 以下显示，md 以上隐藏） ===== */}
-			<div className="md:hidden flex flex-col items-center justify-center min-h-screen bg-white px-8 py-12 text-center">
+			<div className="md:hidden print:hidden flex flex-col items-center justify-center min-h-screen bg-white px-8 py-12 text-center">
 				{/* Logo */}
 				<div className="flex items-center gap-2 mb-8">
 					<span className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-2xl font-black tracking-tight leading-none">
@@ -305,7 +305,7 @@ function App() {
 			</div>
 
 			{/* ===== 桌面端完整应用（md 以上显示） ===== */}
-			<div className="hidden md:block">
+			<div className="hidden md:block print:block">
 				{/* 顶部导航栏 - 打印时隐藏 */}
 				<nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center line print:hidden shadow-sm">
 					<div className="flex items-center gap-4">
