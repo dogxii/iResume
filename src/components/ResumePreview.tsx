@@ -404,16 +404,19 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 	const renderSkills = () => (
 		<section key="skills" className="mb-5">
 			{renderSectionHeader(data.sectionTitles.skills)}
-			<div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+			<div className="text-sm">
 				{data.skills.map(
 					(skill) =>
 						(skill.label.trim() || skill.content.trim()) && (
-							<React.Fragment key={skill.id}>
+							<div
+								key={skill.id}
+								className="print-skill-row grid grid-cols-[100px_1fr] gap-y-0 mb-2 last:mb-0"
+							>
 								<span className={`font-semibold ${c.heading}`}>
 									{skill.label}
 								</span>
 								<span className={c.body}>{skill.content}</span>
-							</React.Fragment>
+							</div>
 						),
 				)}
 			</div>
@@ -425,21 +428,24 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 			{renderSectionHeader(data.sectionTitles.experience)}
 			{data.experience.map((exp) => (
 				<div key={exp.id} className="mb-4 last:mb-0">
-					<div className="flex justify-between items-baseline mb-1">
-						<h3 className={`font-bold text-base ${c.heading}`}>
-							{exp.company}
-						</h3>
-						{exp.date.trim() && (
-							<span className={`text-sm ${c.muted} shrink-0 ml-4`}>
-								{exp.date}
-							</span>
+					{/* 公司名 + 日期 + 职位：整体不允许断页，保证标题行与至少一行内容在同一页 */}
+					<div className="print-item-header">
+						<div className="flex justify-between items-baseline mb-1">
+							<h3 className={`font-bold text-base ${c.heading}`}>
+								{exp.company}
+							</h3>
+							{exp.date.trim() && (
+								<span className={`text-sm ${c.muted} shrink-0 ml-4`}>
+									{exp.date}
+								</span>
+							)}
+						</div>
+						{exp.role.trim() && (
+							<div className={`text-sm font-medium ${c.primary} mb-2`}>
+								{exp.role}
+							</div>
 						)}
 					</div>
-					{exp.role.trim() && (
-						<div className={`text-sm font-medium ${c.primary} mb-2`}>
-							{exp.role}
-						</div>
-					)}
 					{exp.details.trim() && (
 						<ul
 							className={`list-disc list-outside ml-4 space-y-1.5 text-sm ${c.body}`}
@@ -457,7 +463,8 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 			{renderSectionHeader(data.sectionTitles.projects)}
 			{data.projects.map((proj) => (
 				<div key={proj.id} className="mb-3 last:mb-0">
-					<div className="flex justify-between items-center mb-1">
+					{/* 项目名 + 标签 + 链接：整体不允许断页 */}
+					<div className="print-item-header flex justify-between items-center mb-1">
 						<div className="flex items-center gap-2">
 							<h3 className={`font-bold text-base ${c.heading}`}>
 								{proj.name}
@@ -509,7 +516,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 			{data.education.map((edu) => (
 				<div
 					key={edu.id}
-					className="flex justify-between text-sm mb-2 last:mb-0"
+					className="print-edu-item flex justify-between text-sm mb-2 last:mb-0"
 				>
 					<div>
 						{edu.degree.trim() && (
@@ -549,7 +556,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 
 	return (
 		<div
-			className={`w-full bg-white shadow-lg print:shadow-none p-8 md:p-10 ${c.body} leading-relaxed text-[10.5pt] min-h-[297mm]`}
+			className={`resume-content resume-print-root w-full bg-white shadow-lg p-8 md:p-10 ${c.body} leading-relaxed text-[10.5pt] min-h-[297mm]`}
 		>
 			{renderHeader()}
 

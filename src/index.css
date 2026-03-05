@@ -11,6 +11,7 @@
 		transform: translateY(0);
 	}
 }
+
 /* 自定义滚动条样式 */
 .custom-scrollbar::-webkit-scrollbar {
 	width: 6px;
@@ -26,84 +27,144 @@
 	background: #94a3b8;
 }
 
-/* 打印样式核心逻辑 */
+/* =====================================================
+   打印 / 保存 PDF 样式
+   ===================================================== */
 @media print {
+	/* ── 页面尺寸与边距 ──────────────────────────────
+	   @page margin 统一控制每一页（包括第 2、3 页）的
+	   四周留白，彻底替代容器的 padding。               */
 	@page {
-		margin: 0; /* 移除浏览器默认页边距 */
-		size: auto;
+		size: A4;
+		margin: 12mm 12mm;
 	}
 
+	/* ── 全局基底 ─────────────────────────────────── */
+	*,
+	*::before,
+	*::after {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+	}
+
+	html,
 	body {
-		background: white;
-		-webkit-print-color-adjust: exact;
-		print-color-adjust: exact;
+		background: white !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		width: 100% !important;
+		height: auto !important;
 	}
 
-	/* 隐藏所有带有 print:hidden 类的元素 (导航栏、编辑器) */
+	/* ── 隐藏非简历元素 ──────────────────────────── */
 	.print\:hidden {
 		display: none !important;
 	}
 
-	/* 确保预览区域占满全屏且不被裁剪 */
-	.print\:w-full {
-		width: 100% !important;
-		max-width: none !important;
-	}
+	/* ── 让所有包裹容器"透明化" ──────────────────────
+	   打印时把 App 层、main 层、预览外壳全部压平，
+	   不让任何固定宽高的盒子影响分页。                 */
 
-	.print\:p-0 {
-		padding: 0 !important;
-	}
-
-	.print\:bg-white {
-		background-color: white !important;
-	}
-
-	.print\:shadow-none {
-		box-shadow: none !important;
-	}
-
-	.print\:overflow-visible {
-		overflow: visible !important;
-	}
-
-	.print\:h-auto {
-		height: auto !important;
-	}
-
-	.print\:max-w-none {
-		max-width: none !important;
-	}
-
+	/* 桌面端外壳（hidden md:block） */
 	.print\:block {
 		display: block !important;
 	}
 
+	/* main 布局容器 */
+	.print\:h-auto {
+		height: auto !important;
+	}
+	.print\:max-w-none {
+		max-width: none !important;
+	}
+
+	/* 右侧灰色预览区域：去掉背景色、内边距、overflow */
+	.print\:p-0 {
+		padding: 0 !important;
+	}
+	.print\:bg-white {
+		background: white !important;
+	}
+	.print\:overflow-visible {
+		overflow: visible !important;
+	}
+
+	/* A4 纸张容器：去掉固定宽高和阴影，让内容自由流动 */
+	.print\:shadow-none {
+		box-shadow: none !important;
+	}
+	.print\:w-full {
+		width: 100% !important;
+		max-width: none !important;
+	}
 	.print\:min-h-0 {
 		min-height: 0 !important;
 	}
 
-	/* 防止区块在分页时被折断 */
-	section {
+	/* ── ResumePreview 根元素 ──────────────────────
+	   去掉内边距（由 @page margin 接管），
+	   去掉最小高度（不再需要撑满一页）。              */
+	.resume-print-root {
+		padding: 0 !important;
+		min-height: 0 !important;
+		width: 100% !important;
+		background: white !important;
+		box-shadow: none !important;
+	}
+
+	/* ── 分页策略 ──────────────────────────────────
+	   原则：尽量细粒度保护，不整块锁住 section，
+	   避免浏览器因为装不下而把整块推到下一页、
+	   前一页留大片空白。
+
+	   ① section 标题（h2）不允许出现在页尾，
+	     紧跟的内容必须和它在同一页。
+	   ② 每个条目的"标题行"（公司名+日期+职位 /
+	     项目名+链接）整体不跨页，但其后的描述列表
+	     允许在 li 之间自然断页。
+	   ③ 教育、技能等本身只有 1-2 行的条目整体保护。
+	   ④ 单个 li 不跨页（防止一行文字被截成两半）。
+	   ⑤ header 整体保护。                            */
+
+	section h2 {
+		break-after: avoid;
+	}
+
+	/* 工作/项目条目的标题行（公司名+日期+职位） */
+	.print-item-header {
+		break-inside: avoid;
+		break-after: avoid;
+	}
+
+	/* 教育条目（每行很短，整行保护） */
+	.print-edu-item {
 		break-inside: avoid;
 	}
 
-	/* 防止工作经历、项目经历等子条目被折断 */
-	section > div {
+	/* 技能每一行单独保护（label + content 不被截成两半），
+	   但允许行与行之间自然断页，防止整个技能区块被推到下一页 */
+	.print-skill-row {
 		break-inside: avoid;
 	}
 
-	/* 列表项不折断 */
+	/* 单个列表项不被截断 */
 	li {
 		break-inside: avoid;
 	}
 
-	/* 头部信息区域不折断 */
+	/* 头部 header 不跨页 */
 	header {
 		break-inside: avoid;
 	}
+}
 
-	/* 技能栈 grid 不折断 */
-	.grid {
-		break-inside: avoid;
-	}
+/* =====================================================
+   长字符串溢出保护（屏幕 + 打印均生效）
+   overflow-wrap: break-word  → 超出容器宽度时才断行
+   word-break: break-word     → 兼容 Safari 等旧引擎
+   不使用 break-all，避免影响中文文本的正常排版。
+   ===================================================== */
+.resume-content {
+	overflow-wrap: break-word;
+	word-break: break-word;
 }
