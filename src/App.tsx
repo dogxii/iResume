@@ -262,7 +262,7 @@ function App() {
 	};
 
 	return (
-		<div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+		<div className="min-h-screen bg-slate-100 print:bg-white font-sans text-slate-900">
 			{/* ===== 移动端引导页（md 以下显示，md 以上隐藏） ===== */}
 			<div className="md:hidden print:hidden flex flex-col items-center justify-center min-h-screen bg-white px-8 py-12 text-center">
 				{/* Logo */}
@@ -428,9 +428,9 @@ function App() {
 					</div>
 
 					{/* 右侧：预览区域 (灰色背景) */}
-					<div className="flex-1 bg-slate-100 overflow-y-auto p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible print:h-auto h-full">
+					<div className="flex-1 bg-slate-100 overflow-y-auto p-8 flex justify-center print:p-0 print:bg-transparent print:overflow-visible print:h-auto print:flex-none print:block h-full">
 						{/* A4 纸张容器 */}
-						<div className="w-[210mm] min-h-[297mm] bg-white shadow-2xl print:shadow-none print:w-full print:min-h-0">
+						<div className="w-[210mm] min-h-[297mm] bg-white shadow-2xl print:shadow-none print:w-full print:min-h-0 print:bg-white">
 							<ResumePreview data={resumeData} themeId={themeId} />
 						</div>
 					</div>
