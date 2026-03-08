@@ -2,6 +2,10 @@
 
 一个基于 React + TypeScript + Tailwind CSS 的在线简历生成器，支持实时预览、本地存储和一键导出 PDF。
 
+https://resume.dogxi.me
+
+![screenshot](./docs/screenshot.webp)
+
 ## ✨ 特性
 
 - **实时编辑**：所见即所得的编辑体验，左侧编辑右侧实时预览
