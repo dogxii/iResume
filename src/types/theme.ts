@@ -1,5 +1,12 @@
 // 主题 ID
-export type ThemeId = "classic" | "minimal" | "executive" | "fresh" | "elegant";
+export type ThemeId =
+	| "classic"
+	| "minimal"
+	| "executive"
+	| "fresh"
+	| "elegant"
+	| "rose"
+	| "aurora";
 
 // 主题颜色配置
 export interface ThemeColors {
@@ -38,7 +45,8 @@ export type SectionHeaderStyle =
 	| "left-border" // 左侧粗线
 	| "pill" // 背景色块
 	| "minimal" // 极简文字
-	| "dotted"; // 点线下划
+	| "dotted" // 点线下划
+	| "double-line"; // 双线装饰
 
 // 联系方式样式
 export type ContactStyle =
@@ -46,6 +54,11 @@ export type ContactStyle =
 	| "inline-dots" // 单行点号分隔
 	| "inline-bar" // 单行竖线分隔
 	| "centered-icons"; // 居中带图标
+
+// 字体风格
+export type FontStyle =
+	| "sans" // 无衬线（默认）
+	| "serif"; // 衬线字体
 
 // 主题配置
 export interface ThemeConfig {
@@ -71,4 +84,12 @@ export interface ThemeConfig {
 	showLinkIcons: boolean;
 	// 联系信息是否显示图标
 	showContactIcons: boolean;
+	// 字体风格（可选，默认 sans）
+	fontStyle?: FontStyle;
+	// 姓名区域是否显示彩色徽章背景（banner 布局以外）
+	nameBadge?: boolean;
+	// banner 布局背景色（Tailwind 类，默认 bg-slate-800）
+	bannerBg?: string;
+	// banner 布局强调色，用于职位标题文字和链接悬停（Tailwind 类，默认 text-amber-400）
+	bannerAccent?: string;
 }

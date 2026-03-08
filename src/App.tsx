@@ -158,7 +158,7 @@ function App() {
 		const saved = localStorage.getItem(THEME_STORAGE_KEY);
 		if (
 			saved &&
-			["classic", "minimal", "executive", "fresh", "elegant"].includes(saved)
+			["classic", "minimal", "executive", "fresh", "elegant", "rose", "aurora"].includes(saved)
 		) {
 			return saved as ThemeId;
 		}

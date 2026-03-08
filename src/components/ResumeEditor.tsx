@@ -356,6 +356,16 @@ const ResumeEditor = ({ data, onChange }: ResumeEditorProps) => {
 						<Plus size={16} />
 					</button>
 				</div>
+				<p className="text-xs text-slate-400 mb-3 leading-relaxed">
+					内容支持行内语法：
+					<code className="bg-slate-100 px-1 rounded text-slate-600">
+						**粗体**
+					</code>
+					{" · "}
+					<code className="bg-slate-100 px-1 rounded text-slate-600">
+						[链接文字](https://url)
+					</code>
+				</p>
 				{data.skills.map((skill, index) => (
 					<div
 						key={skill.id}
@@ -396,10 +406,10 @@ const ResumeEditor = ({ data, onChange }: ResumeEditorProps) => {
 							placeholder="例：核心能力"
 						/>
 						<InputGroup
-							label="内容"
+							label="内容（支持 **粗体** 语法）"
 							value={skill.content}
 							onChange={(v) => updateSkill(skill.id, "content", v)}
-							placeholder="例：JavaScript, TypeScript, React"
+							placeholder="例：**JavaScript**, TypeScript, React"
 						/>
 					</div>
 				))}

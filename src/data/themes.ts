@@ -88,6 +88,8 @@ const executive: ThemeConfig = {
 	headerDivider: false,
 	showLinkIcons: true,
 	showContactIcons: true,
+	bannerBg: "bg-slate-800",
+	bannerAccent: "text-amber-400",
 };
 
 // ─── 清新 ─────────────────────────────────────────────
@@ -150,6 +152,69 @@ const elegant: ThemeConfig = {
 	showContactIcons: true,
 };
 
+// ─── 玫瑰金 ──────────────────────────────────────────
+const rose: ThemeConfig = {
+	id: "rose",
+	name: "玫瑰金",
+	nameEn: "Rose",
+	description: "玫瑰粉金色调，温柔细腻，适合设计、时尚与创意类岗位",
+	previewColors: ["#be185d", "#fce7f3"],
+	colors: {
+		primary: "text-rose-600",
+		primaryHover: "hover:text-rose-700",
+		primaryLight: "bg-rose-50",
+		primaryBorder: "border-rose-400",
+		heading: "text-slate-900",
+		body: "text-slate-700",
+		muted: "text-slate-400",
+		link: "text-rose-600",
+		divider: "border-rose-100",
+		tagBg: "bg-rose-50",
+		tagText: "text-rose-700",
+		tagBorder: "border-rose-200",
+	},
+	headerLayout: "centered",
+	sectionHeaderStyle: "double-line",
+	contactStyle: "centered-icons",
+	skillGrid: true,
+	headerDivider: false,
+	showLinkIcons: true,
+	showContactIcons: true,
+	fontStyle: "serif",
+};
+
+// ─── 暗夜极光 ─────────────────────────────────────────
+const aurora: ThemeConfig = {
+	id: "aurora",
+	name: "暗夜极光",
+	nameEn: "Aurora",
+	description: "深色页眉搭配紫青渐变点缀，科技感十足，适合技术与游戏行业",
+	previewColors: ["#1e1b4b", "#06b6d4"],
+	colors: {
+		primary: "text-cyan-500",
+		primaryHover: "hover:text-cyan-400",
+		primaryLight: "bg-indigo-50",
+		primaryBorder: "border-cyan-500",
+		heading: "text-slate-900",
+		body: "text-slate-700",
+		muted: "text-slate-400",
+		link: "text-cyan-600",
+		divider: "border-slate-200",
+		tagBg: "bg-indigo-50",
+		tagText: "text-indigo-700",
+		tagBorder: "border-indigo-200",
+	},
+	headerLayout: "banner",
+	sectionHeaderStyle: "left-border",
+	contactStyle: "inline-bar",
+	skillGrid: true,
+	headerDivider: false,
+	showLinkIcons: true,
+	showContactIcons: true,
+	bannerBg: "bg-indigo-950",
+	bannerAccent: "text-cyan-400",
+};
+
 // ─── 主题注册表 ───────────────────────────────────────
 export const themes: Record<ThemeId, ThemeConfig> = {
 	classic,
@@ -157,6 +222,8 @@ export const themes: Record<ThemeId, ThemeConfig> = {
 	executive,
 	fresh,
 	elegant,
+	rose,
+	aurora,
 };
 
 // 主题 ID 有序列表（用于 UI 遍历）
@@ -166,6 +233,8 @@ export const themeIds: ThemeId[] = [
 	"executive",
 	"fresh",
 	"elegant",
+	"rose",
+	"aurora",
 ];
 
 // 默认主题

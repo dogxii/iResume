@@ -3,7 +3,7 @@ import React from "react";
 import { themes } from "../data/themes";
 import type { ResumeData, SectionKey } from "../types/resume";
 import type { ThemeId } from "../types/theme";
-import { renderMarkdownList } from "../utils/markdown";
+import { parseInline, renderMarkdownList } from "../utils/markdown";
 
 interface ResumePreviewProps {
 	data: ResumeData;
@@ -14,16 +14,8 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 	const theme = themes[themeId];
 	const c = theme.colors;
 
-	// ─── 工具函数 ──────────────────────────────────────
-	const renderPlainList = (text: string) => {
-		if (!text.trim()) return null;
-		return text
-			.split("\n")
-			.filter((line) => line.trim())
-			.map((line, index) => (
-				<li key={`${index}-${line.slice(0, 20)}`}>{line}</li>
-			));
-	};
+	// 字体风格映射
+	const fontClass = theme.fontStyle === "serif" ? "font-serif" : "font-sans";
 
 	// ─── 个人信息字段检测 ──────────────────────────────
 	const hasPhone = data.personal.phone.trim();
@@ -95,6 +87,19 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 					>
 						{title}
 					</h2>
+				);
+
+			case "double-line":
+				return (
+					<div className="mb-3">
+						<h2 className={`text-base font-bold ${c.heading} pb-1`}>
+							{title}
+						</h2>
+						<div className="flex flex-col gap-px">
+							<div className={`h-[2px] ${c.primaryBorder} border-t-2`} />
+							<div className={`h-px ${c.divider} border-t`} />
+						</div>
+					</div>
 				);
 
 			default:
@@ -322,7 +327,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 				return (
 					<header className="mb-5 -mx-8 -mt-8 md:-mx-10 md:-mt-10">
 						{/* 深色 Banner */}
-						<div className="bg-slate-800 text-white px-8 py-6 md:px-10">
+						<div className={`${theme.bannerBg ?? "bg-slate-800"} text-white px-8 py-6 md:px-10`}>
 							<div className="flex justify-between items-end">
 								<div>
 									{data.personal.name.trim() && (
@@ -331,7 +336,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 										</h1>
 									)}
 									{data.personal.title.trim() && (
-										<p className="text-amber-400 font-medium mt-1 text-lg">
+										<p className={`${theme.bannerAccent ?? "text-amber-400"} font-medium mt-1 text-lg`}>
 											{data.personal.title}
 										</p>
 									)}
@@ -348,7 +353,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 											<div className="flex items-center justify-end gap-2">
 												<a
 													href={`mailto:${data.personal.email}`}
-													className="hover:text-amber-300 hover:underline"
+													className={`${theme.bannerAccent ?? "text-amber-400"} hover:opacity-80 hover:underline`}
 												>
 													{data.personal.email}
 												</a>
@@ -371,7 +376,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 											href={`https://${data.personal.github}`}
 											target="_blank"
 											rel="noreferrer"
-											className="flex items-center gap-1.5 text-slate-300 hover:text-amber-300"
+											className={`flex items-center gap-1.5 text-slate-300 hover:opacity-80 ${theme.bannerAccent ?? "hover:text-amber-300"}`}
 										>
 											{theme.showLinkIcons && <Github size={14} />}
 											{data.personal.github}
@@ -382,7 +387,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 											href={`https://${data.personal.website}`}
 											target="_blank"
 											rel="noreferrer"
-											className="flex items-center gap-1.5 text-slate-300 hover:text-amber-300"
+											className={`flex items-center gap-1.5 text-slate-300 hover:opacity-80 ${theme.bannerAccent ?? "hover:text-amber-300"}`}
 										>
 											{theme.showLinkIcons && <Globe size={14} />}
 											{data.personal.website}
@@ -415,7 +420,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 								<span className={`font-semibold ${c.heading}`}>
 									{skill.label}
 								</span>
-								<span className={c.body}>{skill.content}</span>
+								<span className={c.body}>{parseInline(skill.content)}</span>
 							</div>
 						),
 				)}
@@ -450,7 +455,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 						<ul
 							className={`list-disc list-outside ml-4 space-y-1.5 text-sm ${c.body}`}
 						>
-							{renderPlainList(exp.details)}
+							{renderMarkdownList(exp.details)}
 						</ul>
 					)}
 				</div>
@@ -556,7 +561,7 @@ const ResumePreview = ({ data, themeId = "classic" }: ResumePreviewProps) => {
 
 	return (
 		<div
-			className={`resume-content resume-print-root w-full bg-white shadow-lg p-8 md:p-10 ${c.body} leading-relaxed text-[10.5pt] min-h-[297mm]`}
+			className={`resume-content resume-print-root w-full bg-white shadow-lg p-8 md:p-10 ${c.body} ${fontClass} leading-relaxed text-[10.5pt] min-h-[297mm]`}
 		>
 			{renderHeader()}
 
