@@ -157,24 +157,15 @@ body.resume-space-panning {
 	}
 
 	.resume-paged-visual {
-		display: flex !important;
-		flex-direction: column !important;
-		gap: 0 !important;
-	}
-
-	.resume-paged-page {
-		overflow: hidden !important;
-		box-shadow: none !important;
-		break-inside: avoid;
-		break-after: page;
-	}
-
-	.resume-paged-page:last-child {
-		break-after: auto;
+		display: none !important;
 	}
 
 	.resume-print-source {
-		display: none !important;
+		position: static !important;
+		top: auto !important;
+		left: auto !important;
+		width: auto !important;
+		pointer-events: auto !important;
 	}
 
 	.print\:shadow-none {
