@@ -1317,92 +1317,35 @@ function App() {
 		const previewWidth =
 			preview.getBoundingClientRect().width || preview.scrollWidth;
 		const pxPerMm = previewWidth / A4_WIDTH_MM;
-		const printablePageHeight = Math.max(
+		const printablePageHeightPx = Math.max(
 			1,
 			getPrintablePageHeightMm(pageMarginMm) * pxPerMm,
 		);
-		const innerRect = inner.getBoundingClientRect();
-		const contentHeight = innerRect.height;
-		const avoidBlocks = Array.from(
-			inner.querySelectorAll<HTMLElement>(
-				[
-					"header",
-					"section",
-					".print-timeline-item",
-					".print-card-item",
-					".print-edu-item",
-					".print-skill-row",
-					"li",
-				].join(","),
-			),
-		)
-			.map((element) => {
-				const rect = element.getBoundingClientRect();
-				return {
-					isSection: element.tagName === "SECTION",
-					top: rect.top - innerRect.top,
-					height: rect.height,
-				};
-			})
-			.filter(
-				(block) =>
-					block.height > 1 &&
-					block.height <
-						printablePageHeight * (block.isSection ? 0.35 : 0.92) &&
-					block.top >= 0,
-			)
-			.sort((a, b) => a.top - b.top);
+		const contentHeight = inner.getBoundingClientRect().height;
+		const nextPageCount = Math.max(
+			1,
+			Math.ceil(contentHeight / printablePageHeightPx),
+		);
 
-		const nextLayouts: PreviewPageLayout[] = [];
-		let pageStart = 0;
-		let guard = 0;
-
-		while (pageStart < contentHeight - 1 && guard < 20) {
-			const idealEnd = pageStart + printablePageHeight;
-			const crossingBlock = avoidBlocks.find((block) => {
-				const blockBottom = block.top + block.height;
-				return (
-					block.top > pageStart + 1 &&
-					block.top < idealEnd - 1 &&
-					blockBottom > idealEnd + 1
-				);
-			});
-			const pageEnd = crossingBlock ? crossingBlock.top : idealEnd;
-			const bottomBlank = Math.max(0, idealEnd - pageEnd);
-
-			nextLayouts.push({
-				startMm: pageStart / pxPerMm,
-				bottomBlankMm: bottomBlank / pxPerMm,
-			});
-
-			const nextStart = crossingBlock ? crossingBlock.top : idealEnd;
-			if (nextStart <= pageStart + 1) {
-				pageStart = idealEnd;
-			} else {
-				pageStart = nextStart;
-			}
-			guard += 1;
-		}
-
-		const safeLayouts =
-			nextLayouts.length > 0
-				? nextLayouts
-				: [{ startMm: 0, bottomBlankMm: 0 }];
-		const nextPageCount = safeLayouts.length;
+		const nextLayouts: PreviewPageLayout[] = Array.from(
+			{ length: nextPageCount },
+			(_, i) => ({
+				startMm: (i * printablePageHeightPx) / pxPerMm,
+				bottomBlankMm: 0,
+			}),
+		);
 
 		setPreviewPageCount((current) =>
 			current === nextPageCount ? current : nextPageCount,
 		);
 		setPreviewPageLayouts((current) => {
 			const same =
-				current.length === safeLayouts.length &&
+				current.length === nextLayouts.length &&
 				current.every(
 					(item, index) =>
-						Math.abs(item.startMm - safeLayouts[index].startMm) < 0.1 &&
-						Math.abs(item.bottomBlankMm - safeLayouts[index].bottomBlankMm) <
-							0.1,
+						Math.abs(item.startMm - nextLayouts[index].startMm) < 0.1,
 				);
-			return same ? current : safeLayouts;
+			return same ? current : nextLayouts;
 		});
 	}, [pageMarginMm]);
 
@@ -1905,11 +1848,74 @@ function App() {
 										transformOrigin: "top left",
 									}}
 								>
-									{previewPageMode === "continuous" ? (
-										<div className="relative bg-white shadow-2xl print:shadow-none">
+									<div className="resume-print-source">
+										<ResumePreview
+											ref={resumePreviewRef}
+											contentRef={resumePreviewInnerRef}
+											data={resumeData}
+											themeId={themeId}
+											fontSizePt={fontSizePt}
+											fontFamily={fontFamily}
+											pageMarginMm={pageMarginMm}
+											sectionIcons={sectionIcons}
+											sectionPreferences={sectionPreferences}
+											minPageCount={previewPageCount}
+											onSectionClick={handlePreviewSectionClick}
+										/>
+									</div>
+									<div
+										className={`resume-paged-visual ${previewPageMode === "paged" ? "flex" : "hidden"} flex-col print:flex`}
+										style={{ gap: previewPageMode === "paged" ? `${PREVIEW_PAGE_GAP_MM}mm` : 0 }}
+									>
+										{previewPageLayouts.map(
+											(pageLayout, index) => (
+												<div
+													key={index}
+													className="resume-paged-page relative h-[297mm] w-[210mm] overflow-hidden bg-white shadow-2xl print:shadow-none"
+												>
+													<div
+														className="absolute left-0 right-0 overflow-hidden"
+														style={
+															index === 0
+																? {
+																		top: 0,
+																		height: `${A4_HEIGHT_MM - pageMarginMm}mm`,
+																	}
+																: {
+																		top: `${pageMarginMm}mm`,
+																		height: `${printablePageHeightMm}mm`,
+																	}
+														}
+													>
+														<div
+															className="w-[210mm]"
+															style={{
+																transform:
+																	index === 0
+																		? "none"
+																		: `translateY(-${pageMarginMm + pageLayout.startMm}mm)`,
+															}}
+														>
+															<ResumePreview
+																data={resumeData}
+																themeId={themeId}
+																fontSizePt={fontSizePt}
+																fontFamily={fontFamily}
+																pageMarginMm={pageMarginMm}
+																sectionIcons={sectionIcons}
+																sectionPreferences={sectionPreferences}
+																minPageCount={previewPageCount}
+																onSectionClick={handlePreviewSectionClick}
+															/>
+														</div>
+													</div>
+												</div>
+											),
+										)}
+									</div>
+									{previewPageMode === "continuous" && (
+										<div className="relative bg-white shadow-2xl print:hidden">
 											<ResumePreview
-												ref={resumePreviewRef}
-												contentRef={resumePreviewInnerRef}
 												data={resumeData}
 												themeId={themeId}
 												fontSizePt={fontSizePt}
@@ -1937,70 +1943,6 @@ function App() {
 												),
 											)}
 										</div>
-									) : (
-										<>
-											<div className="resume-print-source">
-												<ResumePreview
-													ref={resumePreviewRef}
-													contentRef={resumePreviewInnerRef}
-													data={resumeData}
-													themeId={themeId}
-													fontSizePt={fontSizePt}
-													fontFamily={fontFamily}
-													pageMarginMm={pageMarginMm}
-													sectionIcons={sectionIcons}
-													sectionPreferences={sectionPreferences}
-													minPageCount={previewPageCount}
-													onSectionClick={handlePreviewSectionClick}
-												/>
-											</div>
-											<div
-												className="resume-paged-visual flex flex-col print:hidden"
-												style={{ gap: `${PREVIEW_PAGE_GAP_MM}mm` }}
-											>
-												{previewPageLayouts.map(
-													(pageLayout, index) => (
-														<div
-															key={index}
-															className="relative h-[297mm] w-[210mm] overflow-hidden bg-white shadow-2xl"
-														>
-															<div
-																className="absolute left-0 top-0 w-[210mm]"
-																style={{
-																	transform: `translateY(-${pageLayout.startMm}mm)`,
-																}}
-															>
-																<ResumePreview
-																	data={resumeData}
-																	themeId={themeId}
-																	fontSizePt={fontSizePt}
-																	fontFamily={fontFamily}
-																	pageMarginMm={pageMarginMm}
-																	sectionIcons={sectionIcons}
-																	sectionPreferences={sectionPreferences}
-																	minPageCount={previewPageCount}
-																	onSectionClick={handlePreviewSectionClick}
-																/>
-															</div>
-															{index > 0 && (
-																<div
-																	className="pointer-events-none absolute left-0 right-0 top-0 z-10 bg-white"
-																	style={{ height: `${pageMarginMm}mm` }}
-																/>
-															)}
-															<div
-																className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 bg-white"
-																style={{
-																	height: `${
-																		pageMarginMm + pageLayout.bottomBlankMm
-																	}mm`,
-																}}
-															/>
-														</div>
-													),
-												)}
-											</div>
-										</>
 									)}
 								</div>
 							</div>
