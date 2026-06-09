@@ -4,6 +4,7 @@ export const initialResumeState: ResumeData = {
 	personal: {
 		name: "林小明",
 		title: "高级前端开发工程师",
+		photoUrl: "",
 		phone: "138-1234-5678",
 		email: "linxiaoming@email.com",
 		location: "广东 深圳",

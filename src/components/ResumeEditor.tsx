@@ -9,12 +9,21 @@ import {
 	FolderGit2,
 	GraduationCap,
 	GripVertical,
+	ImagePlus,
 	Plus,
 	School,
 	Trash2,
+	Upload,
 	Wrench,
 } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import {
+	useEffect,
+	useId,
+	useRef,
+	useState,
+	type ChangeEvent,
+	type ReactNode,
+} from "react";
 import {
 	DndContext,
 	closestCenter,
@@ -35,6 +44,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { createResumeItemId } from "../data/resumeData";
 import ToggleSwitch from "./ToggleSwitch";
+import {
+	RESUME_PHOTO_MAX_EDGE_PX,
+	RESUME_PHOTO_MAX_FILE_SIZE_BYTES,
+	isEmbeddedResumePhotoUrl,
+	normalizeResumePhotoSrc,
+	resumePhotoFileTypePattern,
+} from "../utils/resumePhoto";
 import type {
 	Education,
 	Experience,
@@ -59,6 +75,58 @@ interface InputGroupProps {
 
 const inputClass =
 	"w-full rounded-md border border-slate-200 bg-white p-2 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-blue-500";
+
+const readFileAsCompressedPhoto = (file: File) =>
+	new Promise<string>((resolve, reject) => {
+		if (!resumePhotoFileTypePattern.test(file.type)) {
+			reject(new Error("仅支持 JPG、PNG、WebP 图片"));
+			return;
+		}
+
+		if (file.size > RESUME_PHOTO_MAX_FILE_SIZE_BYTES) {
+			reject(new Error("图片不能超过 5MB"));
+			return;
+		}
+
+		const reader = new FileReader();
+		reader.onerror = () => reject(new Error("无法读取图片"));
+		reader.onload = () => {
+			const image = new Image();
+			image.onerror = () => reject(new Error("无法解析图片"));
+			image.onload = () => {
+				const sourceWidth = image.naturalWidth;
+				const sourceHeight = image.naturalHeight;
+				if (!sourceWidth || !sourceHeight) {
+					reject(new Error("无法解析图片尺寸"));
+					return;
+				}
+
+				const scale = Math.min(
+					1,
+					RESUME_PHOTO_MAX_EDGE_PX / sourceWidth,
+					RESUME_PHOTO_MAX_EDGE_PX / sourceHeight,
+				);
+				const width = Math.max(1, Math.round(sourceWidth * scale));
+				const height = Math.max(1, Math.round(sourceHeight * scale));
+				const canvas = document.createElement("canvas");
+				canvas.width = width;
+				canvas.height = height;
+				const context = canvas.getContext("2d");
+
+				if (!context) {
+					reject(new Error("无法处理图片"));
+					return;
+				}
+
+				context.fillStyle = "#ffffff";
+				context.fillRect(0, 0, width, height);
+				context.drawImage(image, 0, 0, width, height);
+				resolve(canvas.toDataURL("image/jpeg", 0.88));
+			};
+			image.src = String(reader.result ?? "");
+		};
+		reader.readAsDataURL(file);
+	});
 
 const InputGroup = ({
 	label,
@@ -290,6 +358,112 @@ const AddButton = ({
 		<Plus size={16} />
 	</button>
 );
+
+const PhotoField = ({
+	value,
+	onChange,
+}: {
+	value: string;
+	onChange: (value: string) => void;
+}) => {
+	const id = useId();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [error, setError] = useState("");
+	const trimmedValue = value.trim();
+	const photoSrc = normalizeResumePhotoSrc(trimmedValue);
+	const usesEmbeddedPhoto = isEmbeddedResumePhotoUrl(trimmedValue);
+
+	const handlePhotoFileChange = async (
+		event: ChangeEvent<HTMLInputElement>,
+	) => {
+		const file = event.target.files?.[0];
+		event.currentTarget.value = "";
+		if (!file) return;
+
+		setError("");
+		try {
+			onChange(await readFileAsCompressedPhoto(file));
+		} catch (uploadError) {
+			setError(uploadError instanceof Error ? uploadError.message : "照片导入失败");
+		}
+	};
+
+	return (
+		<div className="mb-3 rounded-md border border-slate-200 bg-slate-50/70 p-3">
+			<div className="flex items-start gap-3">
+				<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white text-slate-300">
+					{photoSrc ? (
+						<img
+							src={photoSrc}
+							alt="简历照片预览"
+							className="h-full w-full object-cover"
+						/>
+					) : (
+						<ImagePlus size={22} />
+					)}
+				</div>
+				<div className="min-w-0 flex-1">
+					<div className="mb-2 flex items-center justify-between gap-2">
+						<label
+							htmlFor={id}
+							className="text-xs font-medium text-slate-500"
+						>
+							照片
+						</label>
+						<div className="flex shrink-0 gap-1">
+							<button
+								type="button"
+								onClick={() => fileInputRef.current?.click()}
+								className="flex h-7 w-7 items-center justify-center rounded text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-500"
+								title="上传照片"
+								aria-label="上传照片"
+							>
+								<Upload size={14} />
+							</button>
+							{trimmedValue && (
+								<button
+									type="button"
+									onClick={() => {
+										setError("");
+										onChange("");
+									}}
+									className="flex h-7 w-7 items-center justify-center rounded text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+									title="移除照片"
+									aria-label="移除照片"
+								>
+									<Trash2 size={14} />
+								</button>
+							)}
+						</div>
+					</div>
+					<input
+						ref={fileInputRef}
+						type="file"
+						accept="image/jpeg,image/png,image/webp"
+						className="hidden"
+						onChange={handlePhotoFileChange}
+					/>
+					<input
+						id={id}
+						type="url"
+						className={inputClass}
+						value={usesEmbeddedPhoto ? "" : value}
+						onChange={(event) => {
+							setError("");
+							onChange(event.target.value);
+						}}
+						placeholder={
+							usesEmbeddedPhoto
+								? "已上传本地照片"
+								: "https://example.com/photo.jpg"
+						}
+					/>
+					{error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+				</div>
+			</div>
+		</div>
+	);
+};
 
 const ResumeEditor = ({
 	data,
@@ -636,6 +810,10 @@ const ResumeEditor = ({
 					label="职位头衔"
 					value={data.personal.title}
 					onChange={(value) => updatePersonal("title", value)}
+				/>
+				<PhotoField
+					value={data.personal.photoUrl}
+					onChange={(value) => updatePersonal("photoUrl", value)}
 				/>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					<InputGroup

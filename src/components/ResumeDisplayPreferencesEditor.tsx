@@ -5,11 +5,15 @@ import {
 	Code2,
 	FolderGit2,
 	GraduationCap,
+	Image,
 	Award,
 	Link2,
 	List,
+	Maximize2,
+	MoveHorizontal,
 	School,
 	Tags,
+	UserRound,
 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -17,6 +21,8 @@ import type {
 	OtherListStyle,
 	ProjectLinksPosition,
 	ProjectTagPosition,
+	ResumePhotoPosition,
+	ResumePhotoSizeRatio,
 	ResumeSectionPreferences,
 	SectionDatePosition,
 	SectionEntryDisplayStyle,
@@ -32,7 +38,7 @@ interface ResumeDisplayPreferencesEditorProps {
 	onChange: (preferences: ResumeSectionPreferences) => void;
 }
 
-interface SegmentedOption<T extends string> {
+interface SegmentedOption<T extends string | number> {
 	value: T;
 	label: string;
 }
@@ -88,7 +94,18 @@ const sectionEntryDisplayOptions: SegmentedOption<SectionEntryDisplayStyle>[] = 
 	{ value: "detail", label: "详情" },
 ];
 
-const SegmentedControl = <T extends string>({
+const photoPositionOptions: SegmentedOption<ResumePhotoPosition>[] = [
+	{ value: "right", label: "右侧" },
+	{ value: "left", label: "左侧" },
+];
+
+const photoSizeRatioOptions: SegmentedOption<ResumePhotoSizeRatio>[] = [
+	{ value: 0.85, label: "85%" },
+	{ value: 1, label: "100%" },
+	{ value: 1.15, label: "115%" },
+];
+
+const SegmentedControl = <T extends string | number>({
 	label,
 	value,
 	options,
@@ -196,9 +213,22 @@ const ResumeDisplayPreferencesEditor = ({
 	preferences,
 	onChange,
 }: ResumeDisplayPreferencesEditorProps) => {
+	const [personalExpanded, setPersonalExpanded] = useState(false);
 	const [expandedSections, setExpandedSections] = useState<
 		Partial<Record<SectionKey, boolean>>
 	>({});
+	const updatePersonal = (
+		patch: Partial<ResumeSectionPreferences["personal"]>,
+	) => {
+		onChange({
+			...preferences,
+			personal: {
+				...preferences.personal,
+				...patch,
+			},
+		});
+	};
+
 	const updateSection = <K extends keyof ResumeSectionPreferences>(
 		key: K,
 		patch: Partial<ResumeSectionPreferences[K]>,
@@ -403,6 +433,38 @@ const ResumeDisplayPreferencesEditor = ({
 		}
 	};
 
+	const renderPersonalPreferences = () => (
+		<PreferenceBlock
+			title="个人信息"
+			icon={<UserRound size={14} />}
+			expanded={personalExpanded}
+			onToggle={() => setPersonalExpanded((expanded) => !expanded)}
+		>
+			<ToggleControl
+				label="头像"
+				checked={preferences.personal.showPhoto}
+				onChange={(showPhoto) => updatePersonal({ showPhoto })}
+				icon={<Image size={12} />}
+			/>
+			<SegmentedControl
+				label="位置"
+				value={preferences.personal.photoPosition}
+				options={photoPositionOptions}
+				onChange={(photoPosition) => updatePersonal({ photoPosition })}
+				icon={<MoveHorizontal size={12} />}
+				disabled={!preferences.personal.showPhoto}
+			/>
+			<SegmentedControl
+				label="大小"
+				value={preferences.personal.photoSizeRatio}
+				options={photoSizeRatioOptions}
+				onChange={(photoSizeRatio) => updatePersonal({ photoSizeRatio })}
+				icon={<Maximize2 size={12} />}
+				disabled={!preferences.personal.showPhoto}
+			/>
+		</PreferenceBlock>
+	);
+
 	return (
 		<section
 			className="border-b border-slate-200 p-4 last:border-b-0"
@@ -410,9 +472,12 @@ const ResumeDisplayPreferencesEditor = ({
 		>
 			<div className="mb-1 flex items-center justify-between gap-2">
 				<h2 className="text-sm font-bold text-slate-800">显示偏好</h2>
-				<span className="text-[11px] text-slate-400">按区块</span>
+				<span className="text-[11px] text-slate-400">头像与区块</span>
 			</div>
-			<div>{sectionOrder.map(renderSectionPreferences)}</div>
+			<div>
+				{renderPersonalPreferences()}
+				{sectionOrder.map(renderSectionPreferences)}
+			</div>
 		</section>
 	);
 };

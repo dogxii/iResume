@@ -8,8 +8,15 @@ export type ProjectTagPosition = "title" | "below";
 export type SkillContentStyle = "theme" | "text" | "chips";
 export type OtherListStyle = "bullets" | "plain";
 export type SectionEntryDisplayStyle = "list" | "detail";
+export type ResumePhotoPosition = "left" | "right";
+export type ResumePhotoSizeRatio = 0.85 | 1 | 1.15;
 
 export interface ResumeSectionPreferences {
+	personal: {
+		showPhoto: boolean;
+		photoPosition: ResumePhotoPosition;
+		photoSizeRatio: ResumePhotoSizeRatio;
+	};
 	skills: {
 		showLabels: boolean;
 		contentStyle: SkillContentStyle;
@@ -41,6 +48,11 @@ export interface ResumeSectionPreferences {
 }
 
 export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
+	personal: {
+		showPhoto: true,
+		photoPosition: "right",
+		photoSizeRatio: 1,
+	},
 	skills: {
 		showLabels: true,
 		contentStyle: "theme",
@@ -237,6 +249,27 @@ export function normalizeSectionEntryDisplayStyle(
 	return value === "list" || value === "detail" ? value : fallback;
 }
 
+export function normalizeResumePhotoPosition(
+	value: unknown,
+	fallback: ResumePhotoPosition = "right",
+): ResumePhotoPosition {
+	return value === "left" || value === "right" ? value : fallback;
+}
+
+export function normalizeResumePhotoSizeRatio(
+	value: unknown,
+	fallback: ResumePhotoSizeRatio = 1,
+): ResumePhotoSizeRatio {
+	const numericValue =
+		typeof value === "string" || typeof value === "number"
+			? Number(value)
+			: fallback;
+
+	return numericValue === 0.85 || numericValue === 1 || numericValue === 1.15
+		? numericValue
+		: fallback;
+}
+
 export function normalizeResumeSectionPreferences(
 	value: unknown,
 	fallback: ResumeSectionPreferences = DEFAULT_SECTION_PREFERENCES,
@@ -246,6 +279,7 @@ export function normalizeResumeSectionPreferences(
 	},
 ): ResumeSectionPreferences {
 	const raw = isRecord(value) ? value : {};
+	const personal = isRecord(raw.personal) ? raw.personal : {};
 	const skills = isRecord(raw.skills) ? raw.skills : {};
 	const experience = isRecord(raw.experience) ? raw.experience : {};
 	const projects = isRecord(raw.projects) ? raw.projects : {};
@@ -259,8 +293,24 @@ export function normalizeResumeSectionPreferences(
 	const fallbackCampusStyle =
 		fallback.campus?.displayStyle ??
 		DEFAULT_SECTION_PREFERENCES.campus.displayStyle;
+	const fallbackPersonal =
+		fallback.personal ?? DEFAULT_SECTION_PREFERENCES.personal;
 
 	return {
+		personal: {
+			showPhoto: readBoolean(
+				personal.showPhoto,
+				fallbackPersonal.showPhoto,
+			),
+			photoPosition: normalizeResumePhotoPosition(
+				personal.photoPosition,
+				fallbackPersonal.photoPosition,
+			),
+			photoSizeRatio: normalizeResumePhotoSizeRatio(
+				personal.photoSizeRatio,
+				fallbackPersonal.photoSizeRatio,
+			),
+		},
 		skills: {
 			showLabels: readBoolean(
 				skills.showLabels,

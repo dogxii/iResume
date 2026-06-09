@@ -41,6 +41,7 @@ import type {
 } from "../types/resume";
 import type { ContentDensity, ThemeId } from "../types/theme";
 import { parseInline, renderMarkdownList } from "../utils/markdown";
+import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { normalizeSafeUrl } from "../utils/url";
 
 interface ResumePreviewProps {
@@ -192,6 +193,12 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const normalizedFontFamily = normalizeResumeFontFamily(fontFamily);
 		const fontFamilyCss = getResumeFontFamilyCss(normalizedFontFamily);
 		const fontClass = theme.fontStyle === "serif" ? "font-serif" : "font-sans";
+		const photoUrl = normalizeResumePhotoSrc(data.personal.photoUrl);
+		const photoVisible = Boolean(
+			photoUrl && sectionPreferences.personal.showPhoto,
+		);
+		const photoOnLeft = sectionPreferences.personal.photoPosition === "left";
+		const photoSizeRatio = sectionPreferences.personal.photoSizeRatio;
 
 		const previewStyle = {
 			"--resume-page-margin": `${normalizedPageMargin}mm`,
@@ -544,12 +551,43 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			);
 		};
 
+		const renderProfilePhoto = (
+			variant: "default" | "centered" | "banner" = "default",
+		) => {
+			if (!photoVisible) return null;
+
+			const altText = data.personal.name.trim()
+				? `${data.personal.name} 的照片`
+				: "简历照片";
+			const baseSize = variant === "centered" ? 80 : variant === "banner" ? 76 : 74;
+			const photoSize = Math.round(baseSize * photoSizeRatio);
+			const className =
+				variant === "centered"
+					? `mx-auto mb-3 rounded-md border ${c.divider} object-cover`
+					: variant === "banner"
+						? "rounded-md border-2 border-white/50 object-cover shadow-sm"
+						: `rounded-md border ${c.divider} object-cover`;
+
+			return (
+				<img
+					src={photoUrl}
+					alt={altText}
+					className={className}
+					style={{ height: photoSize, width: photoSize }}
+				/>
+			);
+		};
+
 		const renderHeader = () => {
 			const dividerClass =
-				theme.headerDivider && (hasContactInfo || hasLinks)
+				theme.headerDivider && (hasContactInfo || hasLinks || photoVisible)
 					? `border-b ${c.divider} pb-4 ${spacing.header}`
 					: spacing.header;
 			const emailHref = normalizeSafeUrl(`mailto:${data.personal.email}`);
+			const hasHeaderColumns = Boolean(hasContactInfo || photoVisible);
+			const hasRightAside = Boolean(
+				hasContactInfo || (photoVisible && !photoOnLeft),
+			);
 
 			switch (theme.headerLayout) {
 				case "split":
@@ -557,12 +595,13 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						<header className={dividerClass}>
 							<div
 								className={`flex gap-6 ${
-									hasContactInfo
-										? "justify-between items-end"
+									hasHeaderColumns
+										? "items-start justify-between"
 										: "flex-col"
 								}`}
 							>
-								<div>
+								{photoOnLeft && renderProfilePhoto()}
+								<div className="min-w-0 flex-1">
 									{data.personal.name.trim() && (
 										<h1
 											className={`text-3xl font-bold ${c.heading} tracking-tight`}
@@ -576,13 +615,50 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 										</p>
 									)}
 								</div>
-								{renderContactInfo()}
+								{hasRightAside && (
+									<div className="flex shrink-0 items-start justify-end gap-4">
+										{hasContactInfo && <div>{renderContactInfo()}</div>}
+										{!photoOnLeft && renderProfilePhoto()}
+									</div>
+								)}
 							</div>
 							{renderLinks()}
 						</header>
 					);
 
 				case "centered":
+					if (photoVisible) {
+						return (
+							<header className={dividerClass}>
+								<div
+									className={`flex items-start gap-4 ${
+										photoOnLeft ? "" : "flex-row-reverse"
+									}`}
+								>
+									{renderProfilePhoto()}
+									<div className="min-w-0 flex-1 text-center">
+										{data.personal.name.trim() && (
+											<h1
+												className={`text-3xl font-bold ${c.heading} tracking-tight`}
+											>
+												{data.personal.name}
+											</h1>
+										)}
+										{data.personal.title.trim() && (
+											<p className={`text-base ${c.primary} font-medium mt-1`}>
+												{data.personal.title}
+											</p>
+										)}
+										{hasContactInfo && (
+											<div className="mt-3">{renderContactInfo()}</div>
+										)}
+										{renderLinks()}
+									</div>
+								</div>
+							</header>
+						);
+					}
+
 					return (
 						<header className={`text-center ${dividerClass}`}>
 							{data.personal.name.trim() && (
@@ -608,8 +684,9 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					return (
 						<header className={spacing.header}>
 							<div className={`border-l-4 ${c.primaryBorder} pl-4`}>
-								<div className="flex items-end justify-between gap-6">
-									<div>
+								<div className="flex items-start justify-between gap-6">
+									{photoOnLeft && renderProfilePhoto()}
+									<div className="min-w-0 flex-1">
 										{data.personal.name.trim() && (
 											<h1
 												className={`text-3xl font-bold ${c.heading} tracking-tight`}
@@ -623,7 +700,12 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											</p>
 										)}
 									</div>
-									{hasContactInfo && <div>{renderContactInfo()}</div>}
+									{hasRightAside && (
+										<div className="flex shrink-0 items-start justify-end gap-4">
+											{hasContactInfo && <div>{renderContactInfo()}</div>}
+											{!photoOnLeft && renderProfilePhoto()}
+										</div>
+									)}
 								</div>
 							</div>
 							{renderLinks()}
@@ -636,8 +718,9 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							<div
 								className={`resume-banner-inner ${theme.bannerBg ?? "bg-slate-800"} text-white`}
 							>
-								<div className="flex justify-between items-end gap-6">
-									<div>
+								<div className="flex items-start justify-between gap-6">
+									{photoOnLeft && renderProfilePhoto("banner")}
+									<div className="min-w-0 flex-1">
 										{data.personal.name.trim() && (
 											<h1 className="text-3xl font-bold tracking-tight">
 												{data.personal.name}
@@ -651,41 +734,46 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											</p>
 										)}
 									</div>
-									{hasContactInfo && (
-										<div className="text-right text-sm text-slate-300 space-y-1">
-											{hasPhone && (
-												<div className="flex items-center justify-end gap-2">
-													<span>{data.personal.phone}</span>
-													{theme.showContactIcons && <Phone size={13} />}
-												</div>
-											)}
-											{hasEmail && (
-												<div className="flex items-center justify-end gap-2">
-													{emailHref ? (
-														<a
-															href={emailHref}
-															className={`${theme.bannerAccent ?? "text-amber-400"} hover:opacity-80 hover:underline`}
-														>
-															{data.personal.email}
-														</a>
-													) : (
-														<span>{data.personal.email}</span>
+									{hasRightAside && (
+										<div className="flex shrink-0 items-start justify-end gap-4">
+											{hasContactInfo && (
+												<div className="space-y-1 text-right text-sm text-slate-300">
+													{hasPhone && (
+														<div className="flex items-center justify-end gap-2">
+															<span>{data.personal.phone}</span>
+															{theme.showContactIcons && <Phone size={13} />}
+														</div>
 													)}
-													{theme.showContactIcons && <Mail size={13} />}
+													{hasEmail && (
+														<div className="flex items-center justify-end gap-2">
+															{emailHref ? (
+																<a
+																	href={emailHref}
+																	className={`${theme.bannerAccent ?? "text-amber-400"} hover:opacity-80 hover:underline`}
+																>
+																	{data.personal.email}
+																</a>
+															) : (
+																<span>{data.personal.email}</span>
+															)}
+															{theme.showContactIcons && <Mail size={13} />}
+														</div>
+													)}
+													{hasLocation && (
+														<div className="flex items-center justify-end gap-2">
+															<span>{data.personal.location}</span>
+															{theme.showContactIcons && <MapPin size={13} />}
+														</div>
+													)}
+													{hasAvailability && (
+														<div className="flex items-center justify-end gap-2">
+															<span>{data.personal.availability}</span>
+															{theme.showContactIcons && <Calendar size={13} />}
+														</div>
+													)}
 												</div>
 											)}
-											{hasLocation && (
-												<div className="flex items-center justify-end gap-2">
-													<span>{data.personal.location}</span>
-													{theme.showContactIcons && <MapPin size={13} />}
-												</div>
-											)}
-											{hasAvailability && (
-												<div className="flex items-center justify-end gap-2">
-													<span>{data.personal.availability}</span>
-													{theme.showContactIcons && <Calendar size={13} />}
-												</div>
-											)}
+											{!photoOnLeft && renderProfilePhoto("banner")}
 										</div>
 									)}
 								</div>

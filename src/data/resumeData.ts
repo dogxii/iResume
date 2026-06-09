@@ -56,6 +56,7 @@ function normalizePersonal(value: unknown): PersonalInfo {
 	return {
 		name: readString(raw.name, defaults.name),
 		title: readString(raw.title, defaults.title),
+		photoUrl: readString(raw.photoUrl, defaults.photoUrl),
 		phone: readString(raw.phone, defaults.phone),
 		email: readString(raw.email, defaults.email),
 		location: readString(raw.location, defaults.location),
