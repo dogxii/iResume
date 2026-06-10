@@ -207,28 +207,10 @@ body.resume-space-panning {
 	}
 
 	/* ── 分页策略 ──────────────────────────────────
-	   原则：尽量细粒度保护，不整块锁住 section，
-	   避免浏览器因为装不下而把整块推到下一页、
-	   前一页留大片空白。
-
-	   ① section 标题（h2）不允许出现在页尾，
-	     紧跟的内容必须和它在同一页。
-	   ② 每个条目的"标题行"（公司名+日期+职位 /
-	     项目名+链接）整体不跨页，但其后的描述列表
-	     允许在 li 之间自然断页。
-	   ③ 教育、技能等本身只有 1-2 行的条目整体保护。
-	   ④ 单个 li 不跨页（防止一行文字被截成两半）。
-	   ⑤ header 整体保护。                            */
-
-	section h2 {
-		break-after: avoid;
-	}
-
-	/* 工作/项目条目的标题行（公司名+日期+职位） */
-	.print-item-header {
-		break-inside: avoid;
-		break-after: avoid;
-	}
+	   预览和打印保持一致：内容自然流动，
+	   页面在固定 A4 边界处断开。
+	   不使用 break-inside / break-after 保护，
+	   确保预览所见即打印所得。                            */
 
 	.print-timeline-item {
 		margin-left: 0.375rem;
@@ -240,29 +222,7 @@ body.resume-space-panning {
 	}
 
 	.print-card-item {
-		break-inside: avoid;
 		overflow: visible !important;
-	}
-
-	/* 教育条目（每行很短，整行保护） */
-	.print-edu-item {
-		break-inside: avoid;
-	}
-
-	/* 技能每一行单独保护（label + content 不被截成两半），
-	   但允许行与行之间自然断页，防止整个技能区块被推到下一页 */
-	.print-skill-row {
-		break-inside: avoid;
-	}
-
-	/* 单个列表项不被截断 */
-	li {
-		break-inside: avoid;
-	}
-
-	/* 头部 header 不跨页 */
-	header {
-		break-inside: avoid;
 	}
 }
 

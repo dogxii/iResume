@@ -111,6 +111,7 @@ const CLOUD_SYNC_OAUTH_STATE_STORAGE_KEY = "resume-cloud-sync-oauth-state";
 const A4_HEIGHT_MM = 297;
 const A4_WIDTH_MM = 210;
 const PREVIEW_PAGE_GAP_MM = 10;
+const MAX_PREVIEW_PAGE_BOTTOM_BLANK_RATIO = 0.18;
 const CSS_PX_PER_MM = 96 / 25.4;
 const MOBILE_PREVIEW_BREAKPOINT_PX = 640;
 const MOBILE_PREVIEW_SIDE_PADDING_PX = 32;
@@ -1317,17 +1318,21 @@ function App() {
 		const previewWidth =
 			preview.getBoundingClientRect().width || preview.scrollWidth;
 		const pxPerMm = previewWidth / A4_WIDTH_MM;
-		const printablePageHeight = Math.max(
+		const printablePageHeightPx = Math.max(
 			1,
 			getPrintablePageHeightMm(pageMarginMm) * pxPerMm,
 		);
 		const innerRect = inner.getBoundingClientRect();
 		const contentHeight = innerRect.height;
+		const maxBottomBlankPx =
+			printablePageHeightPx * MAX_PREVIEW_PAGE_BOTTOM_BLANK_RATIO;
 		const avoidBlocks = Array.from(
 			inner.querySelectorAll<HTMLElement>(
 				[
 					"header",
 					"section",
+					"h2",
+					".print-item-header",
 					".print-timeline-item",
 					".print-card-item",
 					".print-edu-item",
@@ -1348,7 +1353,7 @@ function App() {
 				(block) =>
 					block.height > 1 &&
 					block.height <
-						printablePageHeight * (block.isSection ? 0.35 : 0.92) &&
+						printablePageHeightPx * (block.isSection ? 0.22 : 0.92) &&
 					block.top >= 0,
 			)
 			.sort((a, b) => a.top - b.top);
@@ -1356,17 +1361,29 @@ function App() {
 		const nextLayouts: PreviewPageLayout[] = [];
 		let pageStart = 0;
 		let guard = 0;
+		const maxPages = Math.max(
+			20,
+			Math.ceil(contentHeight / printablePageHeightPx) + avoidBlocks.length + 1,
+		);
 
-		while (pageStart < contentHeight - 1 && guard < 20) {
-			const idealEnd = pageStart + printablePageHeight;
-			const crossingBlock = avoidBlocks.find((block) => {
+		while (pageStart < contentHeight - 1 && guard < maxPages) {
+			const idealEnd = pageStart + printablePageHeightPx;
+			let crossingBlock: (typeof avoidBlocks)[number] | undefined;
+			for (const block of avoidBlocks) {
 				const blockBottom = block.top + block.height;
-				return (
+				const bottomBlank = idealEnd - block.top;
+				const crossesPageEnd =
 					block.top > pageStart + 1 &&
 					block.top < idealEnd - 1 &&
-					blockBottom > idealEnd + 1
-				);
-			});
+					blockBottom > idealEnd + 1;
+				if (
+					crossesPageEnd &&
+					bottomBlank <= maxBottomBlankPx &&
+					(!crossingBlock || block.top > crossingBlock.top)
+				) {
+					crossingBlock = block;
+				}
+			}
 			const pageEnd = crossingBlock ? crossingBlock.top : idealEnd;
 			const bottomBlank = Math.max(0, idealEnd - pageEnd);
 
@@ -1376,11 +1393,7 @@ function App() {
 			});
 
 			const nextStart = crossingBlock ? crossingBlock.top : idealEnd;
-			if (nextStart <= pageStart + 1) {
-				pageStart = idealEnd;
-			} else {
-				pageStart = nextStart;
-			}
+			pageStart = nextStart <= pageStart + 1 ? idealEnd : nextStart;
 			guard += 1;
 		}
 
