@@ -1,4 +1,5 @@
 import {
+	Clock,
 	Download,
 	Github,
 	Hand,
@@ -30,6 +31,7 @@ import PreviewPageModeControl from "./components/PreviewPageModeControl";
 import PreviewZoomControl from "./components/PreviewZoomControl";
 import ResumeEditor from "./components/ResumeEditor";
 import ResumeDisplayPreferencesEditor from "./components/ResumeDisplayPreferencesEditor";
+import ResumeHistoryModal from "./components/ResumeHistory";
 import ResumeManager from "./components/ResumeManager";
 import ResumePreview from "./components/ResumePreview";
 import ThemePicker from "./components/ThemePicker";
@@ -50,6 +52,11 @@ import {
 	normalizeResumeData,
 	normalizeSectionIconVisibility,
 } from "./data/resumeData";
+import {
+	createDocumentHistory,
+	normalizeDocumentHistory,
+	type DocumentHistory,
+} from "./data/resumeHistory";
 import {
 	createResumeDocument,
 	createResumeLibrary,
@@ -108,6 +115,7 @@ const APP_VIEW_STORAGE_KEY = "resume-app-view";
 const CLOUD_SYNC_AUTH_STORAGE_KEY = "resume-cloud-sync-auth";
 const CLOUD_SYNC_SETTINGS_STORAGE_KEY = "resume-cloud-sync-settings";
 const CLOUD_SYNC_OAUTH_STATE_STORAGE_KEY = "resume-cloud-sync-oauth-state";
+const HISTORY_STORAGE_KEY_PREFIX = "resume-history-";
 const A4_HEIGHT_MM = 297;
 const A4_WIDTH_MM = 210;
 const PREVIEW_PAGE_GAP_MM = 10;
@@ -159,6 +167,16 @@ const readInitialView = (library: ResumeLibrary): AppView =>
 	library.documents.length > 0
 		? "editor"
 		: "manager";
+
+const readDocumentHistory = (documentId: string): DocumentHistory => {
+	const saved = localStorage.getItem(HISTORY_STORAGE_KEY_PREFIX + documentId);
+	if (!saved) return createDocumentHistory();
+	try {
+		return normalizeDocumentHistory(JSON.parse(saved));
+	} catch {
+		return createDocumentHistory();
+	}
+};
 
 const getPrintTitleName = (document: ResumeDocument, data: ResumeData) => {
 	const sanitize = (value: string) =>
@@ -512,6 +530,14 @@ function App() {
 	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 	const [rightPanelOpen, setRightPanelOpen] = useState(true);
 	const [appearancePanelOpen, setAppearancePanelOpen] = useState(false);
+	const [historyModalOpen, setHistoryModalOpen] = useState(false);
+	const [documentHistory, setDocumentHistory] = useState<DocumentHistory>(() =>
+		readDocumentHistory(
+			library.documents.find((d) => d.id === library.activeId)?.id ??
+				library.documents[0]?.id ??
+				"",
+		),
+	);
 	const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 	const [previewZoom, setPreviewZoom] = useState<PreviewZoom>(() =>
 		normalizePreviewZoom(
@@ -621,6 +647,17 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem(PREVIEW_PAGE_MODE_STORAGE_KEY, previewPageMode);
 	}, [previewPageMode]);
+
+	useEffect(() => {
+		localStorage.setItem(
+			HISTORY_STORAGE_KEY_PREFIX + activeDocument.id,
+			JSON.stringify(documentHistory),
+		);
+	}, [activeDocument.id, documentHistory]);
+
+	useEffect(() => {
+		setDocumentHistory(readDocumentHistory(activeDocument.id));
+	}, [activeDocument.id]);
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
@@ -1804,7 +1841,7 @@ function App() {
 									</div>
 								</div>
 
-								<div className="mt-3 grid grid-cols-5 gap-1.5">
+								<div className="mt-3 grid grid-cols-6 gap-1.5">
 									<WorkbenchIconButton label="重置" onClick={handleReset}>
 										<RotateCcw size={16} />
 									</WorkbenchIconButton>
@@ -1827,6 +1864,12 @@ function App() {
 										disabled={imageExportStatus === "exporting"}
 									>
 										<ImageDown size={16} />
+									</WorkbenchIconButton>
+									<WorkbenchIconButton
+										label="历史栈道"
+										onClick={() => setHistoryModalOpen(true)}
+									>
+										<Clock size={16} />
 									</WorkbenchIconButton>
 									<WorkbenchIconButton
 										label="保存 PDF"
@@ -2059,6 +2102,23 @@ function App() {
 				>
 					<PanelRightOpen size={17} />
 				</button>
+			)}
+
+			{historyModalOpen && (
+				<ResumeHistoryModal
+					documentHistory={documentHistory}
+					currentData={resumeData}
+					currentVersion={activeDocument.version}
+					onChangeHistory={setDocumentHistory}
+					onRestore={(data) => {
+						handleResumeDataChange(data);
+						setHistoryModalOpen(false);
+					}}
+					onVersionChange={(version) => {
+						handleUpdateResumeMeta(activeDocument.id, { version });
+					}}
+					onClose={() => setHistoryModalOpen(false)}
+				/>
 			)}
 
 			<div
