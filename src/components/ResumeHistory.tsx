@@ -65,7 +65,7 @@ interface ResumeHistoryModalProps {
 	currentData: ResumeData;
 	currentVersion: string;
 	onChangeHistory: (history: DocumentHistory) => void;
-	onRestore: (data: ResumeData) => void;
+	onRestore: (data: ResumeData, version: string) => void;
 	onVersionChange: (version: string) => void;
 	onClose: () => void;
 }
@@ -216,12 +216,13 @@ const ResumeHistoryModal = ({
 			if (restoringId) return;
 			setRestoringId(snapshot.id);
 			requestAnimationFrame(() => {
-				onRestore(snapshot.data);
-				setRestoringId(null);
-				onClose();
+			onRestore(snapshot.data, snapshot.version);
+			onVersionChange(snapshot.version);
+			setRestoringId(null);
+			onClose();
 			});
 		},
-		[restoringId, onRestore, onClose],
+		[restoringId, onRestore, onClose, onVersionChange],
 	);
 
 	const handleDelete = useCallback(

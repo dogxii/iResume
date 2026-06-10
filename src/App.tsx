@@ -2213,8 +2213,9 @@ function App() {
 					currentData={resumeData}
 					currentVersion={activeDocument.version}
 					onChangeHistory={setDocumentHistory}
-					onRestore={(data) => {
+					onRestore={(data, version) => {
 						handleResumeDataChange(data);
+						handleUpdateResumeMeta(activeDocument.id, { version });
 						setHistoryModalOpen(false);
 					}}
 					onVersionChange={(version) => {
