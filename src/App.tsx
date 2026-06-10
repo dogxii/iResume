@@ -154,6 +154,20 @@ interface CloudSyncSettings {
 const getPrintablePageHeightMm = (pageMarginMm: ResumePageMarginMm) =>
 	A4_HEIGHT_MM - pageMarginMm * 2;
 
+const readTimeMs = (value: unknown) => {
+	if (typeof value !== "string") return null;
+	const time = new Date(value).getTime();
+	return Number.isFinite(time) ? time : null;
+};
+
+const formatSyncDateTime = (timeMs: number) =>
+	new Intl.DateTimeFormat("zh-CN", {
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(new Date(timeMs));
+
 const getImportedResumeAppearance = (
 	imported: ImportedResumeBackup,
 	fallback?: ResumeAppearance,
@@ -176,6 +190,16 @@ const getImportedResumeAppearance = (
 		fallback,
 	);
 };
+
+const getLatestLibraryUpdatedAtMs = (library: ResumeLibrary) =>
+	library.documents.reduce<number | null>((latest, document) => {
+		const updatedAt = readTimeMs(document.updatedAt);
+		if (updatedAt === null) return latest;
+		return latest === null ? updatedAt : Math.max(latest, updatedAt);
+	}, null);
+
+const getBackupExportedAtMs = (backup: unknown) =>
+	isPlainObject(backup) ? readTimeMs(backup.exportedAt) : null;
 
 type AppView = "manager" | "editor";
 
@@ -1087,6 +1111,29 @@ function App() {
 				content,
 				cloudSyncAuth.syncKey,
 			);
+			const cloudExportedAt = getBackupExportedAtMs(parsed);
+			const localUpdatedAt = getLatestLibraryUpdatedAtMs(library);
+			if (
+				cloudExportedAt !== null &&
+				localUpdatedAt !== null &&
+				cloudExportedAt < localUpdatedAt
+			) {
+				const confirmed = window.confirm(
+					[
+						"云端数据可能早于本地数据，继续恢复会覆盖当前本地简历库。",
+						"",
+						`云端备份：${formatSyncDateTime(cloudExportedAt)}`,
+						`本地最新：${formatSyncDateTime(localUpdatedAt)}`,
+						"",
+						"确定要继续从云端恢复吗？",
+					].join("\n"),
+				);
+				if (!confirmed) {
+					setCloudSyncMessage("已取消从云端恢复，本地数据未变更");
+					return;
+				}
+			}
+
 			const error = applyUserDataBackup(parsed);
 			if (error) throw new Error(error);
 			const syncedAt = new Date().toISOString();
