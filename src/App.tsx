@@ -225,18 +225,24 @@ const readDocumentHistory = (documentId: string): DocumentHistory => {
 	}
 };
 
-const getPrintTitleName = (document: ResumeDocument, data: ResumeData) => {
-	const sanitize = (value: string) =>
-		value
-			.replace(/[\\/:*?"<>|]+/g, " ")
-			.replace(/\s+/g, " ")
-			.trim();
+const sanitizeFileNamePart = (value: string) =>
+	value
+		.replace(/[\\/:*?"<>|]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
 
-	return (
-		sanitize(document.name) ||
-		sanitize(data.personal.name) ||
-		"简历"
-	);
+const getResumeExportFileBaseName = (
+	document: ResumeDocument,
+	data: ResumeData,
+) => {
+	const name =
+		sanitizeFileNamePart(document.name) ||
+		sanitizeFileNamePart(data.personal.name) ||
+		"resume";
+	const version =
+		sanitizeFileNamePart(document.version).replace(/^v+/i, "") || "1.0.0";
+
+	return `${name}-v${version}`;
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -1604,7 +1610,7 @@ function App() {
 	};
 
 	const handlePrint = useCallback(() => {
-		const name = getPrintTitleName(activeDocument, resumeData);
+		const filename = getResumeExportFileBaseName(activeDocument, resumeData);
 		const originalTitle = document.title;
 		const canvasNode = canvasScrollRef.current;
 		const savedScroll = canvasNode
@@ -1618,7 +1624,7 @@ function App() {
 			top: window.scrollY,
 		};
 
-		document.title = `${name} - iResume 简历`;
+		document.title = filename;
 
 		const restoreCanvasScroll = () => {
 			const restore = () => {
@@ -1671,9 +1677,10 @@ function App() {
 		const json = JSON.stringify(backup, null, 2);
 		const blob = new Blob([json], { type: "application/json" });
 		const url = URL.createObjectURL(blob);
-		const name =
-			activeDocument.name.trim() || resumeData.personal.name.trim() || "resume";
-		const filename = `${name}_iResume.json`;
+		const filename = `${getResumeExportFileBaseName(
+			activeDocument,
+			resumeData,
+		)}.json`;
 
 		const a = document.createElement("a");
 		a.href = url;
@@ -1711,11 +1718,12 @@ function App() {
 				},
 			});
 
-			const name =
-				activeDocument.name.trim() || resumeData.personal.name.trim() || "resume";
 			const a = document.createElement("a");
 			a.href = dataUrl;
-			a.download = `${name}_iResume.png`;
+			a.download = `${getResumeExportFileBaseName(
+				activeDocument,
+				resumeData,
+			)}.png`;
 			a.click();
 			setImageExportStatus("idle");
 		} catch (error) {
