@@ -36,6 +36,7 @@ import ThemePicker from "./components/ThemePicker";
 import {
 	createResumeBackup,
 	normalizeResumeBackup,
+	type ImportedResumeBackup,
 } from "./data/resumeBackup";
 import {
 	createGitHubSyncGist,
@@ -58,6 +59,7 @@ import {
 	normalizeResumeLibrary,
 	normalizeResumeTags,
 	normalizeResumeVersion,
+	type ResumeAppearance,
 	type ResumeDocument,
 	type ResumeLibrary,
 } from "./data/resumeLibrary";
@@ -151,6 +153,51 @@ interface CloudSyncSettings {
 
 const getPrintablePageHeightMm = (pageMarginMm: ResumePageMarginMm) =>
 	A4_HEIGHT_MM - pageMarginMm * 2;
+
+const readTimeMs = (value: unknown) => {
+	if (typeof value !== "string") return null;
+	const time = new Date(value).getTime();
+	return Number.isFinite(time) ? time : null;
+};
+
+const formatSyncDateTime = (timeMs: number) =>
+	new Intl.DateTimeFormat("zh-CN", {
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(new Date(timeMs));
+
+const getImportedResumeAppearance = (
+	imported: ImportedResumeBackup,
+	fallback?: ResumeAppearance,
+): ResumeAppearance => {
+	const importedThemeId = imported.themeId ?? fallback?.themeId ?? DEFAULT_THEME_ID;
+
+	return normalizeResumeAppearance(
+		{
+			themeId: importedThemeId,
+			fontSizePt: imported.fontSizePt ?? fallback?.fontSizePt,
+			pageMarginMm: imported.pageMarginMm ?? fallback?.pageMarginMm,
+			fontFamily: imported.fontFamily ?? fallback?.fontFamily,
+			sectionIcons:
+				imported.sectionIcons ?? getDefaultSectionIconVisibility(importedThemeId),
+			sectionPreferences:
+				imported.sectionPreferences ?? fallback?.sectionPreferences,
+		},
+		fallback,
+	);
+};
+
+const getLatestLibraryUpdatedAtMs = (library: ResumeLibrary) =>
+	library.documents.reduce<number | null>((latest, document) => {
+		const updatedAt = readTimeMs(document.updatedAt);
+		if (updatedAt === null) return latest;
+		return latest === null ? updatedAt : Math.max(latest, updatedAt);
+	}, null);
+
+const getBackupExportedAtMs = (backup: unknown) =>
+	isPlainObject(backup) ? readTimeMs(backup.exportedAt) : null;
 
 type AppView = "manager" | "editor";
 
@@ -1062,6 +1109,29 @@ function App() {
 				content,
 				cloudSyncAuth.syncKey,
 			);
+			const cloudExportedAt = getBackupExportedAtMs(parsed);
+			const localUpdatedAt = getLatestLibraryUpdatedAtMs(library);
+			if (
+				cloudExportedAt !== null &&
+				localUpdatedAt !== null &&
+				cloudExportedAt < localUpdatedAt
+			) {
+				const confirmed = window.confirm(
+					[
+						"云端数据可能早于本地数据，继续恢复会覆盖当前本地简历库。",
+						"",
+						`云端备份：${formatSyncDateTime(cloudExportedAt)}`,
+						`本地最新：${formatSyncDateTime(localUpdatedAt)}`,
+						"",
+						"确定要继续从云端恢复吗？",
+					].join("\n"),
+				);
+				if (!confirmed) {
+					setCloudSyncMessage("已取消从云端恢复，本地数据未变更");
+					return;
+				}
+			}
+
 			const error = applyUserDataBackup(parsed);
 			if (error) throw new Error(error);
 			const syncedAt = new Date().toISOString();
@@ -1236,6 +1306,41 @@ function App() {
 			documents: [nextDocument, ...current.documents],
 		}));
 		setView("editor");
+	};
+
+	const handleCreateResumeFromJson = async (input: {
+		name: string;
+		tags: string[];
+		file: File;
+	}): Promise<string | null> => {
+		if (!input.file.name.endsWith(".json")) return "请选择 .json 文件";
+
+		try {
+			const text = await readFileAsText(input.file);
+			const parsed = JSON.parse(text) as unknown;
+			if (isPlainObject(parsed) && "library" in parsed) {
+				return "这是用户数据备份，请在设置中导入";
+			}
+
+			const imported = normalizeResumeBackup(parsed);
+			const nextDocument = createResumeDocument({
+				name: input.name,
+				tags: input.tags,
+				data: imported.data,
+				appearance: getImportedResumeAppearance(imported),
+			});
+
+			setLibrary((current) => ({
+				...current,
+				activeId: nextDocument.id,
+				documents: [nextDocument, ...current.documents],
+			}));
+			setView("editor");
+			return null;
+		} catch (error) {
+			console.error("Failed to create resume from JSON", error);
+			return "文件解析失败，请确认是有效的单份简历 JSON";
+		}
 	};
 
 	const handleOpenResume = (id: string) => {
@@ -1602,22 +1707,11 @@ function App() {
 			try {
 				const parsed = JSON.parse(ev.target?.result as string);
 				const imported = normalizeResumeBackup(parsed);
-				const importedThemeId = imported.themeId ?? themeId;
 				updateActiveDocument((document) => ({
 					...document,
 					data: imported.data,
-					appearance: normalizeResumeAppearance(
-						{
-							themeId: importedThemeId,
-							fontSizePt: imported.fontSizePt ?? fontSizePt,
-							pageMarginMm: imported.pageMarginMm ?? pageMarginMm,
-							fontFamily: imported.fontFamily ?? fontFamily,
-							sectionIcons:
-								imported.sectionIcons ??
-								getDefaultSectionIconVisibility(importedThemeId),
-							sectionPreferences:
-								imported.sectionPreferences ?? sectionPreferences,
-						},
+					appearance: getImportedResumeAppearance(
+						imported,
 						document.appearance,
 					),
 				}));
@@ -1635,6 +1729,7 @@ function App() {
 				<ResumeManager
 					documents={library.documents}
 					onCreate={handleCreateResume}
+					onCreateFromJson={handleCreateResumeFromJson}
 					onOpen={handleOpenResume}
 					onDuplicate={handleDuplicateResume}
 					onDelete={handleDeleteResume}
