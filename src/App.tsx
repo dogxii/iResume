@@ -181,9 +181,7 @@ const getImportedResumeAppearance = (
 			pageMarginMm: imported.pageMarginMm ?? fallback?.pageMarginMm,
 			fontFamily: imported.fontFamily ?? fallback?.fontFamily,
 			sectionIcons:
-				imported.sectionIcons ??
-				fallback?.sectionIcons ??
-				getDefaultSectionIconVisibility(importedThemeId),
+				imported.sectionIcons ?? getDefaultSectionIconVisibility(importedThemeId),
 			sectionPreferences:
 				imported.sectionPreferences ?? fallback?.sectionPreferences,
 		},
