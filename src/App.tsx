@@ -36,6 +36,7 @@ import ThemePicker from "./components/ThemePicker";
 import {
 	createResumeBackup,
 	normalizeResumeBackup,
+	type ImportedResumeBackup,
 } from "./data/resumeBackup";
 import {
 	createGitHubSyncGist,
@@ -58,6 +59,7 @@ import {
 	normalizeResumeLibrary,
 	normalizeResumeTags,
 	normalizeResumeVersion,
+	type ResumeAppearance,
 	type ResumeDocument,
 	type ResumeLibrary,
 } from "./data/resumeLibrary";
@@ -151,6 +153,29 @@ interface CloudSyncSettings {
 
 const getPrintablePageHeightMm = (pageMarginMm: ResumePageMarginMm) =>
 	A4_HEIGHT_MM - pageMarginMm * 2;
+
+const getImportedResumeAppearance = (
+	imported: ImportedResumeBackup,
+	fallback?: ResumeAppearance,
+): ResumeAppearance => {
+	const importedThemeId = imported.themeId ?? fallback?.themeId ?? DEFAULT_THEME_ID;
+
+	return normalizeResumeAppearance(
+		{
+			themeId: importedThemeId,
+			fontSizePt: imported.fontSizePt ?? fallback?.fontSizePt,
+			pageMarginMm: imported.pageMarginMm ?? fallback?.pageMarginMm,
+			fontFamily: imported.fontFamily ?? fallback?.fontFamily,
+			sectionIcons:
+				imported.sectionIcons ??
+				fallback?.sectionIcons ??
+				getDefaultSectionIconVisibility(importedThemeId),
+			sectionPreferences:
+				imported.sectionPreferences ?? fallback?.sectionPreferences,
+		},
+		fallback,
+	);
+};
 
 type AppView = "manager" | "editor";
 
@@ -1238,6 +1263,41 @@ function App() {
 		setView("editor");
 	};
 
+	const handleCreateResumeFromJson = async (input: {
+		name: string;
+		tags: string[];
+		file: File;
+	}): Promise<string | null> => {
+		if (!input.file.name.endsWith(".json")) return "请选择 .json 文件";
+
+		try {
+			const text = await readFileAsText(input.file);
+			const parsed = JSON.parse(text) as unknown;
+			if (isPlainObject(parsed) && "library" in parsed) {
+				return "这是用户数据备份，请在设置中导入";
+			}
+
+			const imported = normalizeResumeBackup(parsed);
+			const nextDocument = createResumeDocument({
+				name: input.name,
+				tags: input.tags,
+				data: imported.data,
+				appearance: getImportedResumeAppearance(imported),
+			});
+
+			setLibrary((current) => ({
+				...current,
+				activeId: nextDocument.id,
+				documents: [nextDocument, ...current.documents],
+			}));
+			setView("editor");
+			return null;
+		} catch (error) {
+			console.error("Failed to create resume from JSON", error);
+			return "文件解析失败，请确认是有效的单份简历 JSON";
+		}
+	};
+
 	const handleOpenResume = (id: string) => {
 		setLibrary((current) => ({ ...current, activeId: id }));
 		setView("editor");
@@ -1602,22 +1662,11 @@ function App() {
 			try {
 				const parsed = JSON.parse(ev.target?.result as string);
 				const imported = normalizeResumeBackup(parsed);
-				const importedThemeId = imported.themeId ?? themeId;
 				updateActiveDocument((document) => ({
 					...document,
 					data: imported.data,
-					appearance: normalizeResumeAppearance(
-						{
-							themeId: importedThemeId,
-							fontSizePt: imported.fontSizePt ?? fontSizePt,
-							pageMarginMm: imported.pageMarginMm ?? pageMarginMm,
-							fontFamily: imported.fontFamily ?? fontFamily,
-							sectionIcons:
-								imported.sectionIcons ??
-								getDefaultSectionIconVisibility(importedThemeId),
-							sectionPreferences:
-								imported.sectionPreferences ?? sectionPreferences,
-						},
+					appearance: getImportedResumeAppearance(
+						imported,
 						document.appearance,
 					),
 				}));
@@ -1635,6 +1684,7 @@ function App() {
 				<ResumeManager
 					documents={library.documents}
 					onCreate={handleCreateResume}
+					onCreateFromJson={handleCreateResumeFromJson}
 					onOpen={handleOpenResume}
 					onDuplicate={handleDuplicateResume}
 					onDelete={handleDeleteResume}

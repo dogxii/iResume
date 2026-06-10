@@ -36,9 +36,16 @@ interface CreateResumeInput {
 	tags: string[];
 }
 
+interface CreateResumeFromJsonInput extends CreateResumeInput {
+	file: File;
+}
+
 interface ResumeManagerProps {
 	documents: ResumeDocument[];
 	onCreate: (input: CreateResumeInput) => void;
+	onCreateFromJson: (
+		input: CreateResumeFromJsonInput,
+	) => Promise<string | null>;
 	onOpen: (id: string) => void;
 	onDuplicate: (id: string) => void;
 	onDelete: (id: string) => void;
@@ -276,7 +283,7 @@ const CreateResumeCard = ({ onClick }: { onClick: () => void }) => (
 			<Plus size={22} />
 		</span>
 		<span className="text-sm font-semibold">新建简历</span>
-		<span className="mt-1 text-xs text-slate-300">使用内置示例</span>
+		<span className="mt-1 text-xs text-slate-300">示例或 JSON</span>
 	</button>
 );
 
@@ -284,22 +291,59 @@ interface CreateResumeModalProps {
 	defaultName: string;
 	onClose: () => void;
 	onCreate: (input: CreateResumeInput) => void;
+	onCreateFromJson: (
+		input: CreateResumeFromJsonInput,
+	) => Promise<string | null>;
 }
 
 const CreateResumeModal = ({
 	defaultName,
 	onClose,
 	onCreate,
+	onCreateFromJson,
 }: CreateResumeModalProps) => {
+	const jsonInputRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(defaultName);
+	const [nameEdited, setNameEdited] = useState(false);
 	const [tagText, setTagText] = useState("");
+	const [jsonFile, setJsonFile] = useState<File | null>(null);
+	const [jsonError, setJsonError] = useState<string | null>(null);
+	const [submitting, setSubmitting] = useState(false);
 
-	const submit = (event?: FormEvent<HTMLFormElement>) => {
+	const handleJsonFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0] ?? null;
+		event.target.value = "";
+		setJsonError(null);
+		setJsonFile(file);
+		if (file && !nameEdited) setName("");
+	};
+
+	const submit = async (event?: FormEvent<HTMLFormElement>) => {
 		event?.preventDefault();
-		onCreate({
-			name: name.trim() || defaultName,
-			tags: normalizeResumeTags(tagText),
+		const tags = normalizeResumeTags(tagText);
+
+		if (!jsonFile) {
+			onCreate({
+				name: name.trim() || defaultName,
+				tags,
+			});
+			onClose();
+			return;
+		}
+
+		setSubmitting(true);
+		setJsonError(null);
+		const error = await onCreateFromJson({
+			file: jsonFile,
+			name: name.trim(),
+			tags,
 		});
+		setSubmitting(false);
+		if (error) {
+			setJsonError(error);
+			return;
+		}
+		onClose();
 	};
 
 	return (
@@ -324,8 +368,12 @@ const CreateResumeModal = ({
 					</span>
 					<input
 						value={name}
-						onChange={(event) => setName(event.target.value)}
+						onChange={(event) => {
+							setName(event.target.value);
+							setNameEdited(true);
+						}}
 						className={inputClass}
+						placeholder={jsonFile ? "留空使用 JSON 姓名" : undefined}
 						autoFocus
 					/>
 				</label>
@@ -351,19 +399,73 @@ const CreateResumeModal = ({
 					</div>
 				</label>
 
+				<input
+					ref={jsonInputRef}
+					type="file"
+					accept=".json,application/json"
+					className="hidden"
+					onChange={handleJsonFileChange}
+				/>
+				<div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+					<div className="flex items-center justify-between gap-3">
+						<div className="min-w-0">
+							<span className="text-xs font-medium text-slate-500">
+								JSON 文件
+							</span>
+							<p
+								className={`mt-1 truncate text-sm ${
+									jsonFile ? "text-slate-700" : "text-slate-300"
+								}`}
+							>
+								{jsonFile ? jsonFile.name : "可选"}
+							</p>
+						</div>
+						<div className="flex shrink-0 gap-2">
+							{jsonFile && (
+								<button
+									type="button"
+									onClick={() => {
+										setJsonFile(null);
+										setJsonError(null);
+										if (!nameEdited) setName(defaultName);
+									}}
+									className="rounded-md px-2.5 py-2 text-xs font-medium text-slate-400 transition hover:bg-white hover:text-slate-700"
+								>
+									移除
+								</button>
+							)}
+							<button
+								type="button"
+								onClick={() => jsonInputRef.current?.click()}
+								className="inline-flex items-center gap-1.5 rounded-md border border-blue-100 bg-white px-2.5 py-2 text-xs font-medium text-blue-600 transition hover:border-blue-200 hover:bg-blue-50"
+							>
+								<Upload size={14} />
+								选择 JSON
+							</button>
+						</div>
+					</div>
+					{jsonError && (
+						<p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-500">
+							{jsonError}
+						</p>
+					)}
+				</div>
+
 				<div className="mt-5 flex justify-end gap-2">
 					<button
 						type="button"
 						onClick={onClose}
+						disabled={submitting}
 						className="rounded-md px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
 					>
 						取消
 					</button>
 					<button
 						type="submit"
-						className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+						disabled={submitting}
+						className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
 					>
-						创建
+						{jsonFile ? "导入并创建" : "创建"}
 					</button>
 				</div>
 			</form>
@@ -678,6 +780,7 @@ const UserSettingsModal = ({
 const ResumeManager = ({
 	documents,
 	onCreate,
+	onCreateFromJson,
 	onOpen,
 	onDuplicate,
 	onDelete,
@@ -777,10 +880,8 @@ const ResumeManager = ({
 					<CreateResumeModal
 						defaultName={defaultName}
 						onClose={() => setCreating(false)}
-					onCreate={(input) => {
-						onCreate(input);
-						setCreating(false);
-						}}
+						onCreate={onCreate}
+						onCreateFromJson={onCreateFromJson}
 					/>
 				)}
 
