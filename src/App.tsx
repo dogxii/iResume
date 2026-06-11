@@ -54,14 +54,17 @@ import {
 	normalizeSectionIconVisibility,
 } from "./data/resumeData";
 import {
+	addSnapshot,
+	computeNextVersion,
 	createDocumentHistory,
+	DEFAULT_SNAPSHOT_LABEL,
+	getLatestSnapshotVersion,
 	normalizeDocumentHistory,
 	type DocumentHistory,
 } from "./data/resumeHistory";
 import {
 	createResumeDocument,
 	createResumeLibrary,
-	incrementResumePatchVersion,
 	normalizeResumeAppearance,
 	normalizeResumeLibrary,
 	normalizeResumeTags,
@@ -343,6 +346,8 @@ interface ResumeMetaEditorProps {
 	onUpdate: (
 		meta: Partial<Pick<ResumeDocument, "name" | "tags" | "version">>,
 	) => void;
+	onOpenHistory: () => void;
+	onBumpVersion: () => void;
 }
 
 const metaInputClass =
@@ -380,13 +385,15 @@ const WorkbenchIconButton = ({
 	</button>
 );
 
-const ResumeMetaEditor = ({ document, onUpdate }: ResumeMetaEditorProps) => (
+const ResumeMetaEditor = ({
+	document,
+	onUpdate,
+	onOpenHistory,
+	onBumpVersion,
+}: ResumeMetaEditorProps) => (
 	<div className="border-b border-slate-200 p-4">
-		<div className="mb-3 flex items-center justify-between gap-2">
+		<div className="mb-3">
 			<h2 className="text-sm font-bold text-slate-800">简历信息</h2>
-			<span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-400">
-				v{document.version}
-			</span>
 		</div>
 
 		<label className="mb-3 block">
@@ -400,7 +407,7 @@ const ResumeMetaEditor = ({ document, onUpdate }: ResumeMetaEditorProps) => (
 			/>
 		</label>
 
-		<div className="mb-3 grid grid-cols-[1fr_auto] gap-2">
+		<div className="mb-3 grid grid-cols-[1fr_auto_auto] gap-2">
 			<label className="block">
 				<span className="mb-1 block text-xs font-medium text-slate-500">
 					版本号
@@ -413,14 +420,21 @@ const ResumeMetaEditor = ({ document, onUpdate }: ResumeMetaEditorProps) => (
 			</label>
 			<button
 				type="button"
-				onClick={() =>
-					onUpdate({ version: incrementResumePatchVersion(document.version) })
-				}
+				onClick={onBumpVersion}
 				className="mt-5 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-blue-600"
 				title="版本 +0.0.1"
 				aria-label="版本 +0.0.1"
 			>
 				<TrendingUp size={15} />
+			</button>
+			<button
+				type="button"
+				onClick={onOpenHistory}
+				className="relative mt-5 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-blue-600"
+				title="历史栈"
+				aria-label="历史栈"
+			>
+				<Clock size={15} />
 			</button>
 		</div>
 
@@ -1457,6 +1471,19 @@ function App() {
 		}));
 	};
 
+	const handleBumpResumeVersion = () => {
+		const nextVersion = computeNextVersion(
+			activeDocument.version,
+			getLatestSnapshotVersion(documentHistory),
+			"patch",
+		);
+
+		setDocumentHistory((current) =>
+			addSnapshot(current, resumeData, DEFAULT_SNAPSHOT_LABEL, nextVersion),
+		);
+		handleUpdateResumeMeta(activeDocument.id, { version: nextVersion });
+	};
+
 	const measurePreviewPages = useCallback(() => {
 		if (isPrintingRef.current) return;
 		const preview = resumePreviewRef.current;
@@ -1944,7 +1971,7 @@ function App() {
 									</div>
 								</div>
 
-								<div className="mt-3 grid grid-cols-6 gap-1.5">
+								<div className="mt-3 grid grid-cols-5 gap-1.5">
 									<WorkbenchIconButton label="重置" onClick={handleReset}>
 										<RotateCcw size={16} />
 									</WorkbenchIconButton>
@@ -1967,12 +1994,6 @@ function App() {
 										disabled={imageExportStatus === "exporting"}
 									>
 										<ImageDown size={16} />
-									</WorkbenchIconButton>
-									<WorkbenchIconButton
-										label="历史栈道"
-										onClick={() => setHistoryModalOpen(true)}
-									>
-										<Clock size={16} />
 									</WorkbenchIconButton>
 									<WorkbenchIconButton
 										label="保存 PDF"
@@ -2002,6 +2023,8 @@ function App() {
 									onUpdate={(meta) =>
 										handleUpdateResumeMeta(activeDocument.id, meta)
 									}
+									onOpenHistory={() => setHistoryModalOpen(true)}
+									onBumpVersion={handleBumpResumeVersion}
 								/>
 								<ResumeEditor
 									data={resumeData}

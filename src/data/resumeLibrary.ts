@@ -96,18 +96,6 @@ export const normalizeResumeVersion = (value: unknown): string => {
 	return version.length > 0 ? version.slice(0, 24) : DEFAULT_RESUME_VERSION;
 };
 
-export const incrementResumePatchVersion = (version: string): string => {
-	const parts = version.split(".").map((part) => Number(part));
-	if (
-		parts.length !== 3 ||
-		parts.some((part) => !Number.isInteger(part) || part < 0)
-	) {
-		return DEFAULT_RESUME_VERSION;
-	}
-
-	return `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
-};
-
 export function normalizeResumeAppearance(
 	value: unknown,
 	fallback?: Partial<ResumeAppearance>,
