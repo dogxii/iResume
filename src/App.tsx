@@ -598,13 +598,7 @@ function App() {
 	const [rightPanelOpen, setRightPanelOpen] = useState(true);
 	const [appearancePanelOpen, setAppearancePanelOpen] = useState(false);
 	const [historyModalOpen, setHistoryModalOpen] = useState(false);
-	const [documentHistory, setDocumentHistory] = useState<DocumentHistory>(() =>
-		readDocumentHistory(
-			library.documents.find((d) => d.id === library.activeId)?.id ??
-				library.documents[0]?.id ??
-				"",
-		),
-	);
+	const [, setHistoryRevision] = useState(0);
 	const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 	const [previewZoom, setPreviewZoom] = useState<PreviewZoom>(() =>
 		normalizePreviewZoom(
@@ -622,6 +616,10 @@ function App() {
 		library.documents.find((document) => document.id === library.activeId) ??
 		library.documents[0];
 	const resumeData = activeDocument.data;
+	const resolvedActiveSection = resumeData.sectionOrder.includes(activeSection)
+		? activeSection
+		: (resumeData.sectionOrder[0] ?? "skills");
+	const documentHistory = readDocumentHistory(activeDocument.id);
 	const {
 		themeId,
 		fontSizePt,
@@ -716,17 +714,6 @@ function App() {
 	}, [previewPageMode]);
 
 	useEffect(() => {
-		localStorage.setItem(
-			HISTORY_STORAGE_KEY_PREFIX + activeDocument.id,
-			JSON.stringify(documentHistory),
-		);
-	}, [activeDocument.id, documentHistory]);
-
-	useEffect(() => {
-		setDocumentHistory(readDocumentHistory(activeDocument.id));
-	}, [activeDocument.id]);
-
-	useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get("code");
 		const state = params.get("state");
@@ -748,19 +735,22 @@ function App() {
 			);
 		};
 
-		if (!savedState || savedState !== state) {
-			setCloudSyncMessage("GitHub 登录状态校验失败，请重新连接");
-			cleanupUrl();
-			return;
-		}
-
 		let canceled = false;
-		sessionStorage.removeItem(CLOUD_SYNC_OAUTH_STATE_STORAGE_KEY);
-		setCloudSyncStatus("connecting");
-		setCloudSyncMessage("正在连接 GitHub...");
+		const connectGitHub = async () => {
+			if (!savedState || savedState !== state) {
+				if (canceled) return;
+				setCloudSyncMessage("GitHub 登录状态校验失败，请重新连接");
+				cleanupUrl();
+				return;
+			}
 
-		exchangeGitHubOAuthCode(code, redirectUri)
-			.then(async (token) => {
+			sessionStorage.removeItem(CLOUD_SYNC_OAUTH_STATE_STORAGE_KEY);
+			if (canceled) return;
+			setCloudSyncStatus("connecting");
+			setCloudSyncMessage("正在连接 GitHub...");
+
+			try {
+				const token = await exchangeGitHubOAuthCode(code, redirectUri);
 				const syncKey = await getGitHubSyncKey(token.accessToken);
 				if (canceled) return;
 				setCloudSyncAuth({
@@ -768,22 +758,24 @@ function App() {
 					login: syncKey.login,
 					avatarUrl: syncKey.avatarUrl,
 					syncKey: syncKey.syncKey,
-					connectedAt: new Date().toISOString(),
-				});
-				setCloudSyncMessage(`已连接 GitHub：${syncKey.login}`);
-			})
-			.catch((error: unknown) => {
+						connectedAt: new Date().toISOString(),
+					});
+					setCloudSyncMessage(`已连接 GitHub：${syncKey.login}`);
+			} catch (error: unknown) {
 				if (canceled) return;
 				console.error("GitHub OAuth failed", error);
 				setCloudSyncMessage(
 					error instanceof Error ? error.message : "GitHub 登录失败",
 				);
-			})
-			.finally(() => {
-				if (canceled) return;
-				setCloudSyncStatus("idle");
-				cleanupUrl();
-			});
+			} finally {
+				if (!canceled) {
+					setCloudSyncStatus("idle");
+					cleanupUrl();
+				}
+			}
+		};
+
+		void connectGitHub();
 
 		return () => {
 			canceled = true;
@@ -805,19 +797,6 @@ function App() {
 
 		return () => cancelAnimationFrame(frame);
 	}, [activeDocument.id, previewRenderZoom, view]);
-
-	useEffect(() => {
-		if (!resumeData.sectionOrder.includes(activeSection)) {
-			setActiveSection(resumeData.sectionOrder[0] ?? "skills");
-		}
-	}, [activeSection, resumeData.sectionOrder]);
-
-	useEffect(() => {
-		if (view !== "editor") {
-			setCanvasShortcutsActive(false);
-			setAppearancePanelOpen(false);
-		}
-	}, [view]);
 
 	useEffect(() => {
 		canvasShortcutsActiveRef.current = canvasShortcutsActive;
@@ -1037,6 +1016,9 @@ function App() {
 		}
 
 		setLibrary(nextLibrary);
+		canvasShortcutsActiveRef.current = false;
+		setCanvasShortcutsActive(false);
+		setAppearancePanelOpen(false);
 		setView("manager");
 		return null;
 	}, []);
@@ -1221,6 +1203,17 @@ function App() {
 		return () => clearTimeout(timer);
 	}, [imageExportStatus]);
 
+	const closeEditorChrome = useCallback(() => {
+		canvasShortcutsActiveRef.current = false;
+		setCanvasShortcutsActive(false);
+		setAppearancePanelOpen(false);
+	}, []);
+
+	const openManagerView = useCallback(() => {
+		closeEditorChrome();
+		setView("manager");
+	}, [closeEditorChrome]);
+
 	const updateActiveDocument = useCallback(
 		(updater: (document: ResumeDocument) => ResumeDocument) => {
 			setLibrary((current) => ({
@@ -1236,6 +1229,27 @@ function App() {
 			}));
 		},
 		[],
+	);
+
+	const updateDocumentHistory = useCallback(
+		(
+			nextHistory:
+				| DocumentHistory
+				| ((current: DocumentHistory) => DocumentHistory),
+		) => {
+			const currentHistory = readDocumentHistory(activeDocument.id);
+			const resolvedHistory =
+				typeof nextHistory === "function"
+					? nextHistory(currentHistory)
+					: nextHistory;
+
+			localStorage.setItem(
+				HISTORY_STORAGE_KEY_PREFIX + activeDocument.id,
+				JSON.stringify(resolvedHistory),
+			);
+			setHistoryRevision((current) => current + 1);
+		},
+		[activeDocument.id],
 	);
 
 	const handleResumeDataChange = (nextData: ResumeData) => {
@@ -1478,7 +1492,7 @@ function App() {
 			"patch",
 		);
 
-		setDocumentHistory((current) =>
+		updateDocumentHistory((current) =>
 			addSnapshot(current, resumeData, DEFAULT_SNAPSHOT_LABEL, nextVersion),
 		);
 		handleUpdateResumeMeta(activeDocument.id, { version: nextVersion });
@@ -1939,7 +1953,7 @@ function App() {
 								<div className="flex items-center justify-between gap-3">
 									<button
 										type="button"
-										onClick={() => setView("manager")}
+										onClick={openManagerView}
 										className="flex items-center gap-2 rounded-md text-xl font-bold transition hover:opacity-75"
 										title="返回简历库"
 										aria-label="返回简历库"
@@ -2030,7 +2044,7 @@ function App() {
 									data={resumeData}
 									sectionIcons={sectionIcons}
 									panel="structure"
-									activeSection={activeSection}
+									activeSection={resolvedActiveSection}
 									onActiveSectionChange={setActiveSection}
 									onChange={handleResumeDataChange}
 									onSectionIconsChange={handleSectionIconsChange}
@@ -2210,7 +2224,7 @@ function App() {
 							data={resumeData}
 							sectionIcons={sectionIcons}
 							panel="details"
-							activeSection={activeSection}
+							activeSection={resolvedActiveSection}
 							onActiveSectionChange={setActiveSection}
 							onChange={handleResumeDataChange}
 							onSectionIconsChange={handleSectionIconsChange}
@@ -2235,7 +2249,7 @@ function App() {
 					documentHistory={documentHistory}
 					currentData={resumeData}
 					currentVersion={activeDocument.version}
-					onChangeHistory={setDocumentHistory}
+					onChangeHistory={updateDocumentHistory}
 					onRestore={(data, version) => {
 						handleResumeDataChange(data);
 						handleUpdateResumeMeta(activeDocument.id, { version });
