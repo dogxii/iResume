@@ -551,6 +551,31 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			);
 		};
 
+		const renderBannerLinks = () => {
+			if (!hasLinks) return null;
+
+			return (
+				<div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-medium">
+					{hasGithub && (
+						<BannerLink
+							href={normalizeSafeUrl(data.personal.github)}
+							text={data.personal.github}
+							icon={theme.showLinkIcons && <Github size={14} />}
+							accentClass={theme.bannerAccent}
+						/>
+					)}
+					{hasWebsite && (
+						<BannerLink
+							href={normalizeSafeUrl(data.personal.website)}
+							text={data.personal.website}
+							icon={theme.showLinkIcons && <Globe size={14} />}
+							accentClass={theme.bannerAccent}
+						/>
+					)}
+				</div>
+			);
+		};
+
 		const renderProfilePhoto = (
 			variant: "default" | "centered" | "banner" = "default",
 		) => {
@@ -614,6 +639,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											{data.personal.title}
 										</p>
 									)}
+									{theme.contactStyle === "icons-right" && renderLinks()}
 								</div>
 								{hasRightAside && (
 									<div className="flex shrink-0 items-start justify-end gap-4">
@@ -622,7 +648,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									</div>
 								)}
 							</div>
-							{renderLinks()}
+							{theme.contactStyle !== "icons-right" && renderLinks()}
 						</header>
 					);
 
@@ -733,6 +759,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 												{data.personal.title}
 											</p>
 										)}
+										{renderBannerLinks()}
 									</div>
 									{hasRightAside && (
 										<div className="flex shrink-0 items-start justify-end gap-4">
@@ -777,26 +804,6 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 										</div>
 									)}
 								</div>
-								{hasLinks && (
-									<div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm font-medium">
-										{hasGithub && (
-											<BannerLink
-												href={normalizeSafeUrl(data.personal.github)}
-												text={data.personal.github}
-												icon={theme.showLinkIcons && <Github size={14} />}
-												accentClass={theme.bannerAccent}
-											/>
-										)}
-										{hasWebsite && (
-											<BannerLink
-												href={normalizeSafeUrl(data.personal.website)}
-												text={data.personal.website}
-												icon={theme.showLinkIcons && <Globe size={14} />}
-												accentClass={theme.bannerAccent}
-											/>
-										)}
-									</div>
-								)}
 							</div>
 						</header>
 					);
