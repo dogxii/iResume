@@ -996,10 +996,12 @@ const ResumeEditor = ({
 												placeholder="例：核心能力"
 											/>
 											<InputGroup
+												type="textarea"
 												label="内容"
 												value={skill.content}
 												onChange={(value) => updateSkill(skill.id, "content", value)}
 												placeholder="例：**JavaScript**, TypeScript, React"
+												rows={3}
 											/>
 										</div>
 									</div>
