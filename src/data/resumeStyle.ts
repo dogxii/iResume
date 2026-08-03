@@ -10,12 +10,15 @@ export type OtherListStyle = "bullets" | "plain";
 export type SectionEntryDisplayStyle = "list" | "detail";
 export type ResumePhotoPosition = "left" | "right";
 export type ResumePhotoSizeRatio = 0.85 | 1 | 1.15;
+export type ResumeLinkStyle = "text" | "highlighted" | "blue";
 
 export interface ResumeSectionPreferences {
 	personal: {
 		showPhoto: boolean;
 		photoPosition: ResumePhotoPosition;
 		photoSizeRatio: ResumePhotoSizeRatio;
+		linkStyle: ResumeLinkStyle;
+		showLinkLabels: boolean;
 	};
 	skills: {
 		showLabels: boolean;
@@ -52,6 +55,8 @@ export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
 		showPhoto: true,
 		photoPosition: "right",
 		photoSizeRatio: 1,
+		linkStyle: "text",
+		showLinkLabels: false,
 	},
 	skills: {
 		showLabels: true,
@@ -270,6 +275,15 @@ export function normalizeResumePhotoSizeRatio(
 		: fallback;
 }
 
+export function normalizeResumeLinkStyle(
+	value: unknown,
+	fallback: ResumeLinkStyle = "text",
+): ResumeLinkStyle {
+	return value === "text" || value === "highlighted" || value === "blue"
+		? value
+		: fallback;
+}
+
 export function normalizeResumeSectionPreferences(
 	value: unknown,
 	fallback: ResumeSectionPreferences = DEFAULT_SECTION_PREFERENCES,
@@ -309,6 +323,16 @@ export function normalizeResumeSectionPreferences(
 			photoSizeRatio: normalizeResumePhotoSizeRatio(
 				personal.photoSizeRatio,
 				fallbackPersonal.photoSizeRatio,
+			),
+			linkStyle: normalizeResumeLinkStyle(
+				personal.linkStyle,
+				fallbackPersonal.linkStyle ??
+					DEFAULT_SECTION_PREFERENCES.personal.linkStyle,
+			),
+			showLinkLabels: readBoolean(
+				personal.showLinkLabels,
+				fallbackPersonal.showLinkLabels ??
+					DEFAULT_SECTION_PREFERENCES.personal.showLinkLabels,
 			),
 		},
 		skills: {

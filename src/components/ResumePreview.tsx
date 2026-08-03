@@ -6,13 +6,13 @@ import {
 	ExternalLink,
 	Folder,
 	Github,
-	Globe,
 	GraduationCap,
 	Mail,
 	MapPin,
 	MoreHorizontal,
 	Phone,
 	School,
+	UserRound,
 } from "lucide-react";
 import React, { forwardRef } from "react";
 import {
@@ -26,6 +26,7 @@ import {
 	type ResumeFontSizePt,
 	type ResumePageMarginMm,
 	type ResumeFontFamily,
+	type ResumeLinkStyle,
 	type ResumeSectionPreferences,
 } from "../data/resumeStyle";
 import { themes } from "../data/themes";
@@ -62,6 +63,9 @@ interface BannerLinkProps {
 	text: string;
 	icon?: React.ReactNode;
 	accentClass?: string;
+	label: string;
+	style: ResumeLinkStyle;
+	showLabel: boolean;
 }
 
 const A4_HEIGHT_MM = 297;
@@ -140,12 +144,39 @@ const getSectionEntryDetailSummary = (details: string) =>
 		.filter(Boolean)
 		.join("；");
 
-const BannerLink = ({ href, text, icon, accentClass }: BannerLinkProps) => {
-	const className = `flex items-center gap-1.5 text-slate-300 hover:opacity-80 ${accentClass ?? "hover:text-amber-300"}`;
+const linkAddressClasses: Record<ResumeLinkStyle, string> = {
+	text: "",
+	highlighted: "border-b-[0.5px] border-[#cbd5e1] font-normal",
+	blue: "font-normal text-blue-600 hover:text-blue-700",
+};
+
+const bannerLinkAddressClasses: Record<ResumeLinkStyle, string> = {
+	text: "",
+	highlighted: "border-b-[0.5px] border-[#cbd5e1]",
+	blue: "text-sky-300 hover:text-sky-200",
+};
+
+const BannerLink = ({
+	href,
+	text,
+	icon,
+	accentClass,
+	label,
+	style,
+	showLabel,
+}: BannerLinkProps) => {
+	const className = `flex items-center gap-1.5 text-slate-300 hover:opacity-80 ${
+		style === "text" ? (accentClass ?? "hover:text-amber-300") : ""
+	}`;
 	const content = (
 		<>
 			{icon}
-			{text}
+			{showLabel && (
+				<strong className="font-semibold text-white">{label}</strong>
+			)}
+			<span className={bannerLinkAddressClasses[style]}>
+				{text}
+			</span>
 		</>
 	);
 
@@ -189,6 +220,9 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const sectionPreferences = normalizeResumeSectionPreferences(
 			sectionPreferencesInput,
 		);
+		const personalLinkStyle = sectionPreferences.personal.linkStyle;
+		const showLinkLabels = sectionPreferences.personal.showLinkLabels;
+		const styledLinks = personalLinkStyle !== "text";
 		const minHeightMm = Math.max(1, minPageCount) * A4_HEIGHT_MM;
 		const normalizedFontFamily = normalizeResumeFontFamily(fontFamily);
 		const fontFamilyCss = getResumeFontFamilyCss(normalizedFontFamily);
@@ -222,6 +256,8 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const hasContactInfo =
 			hasPhone || hasEmail || hasLocation || hasAvailability;
 		const hasLinks = hasGithub || hasWebsite;
+		const githubHref = normalizeSafeUrl(data.personal.github);
+		const websiteHref = normalizeSafeUrl(data.personal.website);
 
 		const sectionVisible: Record<SectionKey, boolean> = {
 			skills:
@@ -513,18 +549,27 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			const isCentered =
 				theme.headerLayout === "centered" ||
 				theme.contactStyle === "centered-icons";
-			const githubHref = normalizeSafeUrl(data.personal.github);
-			const websiteHref = normalizeSafeUrl(data.personal.website);
 			const renderLink = (
 				text: string,
 				href: string | undefined,
 				icon: React.ReactNode,
+				label: string,
 			) => {
-				const className = `flex items-center gap-1.5 ${c.body} ${c.primaryHover}`;
+				const className =
+					personalLinkStyle === "text"
+						? `flex items-center gap-1.5 ${c.body} ${c.primaryHover}`
+						: `inline-flex max-w-full items-center gap-1.5 ${c.body} ${
+								personalLinkStyle === "highlighted" ? "hover:opacity-70" : ""
+							}`;
 				const content = (
 					<>
-						{theme.showLinkIcons && icon}
-						{text}
+						{(styledLinks || theme.showLinkIcons) && icon}
+						{showLinkLabels && (
+							<strong className="font-semibold">{label}</strong>
+						)}
+						<span className={linkAddressClasses[personalLinkStyle]}>
+							{text}
+						</span>
 					</>
 				);
 
@@ -539,14 +584,26 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 			return (
 				<div
-					className={`flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm font-medium ${
+					className={`flex flex-wrap mt-3 text-sm font-medium ${
+						styledLinks ? "gap-x-5 gap-y-1.5" : "gap-x-5 gap-y-1"
+					} ${
 						isCentered ? "justify-center" : ""
 					}`}
 				>
 					{hasGithub &&
-						renderLink(data.personal.github, githubHref, <Github size={14} />)}
+						renderLink(
+							data.personal.github,
+							githubHref,
+							<Github size={14} className="shrink-0" />,
+							"GitHub",
+						)}
 					{hasWebsite &&
-						renderLink(data.personal.website, websiteHref, <Globe size={14} />)}
+						renderLink(
+							data.personal.website,
+							websiteHref,
+							<UserRound size={14} className="shrink-0" />,
+							"主页",
+						)}
 				</div>
 			);
 		};
@@ -555,21 +612,31 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			if (!hasLinks) return null;
 
 			return (
-				<div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-medium">
+				<div
+					className={`mt-3 flex flex-wrap text-sm font-medium ${
+						styledLinks ? "gap-x-5 gap-y-1.5" : "gap-x-5 gap-y-1"
+					}`}
+				>
 					{hasGithub && (
 						<BannerLink
-							href={normalizeSafeUrl(data.personal.github)}
+							href={githubHref}
 							text={data.personal.github}
-							icon={theme.showLinkIcons && <Github size={14} />}
+							icon={(styledLinks || theme.showLinkIcons) && <Github size={14} />}
 							accentClass={theme.bannerAccent}
+							label="GitHub"
+							style={personalLinkStyle}
+							showLabel={showLinkLabels}
 						/>
 					)}
 					{hasWebsite && (
 						<BannerLink
-							href={normalizeSafeUrl(data.personal.website)}
+							href={websiteHref}
 							text={data.personal.website}
-							icon={theme.showLinkIcons && <Globe size={14} />}
+							icon={(styledLinks || theme.showLinkIcons) && <UserRound size={14} />}
 							accentClass={theme.bannerAccent}
+							label="主页"
+							style={personalLinkStyle}
+							showLabel={showLinkLabels}
 						/>
 					)}
 				</div>

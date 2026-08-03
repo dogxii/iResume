@@ -21,6 +21,7 @@ import type {
 	OtherListStyle,
 	ProjectLinksPosition,
 	ProjectTagPosition,
+	ResumeLinkStyle,
 	ResumePhotoPosition,
 	ResumePhotoSizeRatio,
 	ResumeSectionPreferences,
@@ -103,6 +104,12 @@ const photoSizeRatioOptions: SegmentedOption<ResumePhotoSizeRatio>[] = [
 	{ value: 0.85, label: "85%" },
 	{ value: 1, label: "100%" },
 	{ value: 1.15, label: "115%" },
+];
+
+const linkStyleOptions: SegmentedOption<ResumeLinkStyle>[] = [
+	{ value: "text", label: "文本" },
+	{ value: "highlighted", label: "标识" },
+	{ value: "blue", label: "蓝色" },
 ];
 
 const SegmentedControl = <T extends string | number>({
@@ -462,6 +469,19 @@ const ResumeDisplayPreferencesEditor = ({
 				icon={<Maximize2 size={12} />}
 				disabled={!preferences.personal.showPhoto}
 			/>
+			<SegmentedControl
+				label="链接样式"
+				value={preferences.personal.linkStyle}
+				options={linkStyleOptions}
+				onChange={(linkStyle) => updatePersonal({ linkStyle })}
+				icon={<Link2 size={12} />}
+			/>
+			<ToggleControl
+				label="显示名称"
+				checked={preferences.personal.showLinkLabels}
+				onChange={(showLinkLabels) => updatePersonal({ showLinkLabels })}
+				icon={<Tags size={12} />}
+			/>
 		</PreferenceBlock>
 	);
 
@@ -472,7 +492,7 @@ const ResumeDisplayPreferencesEditor = ({
 		>
 			<div className="mb-1 flex items-center justify-between gap-2">
 				<h2 className="text-sm font-bold text-slate-800">显示偏好</h2>
-				<span className="text-[11px] text-slate-400">头像与区块</span>
+				<span className="text-[11px] text-slate-400">头像、链接与区块</span>
 			</div>
 			<div>
 				{renderPersonalPreferences()}
