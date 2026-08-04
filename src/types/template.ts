@@ -32,12 +32,6 @@ export interface TemplateColors {
 	link: string;
 	// 分割线色
 	divider: string;
-	// 标签背景
-	tagBg: string;
-	// 标签文字
-	tagText: string;
-	// 标签边框
-	tagBorder: string;
 }
 
 // 模板头部布局

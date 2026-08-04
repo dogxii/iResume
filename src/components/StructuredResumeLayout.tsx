@@ -1,4 +1,4 @@
-import { Diamond } from "lucide-react";
+import { Diamond, ExternalLink } from "lucide-react";
 import React, { forwardRef } from "react";
 import { isCustomSectionKey } from "../data/resumeData";
 import { formatSkillsAsMarkdown, hasSkillContent } from "../data/resumeSkills";
@@ -13,15 +13,18 @@ import type {
 	ResumeData,
 	ResumeEditableSectionKey,
 	SectionEntry,
+	SectionIconVisibility,
 	SectionKey,
 	StandardSectionKey,
 } from "../types/resume";
 import { parseInline, parseMarkdownBlocks } from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { normalizeSafeUrl } from "../utils/url";
+import { getResumeSectionIcon } from "./resumeSectionIcons";
 
 interface StructuredResumeLayoutProps {
 	data: ResumeData;
+	sectionIcons?: SectionIconVisibility;
 	sectionPreferences: ResumeSectionPreferences;
 	contentRef?: React.Ref<HTMLDivElement>;
 	onSectionClick?: (section: ResumeEditableSectionKey) => void;
@@ -120,6 +123,7 @@ const StructuredResumeLayout = forwardRef<
 >(function StructuredResumeLayout(
 	{
 		data,
+		sectionIcons,
 		sectionPreferences,
 		contentRef,
 		onSectionClick,
@@ -298,9 +302,21 @@ const StructuredResumeLayout = forwardRef<
 			: {}),
 	});
 
+	const renderSectionTitle = (key: SectionKey) => {
+		const title = getSectionTitle(key);
+		if (!sectionIcons?.[key]) return title;
+
+		return (
+			<span className="inline-flex items-center gap-[0.32em]">
+				<span className="text-neutral-400">{getResumeSectionIcon(key)}</span>
+				{title}
+			</span>
+		);
+	};
+
 	const renderSectionHeader = (key: SectionKey) => (
 		<h2 className="resume-section-title mb-[0.48em] border-b-[2px] border-neutral-300 pb-[0.08em] text-[1.42em] font-normal leading-[1.25] text-neutral-900">
-			{getSectionTitle(key)}
+			{renderSectionTitle(key)}
 		</h2>
 	);
 
@@ -426,29 +442,32 @@ const StructuredResumeLayout = forwardRef<
 					role && sectionPreferences.experience.rolePosition === "title";
 				const roleAtBottom =
 					role && sectionPreferences.experience.rolePosition === "bottom";
+				const headerClassName = roleInMiddle
+					? "grid-cols-[max-content_minmax(0,1fr)_minmax(7.5em,max-content)]"
+					: "grid-cols-[max-content_minmax(0,1fr)]";
 
 				return (
 					<div key={item.id} className="mb-[0.78em] last:mb-0">
-						<div className="print-item-header grid grid-cols-[1.05fr_1.65fr_1.15fr] gap-x-[1.25em] px-[0.48em] leading-[1.42] text-neutral-900">
-							<span>{date}</span>
-							<span className="min-w-0">
+						<div
+							className={`print-item-header grid ${headerClassName} gap-x-[1.25em] px-[0.48em] leading-[1.42] text-neutral-900`}
+						>
+							<span className="whitespace-nowrap">{date}</span>
+							<span className="min-w-0 justify-self-center text-center">
 								<span className="resume-item-title">{item.company}</span>
 								{roleOnTitle && (
-									<span className="ml-[0.55em] font-medium text-neutral-700">
+									<span className="ml-[0.55em] text-neutral-700">
 										{role}
 									</span>
 								)}
 							</span>
-							<span
-								className={`min-w-0 ${
-									roleInMiddle ? "text-center" : "text-right"
-								}`}
-							>
-								{roleInMiddle ? role : ""}
-							</span>
+							{roleInMiddle && (
+								<span className="justify-self-end whitespace-nowrap text-neutral-900">
+									{role}
+								</span>
+							)}
 						</div>
 						{roleAtBottom && (
-							<div className="mt-[0.18em] px-[0.48em] font-medium leading-[1.35] text-neutral-900">
+							<div className="mt-[0.18em] px-[0.48em] leading-[1.35] text-neutral-900">
 								{role}
 							</div>
 						)}
@@ -462,7 +481,10 @@ const StructuredResumeLayout = forwardRef<
 		</section>
 	);
 
-	const renderProjectLinks = (project: Project) => {
+	const renderProjectLinks = (
+		project: Project,
+		align: "left" | "right" = "right",
+	) => {
 		const links = [
 			{ label: "项目", href: normalizeSafeUrl(project.link) },
 			{ label: "源码", href: normalizeSafeUrl(project.source) },
@@ -471,16 +493,25 @@ const StructuredResumeLayout = forwardRef<
 		if (links.length === 0) return null;
 
 		return (
-			<span className="flex flex-wrap justify-end gap-x-[0.65em]">
+			<span
+				className={`inline-flex flex-wrap gap-x-[0.65em] text-[0.92em] text-neutral-600 ${
+					align === "right" ? "justify-end" : ""
+				}`}
+			>
 				{links.map((link) => (
 					<a
 						key={link.label}
 						href={link.href}
 						target="_blank"
 						rel="noreferrer"
-						className="border-b border-neutral-300 leading-[1.2] hover:text-neutral-600"
+						className="inline-flex items-center gap-[0.18em] border-b border-neutral-200 leading-[1.2] hover:text-neutral-800"
 					>
 						{link.label}
+						<ExternalLink
+							aria-hidden="true"
+							strokeWidth={1.7}
+							className="h-[0.82em] w-[0.82em] opacity-55"
+						/>
 					</a>
 				))}
 			</span>
@@ -502,45 +533,81 @@ const StructuredResumeLayout = forwardRef<
 					role && sectionPreferences.projects.rolePosition === "title";
 				const roleAtBottom =
 					role && sectionPreferences.projects.rolePosition === "bottom";
-				const links = renderProjectLinks(project);
+				const linksOnTitle =
+					sectionPreferences.projects.linksPosition === "title"
+						? renderProjectLinks(project)
+						: null;
+				const linksBelow =
+					sectionPreferences.projects.linksPosition === "below"
+						? renderProjectLinks(project, "left")
+						: null;
+				const hasRightRole = Boolean(roleInMiddle);
 				const headerClassName = roleInMiddle
-					? "grid-cols-[1.05fr_1.7fr_0.95fr_1.12fr_0.72fr]"
-					: "grid-cols-[1.05fr_2.1fr_1.35fr_0.72fr]";
+					? linksOnTitle
+						? "grid-cols-[max-content_minmax(0,1fr)_minmax(7.5em,max-content)_max-content]"
+						: "grid-cols-[max-content_minmax(0,1fr)_minmax(7.5em,max-content)]"
+					: linksOnTitle
+						? "grid-cols-[max-content_minmax(0,1fr)_max-content]"
+						: "grid-cols-[max-content_minmax(0,1fr)]";
 				const tags = project.tags.trim();
-				const tagNode =
+				const tagNode = (
 					showTags && tags ? (
 						sectionPreferences.projects.tagStyle === "text" ? (
-							<span>{tags}</span>
+							<span className="text-neutral-700">{tags}</span>
 						) : (
-							<span className="inline-flex w-fit rounded-sm border border-neutral-300 px-[0.45em] py-[0.02em] text-neutral-700">
+							<span className="inline text-neutral-700">
 								{tags}
 							</span>
 						)
-					) : null;
+					) : null
+				);
+				const tagOnTitle =
+					sectionPreferences.projects.tagPosition === "title"
+						? tagNode
+						: null;
+				const tagBelow =
+					sectionPreferences.projects.tagPosition === "below"
+						? tagNode
+						: null;
+				const belowMeta = roleAtBottom || tagBelow || linksBelow;
 
 				return (
 					<div key={project.id} className="mb-[0.82em] last:mb-0">
 						<div
 							className={`print-item-header grid ${headerClassName} gap-x-[1.1em] px-[0.48em] leading-[1.42] text-neutral-900`}
 						>
-							<span>{showDate ? project.date : ""}</span>
-							<span className="min-w-0">
+							<span className="whitespace-nowrap">
+								{showDate ? project.date : ""}
+							</span>
+							<span className="min-w-0 justify-self-center text-center">
 								<span className="resume-item-title">{project.name}</span>
 								{roleOnTitle && (
-									<span className="ml-[0.55em] font-medium text-neutral-700">
+									<span className="ml-[0.55em] text-neutral-700">
 										{role}
 									</span>
 								)}
+								{tagOnTitle && (
+									<span className="ml-[0.7em]">{tagOnTitle}</span>
+								)}
 							</span>
-							{roleInMiddle && (
-								<span className="min-w-0 text-center">{role}</span>
+							{hasRightRole && (
+								<span className="justify-self-end whitespace-nowrap text-neutral-900">
+									{role}
+								</span>
 							)}
-							<span className="min-w-0">{tagNode}</span>
-							<span className="min-w-0 text-right">{links}</span>
+							{linksOnTitle && (
+								<span className="justify-self-end text-right">{linksOnTitle}</span>
+							)}
 						</div>
-						{roleAtBottom && (
-							<div className="mt-[0.18em] px-[0.48em] font-medium leading-[1.35] text-neutral-900">
-								{role}
+						{belowMeta && (
+							<div className="mt-[0.18em] flex min-w-0 flex-wrap items-center gap-x-[0.85em] gap-y-[0.18em] px-[0.48em] leading-[1.35] text-neutral-700">
+								{roleAtBottom && (
+									<span className="text-neutral-900">
+										{role}
+									</span>
+								)}
+								{linksBelow}
+								{tagBelow}
 							</div>
 						)}
 						<StructuredMarkdownBlocks
@@ -561,9 +628,9 @@ const StructuredResumeLayout = forwardRef<
 				return (
 					<div
 						key={item.id}
-						className="print-edu-item grid grid-cols-[1.2fr_0.95fr_1.55fr_0.72fr] gap-x-[1.1em] px-[0.48em] leading-[1.42] text-neutral-900"
+						className="print-edu-item grid grid-cols-[max-content_minmax(0,0.95fr)_minmax(0,1.55fr)_minmax(0,0.72fr)] gap-x-[1.1em] px-[0.48em] leading-[1.42] text-neutral-900"
 					>
-						<span>
+						<span className="whitespace-nowrap">
 							{sectionPreferences.education.showDates ? item.date : ""}
 						</span>
 						<span className="resume-item-title min-w-0">{item.school}</span>
@@ -587,8 +654,8 @@ const StructuredResumeLayout = forwardRef<
 				{renderSectionHeader(key)}
 				{visibleItems.map((item) => (
 					<div key={item.id} className="mb-[0.78em] last:mb-0">
-						<div className="print-item-header grid grid-cols-[1.1fr_2fr_1.35fr] gap-x-[1.2em] px-[0.48em] leading-[1.42] text-neutral-900">
-							<span>{item.date}</span>
+						<div className="print-item-header grid grid-cols-[max-content_minmax(0,2fr)_minmax(0,1.35fr)] gap-x-[1.2em] px-[0.48em] leading-[1.42] text-neutral-900">
+							<span className="whitespace-nowrap">{item.date}</span>
 							<span className="resume-item-title min-w-0">{item.title}</span>
 							<span className="min-w-0 text-right">
 								{item.subtitle}

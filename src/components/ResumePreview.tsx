@@ -1,18 +1,10 @@
 import {
-	Award,
-	Briefcase,
 	Calendar,
-	Code,
 	ExternalLink,
-	FileText,
-	Folder,
 	Github,
-	GraduationCap,
 	Mail,
 	MapPin,
-	MoreHorizontal,
 	Phone,
-	School,
 	UserRound,
 } from "lucide-react";
 import React, { forwardRef } from "react";
@@ -49,6 +41,7 @@ import { renderMarkdownBlocks } from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { normalizeSafeUrl } from "../utils/url";
 import { resolvePreviewStyle } from "../templates/resolvePreviewStyle";
+import { getResumeSectionIcon } from "./resumeSectionIcons";
 
 export interface ResumePreviewProps {
 	data: ResumeData;
@@ -115,17 +108,6 @@ const densityClasses: Record<
 		list: "space-y-2",
 	},
 };
-
-const sectionIconNodes: Record<StandardSectionKey, React.ReactNode> = {
-	skills: <Code size={13} />,
-	experience: <Briefcase size={13} />,
-	projects: <Folder size={13} />,
-	education: <GraduationCap size={13} />,
-	awards: <Award size={13} />,
-	campus: <School size={13} />,
-	other: <MoreHorizontal size={13} />,
-};
-const customSectionIconNode = <FileText size={13} />;
 
 const hasSectionEntryContent = (item: SectionEntry) =>
 	item.title.trim() ||
@@ -226,8 +208,11 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const sectionPreferences = normalizeResumeSectionPreferences(
 			sectionPreferencesInput,
 		);
+		const isAtsTemplate = templateId === "ats";
+		const isMinimalTemplate = templateId === "minimal";
 		const tagStyle =
-			sectionPreferences.projects.tagStyle === "text"
+			sectionPreferences.projects.tagStyle === "text" ||
+			template.tagStyle === "plain"
 				? "plain"
 				: template.tagStyle === "outline"
 					? "outline"
@@ -236,6 +221,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const showLinkLabels = sectionPreferences.personal.showLinkLabels;
 		const styledLinks = personalLinkStyle !== "text";
 		const fontClass = template.fontStyle === "serif" ? "font-serif" : "font-sans";
+		const roleToneClass = c.body;
+		const projectLinkToneClass = isAtsTemplate
+			? "text-gray-500 hover:text-gray-700"
+			: isMinimalTemplate
+				? "text-zinc-500 hover:text-zinc-700"
+				: `${c.link} hover:opacity-80`;
+		const personalTitleToneClass = isMinimalTemplate ? c.body : c.primary;
+		const contactIconToneClass = isMinimalTemplate ? c.muted : c.primary;
 		const photoUrl = normalizeResumePhotoSrc(data.personal.photoUrl);
 		const photoVisible = Boolean(
 			photoUrl && sectionPreferences.personal.showPhoto,
@@ -274,8 +267,6 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 			return data.sectionTitles[key];
 		};
-		const getSectionIcon = (key: SectionKey) =>
-			isCustomSectionKey(key) ? customSectionIconNode : sectionIconNodes[key];
 		const isSectionVisible = (key: SectionKey) => {
 			if (data.sectionVisibility[key] === false) return false;
 			if (isCustomSectionKey(key)) {
@@ -375,7 +366,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 			return (
 				<span className="inline-flex items-center gap-1.5">
-					<span className={c.muted}>{getSectionIcon(key)}</span>
+					<span className={c.muted}>{getResumeSectionIcon(key)}</span>
 					{title}
 				</span>
 			);
@@ -574,7 +565,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							{items.map((item) => (
 								<span key={item.text} className="flex items-center gap-1.5">
 									{template.showContactIcons && (
-										<span className={c.primary}>{item.icon}</span>
+										<span className={contactIconToneClass}>{item.icon}</span>
 									)}
 									{item.href ? (
 										<a
@@ -755,7 +746,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 										</h1>
 									)}
 									{data.personal.title.trim() && (
-										<p className={`text-lg ${c.primary} font-medium mt-1`}>
+										<p className={`text-lg ${personalTitleToneClass} font-medium mt-1`}>
 											{data.personal.title}
 										</p>
 									)}
@@ -791,7 +782,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											</h1>
 										)}
 										{data.personal.title.trim() && (
-											<p className={`text-base ${c.primary} font-medium mt-1`}>
+											<p className={`text-base ${personalTitleToneClass} font-medium mt-1`}>
 												{data.personal.title}
 											</p>
 										)}
@@ -815,7 +806,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 								</h1>
 							)}
 							{data.personal.title.trim() && (
-								<p className={`text-base ${c.primary} font-medium mt-1`}>
+								<p className={`text-base ${personalTitleToneClass} font-medium mt-1`}>
 									{data.personal.title}
 								</p>
 							)}
@@ -841,7 +832,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											</h1>
 										)}
 										{data.personal.title.trim() && (
-											<p className={`text-base ${c.primary} font-semibold mt-1`}>
+											<p className={`text-base ${personalTitleToneClass} font-semibold mt-1`}>
 												{data.personal.title}
 											</p>
 										)}
@@ -987,14 +978,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									{exp.company}
 								</h3>
 								{roleOnTitle && (
-									<span className={`text-sm font-medium ${c.primary}`}>
+									<span className={`text-sm font-medium ${roleToneClass}`}>
 										{role}
 									</span>
 								)}
 							</div>
 							{roleInMiddle && (
 								<span
-									className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+									className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
 								>
 									{role}
 								</span>
@@ -1011,7 +1002,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							<div className={`mt-1 text-xs ${c.muted}`}>{date}</div>
 						)}
 						{roleAtBottom && (
-							<div className={`mt-1 text-sm font-medium ${c.primary}`}>
+							<div className={`mt-1 text-sm font-medium ${roleToneClass}`}>
 								{role}
 							</div>
 						)}
@@ -1033,14 +1024,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 								{exp.company}
 							</h3>
 							{roleOnTitle && (
-								<span className={`text-sm font-medium ${c.primary}`}>
+								<span className={`text-sm font-medium ${roleToneClass}`}>
 									{role}
 								</span>
 							)}
 						</div>
 						{roleInMiddle && (
 							<span
-								className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+								className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
 							>
 								{role}
 							</span>
@@ -1054,7 +1045,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					{(roleAtBottom || dateBelow) && (
 						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
 							{roleAtBottom && (
-								<span className={`font-medium ${c.primary}`}>{role}</span>
+								<span className={`font-medium ${roleToneClass}`}>{role}</span>
 							)}
 							{roleAtBottom && dateBelow && (
 								<span className={`${c.muted} opacity-40`}>·</span>
@@ -1106,11 +1097,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				return <span className={`text-xs ${c.muted}`}>{text}</span>;
 			}
 
+			const tagClassName =
+				tagStyle === "outline"
+					? "border-slate-200 bg-white text-slate-600"
+					: "border-slate-200 bg-slate-50 text-slate-600";
+
 			return (
 				<span
-					className={`text-xs px-2 py-0.5 rounded border ${
-						tagStyle === "outline" ? `bg-white ${c.tagText}` : `${c.tagBg} ${c.tagText}`
-					} ${c.tagBorder}`}
+					className={`rounded border px-2 py-0.5 text-xs ${tagClassName}`}
 				>
 					{text}
 				</span>
@@ -1131,9 +1125,10 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							href={demoHref}
 							target="_blank"
 							rel="noreferrer"
-							className={`flex items-center gap-1 ${c.link} hover:underline`}
+							className={`flex items-center gap-1 ${projectLinkToneClass} hover:underline`}
 						>
-							<ExternalLink size={10} /> Demo
+							{!isAtsTemplate && <ExternalLink size={10} />}
+							Demo
 						</a>
 					)}
 					{sourceHref && (
@@ -1141,9 +1136,10 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							href={sourceHref}
 							target="_blank"
 							rel="noreferrer"
-							className={`flex items-center gap-1 ${c.link} hover:underline`}
+							className={`flex items-center gap-1 ${projectLinkToneClass} hover:underline`}
 						>
-							<Github size={10} /> Code
+							{!isAtsTemplate && <Github size={10} />}
+							Code
 						</a>
 					)}
 				</div>
@@ -1203,7 +1199,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									{proj.name}
 								</h3>
 								{roleOnTitle && (
-									<span className={`text-sm font-medium ${c.primary}`}>
+									<span className={`text-sm font-medium ${roleToneClass}`}>
 										{role}
 									</span>
 								)}
@@ -1212,7 +1208,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							</div>
 							{roleInMiddle && (
 								<span
-									className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+									className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
 								>
 									{role}
 								</span>
@@ -1226,7 +1222,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						{(roleAtBottom || dateBelow || tagBelow || linksBelow) && (
 							<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 								{roleAtBottom && (
-									<span className={`text-sm font-medium ${c.primary}`}>
+									<span className={`text-sm font-medium ${roleToneClass}`}>
 										{role}
 									</span>
 								)}

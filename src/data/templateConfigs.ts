@@ -9,18 +9,12 @@ const accentColors: Pick<
 	| "primaryLight"
 	| "primaryBorder"
 	| "link"
-	| "tagBg"
-	| "tagText"
-	| "tagBorder"
 > = {
 	primary: "resume-accent-text",
 	primaryHover: "resume-accent-hover",
 	primaryLight: "resume-accent-soft-bg",
 	primaryBorder: "resume-accent-border",
 	link: "resume-accent-text",
-	tagBg: "resume-accent-soft-bg",
-	tagText: "resume-accent-text",
-	tagBorder: "resume-accent-soft-border",
 };
 
 const createTemplateColors = (
@@ -193,7 +187,7 @@ const focus: TemplateConfig = {
 	contentDensity: "compact",
 	skillLayout: "chips",
 	experienceStyle: "plain",
-	projectStyle: "boxed",
+	projectStyle: "plain",
 	tagStyle: "soft",
 };
 
@@ -245,7 +239,7 @@ const fresh: TemplateConfig = {
 	contentDensity: "airy",
 	skillLayout: "chips",
 	experienceStyle: "plain",
-	projectStyle: "boxed",
+	projectStyle: "plain",
 	tagStyle: "soft",
 };
 

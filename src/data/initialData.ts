@@ -8,7 +8,7 @@ export const initialResumeState: ResumeData = {
 		phone: "138-1234-5678",
 		email: "linxiaoming@email.com",
 		location: "江西 南昌",
-		availability: "应届生 · 一周内到岗",
+		availability: "5天/周 6个月+",
 		github: "github.com/linxiaoming",
 		website: "linxiaoming.dev",
 	},

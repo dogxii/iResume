@@ -251,6 +251,7 @@ body.resume-canvas-pan-ready {
 	--resume-section-title-font-size: 20px;
 	--resume-item-title-font-size: 16px;
 	--resume-paragraph-spacing: 12px;
+	--resume-line-height: 1.5;
 	--resume-accent: #2563eb;
 	--resume-accent-hover: #1d4ed8;
 	--resume-accent-soft: #eff6ff;
@@ -260,6 +261,7 @@ body.resume-canvas-pan-ready {
 	overflow-wrap: break-word;
 	word-break: break-word;
 	font-size: var(--resume-base-font-size);
+	line-height: var(--resume-line-height);
 }
 
 .resume-accent-text {
@@ -342,6 +344,15 @@ body.resume-canvas-pan-ready {
 
 .resume-content .resume-item-title {
 	font-size: var(--resume-item-title-font-size) !important;
+}
+
+.resume-content .resume-paragraph-block,
+.resume-content .resume-markdown-list,
+.resume-content .resume-markdown-list > li,
+.resume-content .print-item-header,
+.resume-content .print-edu-item,
+.resume-content .print-skill-row {
+	line-height: var(--resume-line-height) !important;
 }
 
 .resume-content .resume-paragraph-block,

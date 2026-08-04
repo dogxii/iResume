@@ -5,7 +5,10 @@ export const DEFAULT_RESUME_PAGE_MARGIN_MM = 32;
 export const DEFAULT_RESUME_PARAGRAPH_SPACING_PX = 12;
 export const DEFAULT_RESUME_FONT_FAMILY = "system";
 export const DEFAULT_RESUME_ACCENT_COLOR = "#2563eb";
-export const DEFAULT_RESUME_LINE_HEIGHT = "template";
+export const DEFAULT_RESUME_LINE_HEIGHT = 1.5;
+export const MIN_RESUME_LINE_HEIGHT = 1;
+export const MAX_RESUME_LINE_HEIGHT = 2;
+export const RESUME_LINE_HEIGHT_STEP = 0.05;
 export const DEFAULT_RESUME_SECTION_SPACING = 21;
 const CSS_PX_PER_MM = 96 / 25.4;
 export const RESUME_ACCENT_COLOR_PRESETS = [
@@ -171,11 +174,7 @@ export const RESUME_PAGE_MARGIN_OPTIONS = [
 
 export type ResumePageMarginMm = (typeof RESUME_PAGE_MARGIN_OPTIONS)[number];
 
-export const RESUME_LINE_HEIGHT_OPTIONS = [1.35, 1.45, 1.55, 1.65] as const;
-
-export type ResumeLineHeight =
-	| typeof DEFAULT_RESUME_LINE_HEIGHT
-	| (typeof RESUME_LINE_HEIGHT_OPTIONS)[number];
+export type ResumeLineHeight = number;
 
 export const RESUME_SECTION_SPACING_OPTIONS = [
 	8,
@@ -328,15 +327,19 @@ export function normalizeResumePageMargin(
 }
 
 export function normalizeResumeLineHeight(value: unknown): ResumeLineHeight {
-	if (value === DEFAULT_RESUME_LINE_HEIGHT) return DEFAULT_RESUME_LINE_HEIGHT;
 	const numericValue =
 		typeof value === "string" || typeof value === "number"
 			? Number(value)
-			: Number.NaN;
+			: DEFAULT_RESUME_LINE_HEIGHT;
 
-	return RESUME_LINE_HEIGHT_OPTIONS.some((option) => option === numericValue)
-		? (numericValue as ResumeLineHeight)
-		: DEFAULT_RESUME_LINE_HEIGHT;
+	if (!Number.isFinite(numericValue)) return DEFAULT_RESUME_LINE_HEIGHT;
+
+	const clampedValue = Math.min(
+		Math.max(numericValue, MIN_RESUME_LINE_HEIGHT),
+		MAX_RESUME_LINE_HEIGHT,
+	);
+
+	return Number(clampedValue.toFixed(2));
 }
 
 export function normalizeResumeSectionSpacing(

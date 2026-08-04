@@ -1,7 +1,7 @@
 {
 	"name": "i-resume",
 	"private": false,
-	"version": "2.0.0-alpha.1",
+	"version": "2.0.0",
 	"type": "module",
 	"description": "一个基于 React + TypeScript + Tailwind CSS 的在线简历生成器",
 	"keywords": [

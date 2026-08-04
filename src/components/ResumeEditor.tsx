@@ -4,7 +4,6 @@ import {
 	Award,
 	BriefcaseBusiness,
 	Calendar,
-	ChevronDown,
 	Eye,
 	EyeOff,
 	FileText,
@@ -29,6 +28,7 @@ import {
 import {
 	useEffect,
 	useId,
+	useLayoutEffect,
 	useRef,
 	useState,
 	type ChangeEvent,
@@ -80,20 +80,24 @@ import type {
 import {
 	DEFAULT_RESUME_FONT_SIZE_PT,
 	DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
+	DEFAULT_RESUME_LINE_HEIGHT,
 	DEFAULT_RESUME_PAGE_MARGIN_MM,
 	DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
 	DEFAULT_RESUME_ACCENT_COLOR,
 	DEFAULT_RESUME_SECTION_SPACING,
 	DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
+	MAX_RESUME_LINE_HEIGHT,
+	MIN_RESUME_LINE_HEIGHT,
 	RESUME_ACCENT_COLOR_PRESETS,
 	RESUME_FONT_SIZE_OPTIONS,
 	RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS,
-	RESUME_LINE_HEIGHT_OPTIONS,
 	RESUME_PAGE_MARGIN_OPTIONS,
 	RESUME_PARAGRAPH_SPACING_OPTIONS,
 	RESUME_SECTION_SPACING_OPTIONS,
 	RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS,
+	RESUME_LINE_HEIGHT_STEP,
 	normalizeResumeAccentColor,
+	normalizeResumeLineHeight,
 } from "../data/resumeStyle";
 import { formatSkillsAsMarkdown } from "../data/resumeSkills";
 import ToggleSwitch from "./ToggleSwitch";
@@ -106,10 +110,7 @@ import {
 } from "../utils/resumePhoto";
 import FontFamilyControl from "./FontFamilyControl";
 import TemplatePicker from "./TemplatePicker";
-import {
-	useAdaptiveMenuPlacement,
-	type AdaptiveMenuPlacement,
-} from "./useAdaptiveMenuPlacement";
+import { useAdaptiveMenuPlacement } from "./useAdaptiveMenuPlacement";
 import type {
 	CustomSectionKey,
 	Education,
@@ -138,6 +139,62 @@ interface InputGroupProps {
 
 const inputClass =
 	"w-full rounded-md border border-slate-200 bg-white p-2 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-blue-500";
+
+const resizeTextareaToContent = (textarea: HTMLTextAreaElement | null) => {
+	if (!textarea) return;
+	textarea.style.height = "auto";
+	textarea.style.height = `${textarea.scrollHeight + 2}px`;
+};
+
+const AutoResizeTextarea = ({
+	id,
+	className,
+	value,
+	onChange,
+	placeholder,
+	rows = 4,
+}: {
+	id?: string;
+	className?: string;
+	value: string;
+	onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+	placeholder?: string;
+	rows?: number;
+}) => {
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	useLayoutEffect(() => {
+		resizeTextareaToContent(textareaRef.current);
+	}, [rows, value]);
+
+	useEffect(() => {
+		const textarea = textareaRef.current;
+		if (!textarea || typeof ResizeObserver === "undefined") return;
+
+		let width = textarea.offsetWidth;
+		const observer = new ResizeObserver(([entry]) => {
+			const nextWidth = Math.round(entry.contentRect.width);
+			if (nextWidth === width) return;
+			width = nextWidth;
+			resizeTextareaToContent(textarea);
+		});
+
+		observer.observe(textarea);
+		return () => observer.disconnect();
+	}, []);
+
+	return (
+		<textarea
+			id={id}
+			ref={textareaRef}
+			className={`${className ?? ""} resize-none overflow-hidden`}
+			rows={rows}
+			value={value}
+			onChange={onChange}
+			placeholder={placeholder}
+		/>
+	);
+};
 
 const readFileAsCompressedPhoto = (file: File) =>
 	new Promise<string>((resolve, reject) => {
@@ -209,9 +266,9 @@ const InputGroup = ({
 				{label}
 			</label>
 			{type === "textarea" ? (
-				<textarea
+				<AutoResizeTextarea
 					id={id}
-					className={`${inputClass} resize-y`}
+					className={inputClass}
 					rows={rows}
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
@@ -346,14 +403,6 @@ const rolePositionOptions: SegmentedOption<EntryRolePosition>[] = [
 	{ value: "bottom", label: "底部" },
 ];
 
-const lineHeightOptions: SegmentedOption<ResumeLineHeight>[] = [
-	{ value: "template", label: "跟随" },
-	...RESUME_LINE_HEIGHT_OPTIONS.map((value) => ({
-		value,
-		label: String(value),
-	})),
-];
-
 const SegmentedControl = <T extends string | number>({
 	label,
 	value,
@@ -398,97 +447,6 @@ const SegmentedControl = <T extends string | number>({
 		</div>
 	</div>
 );
-
-const DropdownControl = <T extends string | number>({
-	label,
-	value,
-	options,
-	onChange,
-	icon,
-	disabled = false,
-	menuPlacement = "top",
-}: {
-	label: string;
-	value: T;
-	options: SegmentedOption<T>[];
-	onChange: (value: T) => void;
-	icon?: ReactNode;
-	disabled?: boolean;
-	menuPlacement?: AdaptiveMenuPlacement;
-}) => {
-	const [open, setOpen] = useState(false);
-	const containerRef = useRef<HTMLDivElement>(null);
-	const current = options.find((option) => option.value === value);
-	const placement = useAdaptiveMenuPlacement(containerRef, {
-		open,
-		preferred: menuPlacement,
-		estimatedHeight: options.length * 30 + 8,
-	});
-
-	useEffect(() => {
-		if (!open) return;
-		const handleClickOutside = (event: MouseEvent) => {
-			if (
-				containerRef.current &&
-				!containerRef.current.contains(event.target as Node)
-			) {
-				setOpen(false);
-			}
-		};
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, [open]);
-
-	return (
-		<div
-			ref={containerRef}
-			className={`relative flex w-full items-center justify-between gap-3 ${
-				disabled ? "opacity-45" : ""
-			}`}
-		>
-			<span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
-				{icon && <span className="shrink-0 text-slate-300">{icon}</span>}
-				{label}
-			</span>
-			<button
-				type="button"
-				disabled={disabled}
-				onClick={() => setOpen((prev) => !prev)}
-				className="flex h-8 w-24 shrink-0 items-center justify-between gap-2 rounded-lg bg-white/60 px-2.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200/60 transition-colors hover:bg-white hover:text-slate-800 disabled:cursor-not-allowed"
-				aria-expanded={open}
-				aria-label={`选择${label}`}
-			>
-				<span className="truncate">{current?.label ?? String(value)}</span>
-				<ChevronDown size={12} className="shrink-0 text-slate-400" />
-			</button>
-			{open && !disabled && (
-				<div
-					className={`absolute right-0 z-40 w-24 overflow-hidden rounded-lg border border-slate-200/80 bg-white/95 py-1 shadow-xl shadow-slate-900/10 backdrop-blur ${
-						placement === "top" ? "bottom-full mb-1" : "top-full mt-1"
-					}`}
-				>
-					{options.map((option) => (
-						<button
-							key={option.value}
-							type="button"
-							onClick={() => {
-								onChange(option.value);
-								setOpen(false);
-							}}
-							className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors hover:bg-slate-50 ${
-								option.value === value
-									? "font-semibold text-blue-600"
-									: "text-slate-600"
-							}`}
-						>
-							{option.label}
-						</button>
-					))}
-				</div>
-			)}
-		</div>
-	);
-};
 
 const getAdjacentNumberOption = <T extends number>(
 	options: readonly T[],
@@ -578,6 +536,68 @@ const NumberStepperControl = <T extends number>({
 				>
 					<RotateCcw size={13} />
 				</button>
+			</div>
+		</div>
+	);
+};
+
+const LineHeightSliderControl = ({
+	value,
+	onChange,
+}: {
+	value: ResumeLineHeight;
+	onChange: (value: ResumeLineHeight) => void;
+}) => {
+	const normalizedValue = normalizeResumeLineHeight(value);
+	const progress =
+		((normalizedValue - MIN_RESUME_LINE_HEIGHT) /
+			(MAX_RESUME_LINE_HEIGHT - MIN_RESUME_LINE_HEIGHT)) *
+		100;
+	const isDefault = normalizedValue === DEFAULT_RESUME_LINE_HEIGHT;
+
+	return (
+		<div className="rounded-md border border-slate-100 bg-white/60 px-3 py-2.5">
+			<div className="mb-2 flex items-center justify-between gap-3">
+				<span className="text-xs text-slate-500">行高</span>
+				<div className="flex items-center gap-1.5">
+					<span className="min-w-10 text-right font-mono text-xs font-medium tabular-nums text-slate-600">
+						{normalizedValue.toFixed(2)}
+					</span>
+					<button
+						type="button"
+						onClick={() => onChange(DEFAULT_RESUME_LINE_HEIGHT)}
+						disabled={isDefault}
+						className="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100/80 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25"
+						title="恢复默认行高"
+						aria-label="恢复默认行高"
+					>
+						<RotateCcw size={13} />
+					</button>
+				</div>
+			</div>
+			<div className="flex items-center gap-2">
+				<span className="w-4 text-[10px] tabular-nums text-slate-400">
+					{MIN_RESUME_LINE_HEIGHT}
+				</span>
+				<input
+					type="range"
+					min={MIN_RESUME_LINE_HEIGHT}
+					max={MAX_RESUME_LINE_HEIGHT}
+					step={RESUME_LINE_HEIGHT_STEP}
+					value={normalizedValue}
+					onChange={(event) =>
+						onChange(normalizeResumeLineHeight(event.target.value))
+					}
+					className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-slate-700 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-slate-700 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-700"
+					style={{
+						background: `linear-gradient(to right, #334155 ${progress}%, #e2e8f0 ${progress}%)`,
+					}}
+					aria-label="行高"
+					aria-valuetext={normalizedValue.toFixed(2)}
+				/>
+				<span className="w-4 text-right text-[10px] tabular-nums text-slate-400">
+					{MAX_RESUME_LINE_HEIGHT}
+				</span>
 			</div>
 		</div>
 	);
@@ -1620,12 +1640,9 @@ const ResumeEditor = ({
 						onChange={onParagraphSpacingChange}
 					/>
 				</div>
-				<DropdownControl
-					label="行高"
+				<LineHeightSliderControl
 					value={lineHeight}
-					options={lineHeightOptions}
 					onChange={onLineHeightChange}
-					menuPlacement="top"
 				/>
 				<ToggleControl
 					label="标题图标"
@@ -2006,8 +2023,8 @@ const ResumeEditor = ({
 
 	const renderSkillsEditor = () => (
 		<PanelBlock title={getSectionTitle("skills")}>
-			<textarea
-				className={`${inputClass} min-h-56 resize-y font-mono`}
+			<AutoResizeTextarea
+				className={`${inputClass} min-h-56 font-mono`}
 				value={getSkillsText()}
 				onChange={(event) => updateSkillsText(event.target.value)}
 				placeholder={
@@ -2547,8 +2564,8 @@ const ResumeEditor = ({
 
 	const renderOtherEditor = () => (
 		<PanelBlock title={getSectionTitle("other")}>
-			<textarea
-				className={`${inputClass} min-h-40 resize-y font-mono`}
+			<AutoResizeTextarea
+				className={`${inputClass} min-h-40 font-mono`}
 				value={data.other}
 				onChange={(event) => onChange({ ...data, other: event.target.value })}
 				placeholder={
@@ -2568,12 +2585,12 @@ const ResumeEditor = ({
 
 		return (
 			<PanelBlock title={getSectionTitle(key)}>
-				<textarea
-					className={`${inputClass} min-h-40 resize-y font-mono`}
+				<AutoResizeTextarea
+					className={`${inputClass} min-h-40 font-mono`}
 					value={section?.content ?? ""}
-				onChange={(event) =>
-					updateCustomSectionContent(key, event.target.value)
-				}
+					onChange={(event) =>
+						updateCustomSectionContent(key, event.target.value)
+					}
 					placeholder={
 						"- 开源贡献：维护 [my-project](https://github.com/yourname/project)\n个人博客：yourname.dev"
 					}

@@ -68,12 +68,11 @@ export function resolvePreviewStyle({
 		"--resume-section-title-font-size": `${normalizedSectionTitleFontSize}px`,
 		"--resume-item-title-font-size": `${normalizedItemTitleFontSize}px`,
 		"--resume-paragraph-spacing": `${normalizedParagraphSpacing}px`,
+		"--resume-line-height": String(normalizedLineHeight),
 		minHeight: `${minHeightMm}mm`,
 		padding: `${normalizedPageMargin}px`,
 		...(fontFamilyCss ? { fontFamily: fontFamilyCss } : {}),
-		...(normalizedLineHeight === "template"
-			? {}
-			: { lineHeight: normalizedLineHeight }),
+		lineHeight: "var(--resume-line-height)",
 		"--resume-section-spacing": `${normalizedSectionSpacing}px`,
 	} as CSSProperties;
 

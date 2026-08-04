@@ -20,6 +20,7 @@ const StructuredResumeTemplate = forwardRef<
 		lineHeight,
 		sectionSpacing,
 		paragraphSpacingPx,
+		sectionIcons,
 		sectionPreferences,
 		minPageCount = 1,
 		contentRef,
@@ -50,6 +51,7 @@ const StructuredResumeTemplate = forwardRef<
 		<StructuredResumeLayout
 			ref={ref}
 			data={data}
+			sectionIcons={sectionIcons}
 			sectionPreferences={normalizeResumeSectionPreferences(
 				sectionPreferences,
 			)}

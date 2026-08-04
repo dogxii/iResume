@@ -26,10 +26,11 @@ describe("resume preview style", () => {
 			"--resume-item-title-font-size": "15px",
 			"--resume-section-spacing": "20px",
 			"--resume-paragraph-spacing": "10px",
+			"--resume-line-height": "1.55",
 			minHeight: "594mm",
 			padding: "16px",
 			fontFamily: "Arial, Helvetica, sans-serif",
-			lineHeight: 1.55,
+			lineHeight: "var(--resume-line-height)",
 		});
 	});
 });
