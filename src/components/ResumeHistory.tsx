@@ -11,7 +11,7 @@ import {
 	X,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { ResumeData } from "../types/resume";
+import type { ResumeDocument } from "../data/resumeLibrary";
 import {
 	addSnapshot,
 	computeNextVersion,
@@ -23,6 +23,7 @@ import {
 	renameSnapshot,
 	type DocumentHistory,
 	type HistorySnapshot,
+	type HistorySnapshotDocument,
 	type SnapshotChange,
 	type SnapshotChangeKind,
 	type SnapshotDiff,
@@ -69,10 +70,9 @@ const formatAbsoluteTime = (dateStr: string) => {
 
 interface ResumeHistoryModalProps {
 	documentHistory: DocumentHistory;
-	currentData: ResumeData;
-	currentVersion: string;
+	currentDocument: ResumeDocument;
 	onChangeHistory: (history: DocumentHistory) => void;
-	onRestore: (data: ResumeData, version: string) => void;
+	onRestore: (document: HistorySnapshotDocument, version: string) => void;
 	onVersionChange: (version: string) => void;
 	onClose: () => void;
 }
@@ -228,13 +228,13 @@ const DiffPanel = ({ diff }: { diff: SnapshotDiff }) => (
 
 const ResumeHistoryModal = ({
 	documentHistory,
-	currentData,
-	currentVersion,
+	currentDocument,
 	onChangeHistory,
 	onRestore,
 	onVersionChange,
 	onClose,
 }: ResumeHistoryModalProps) => {
+	const currentVersion = currentDocument.version;
 	const [restoringId, setRestoringId] = useState<string | null>(null);
 	const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -311,13 +311,15 @@ const ResumeHistoryModal = ({
 			noteInputOpen && saveLabel.trim()
 				? saveLabel.trim()
 				: DEFAULT_SNAPSHOT_LABEL;
-		onChangeHistory(addSnapshot(documentHistory, currentData, label, nextVersion));
+		onChangeHistory(
+			addSnapshot(documentHistory, currentDocument, label, nextVersion),
+		);
 		onVersionChange(nextVersion);
 		setSaveLabel("");
 		setNoteInputOpen(false);
 	}, [
 		documentHistory,
-		currentData,
+		currentDocument,
 		currentVersion,
 		latestSnapshotVersion,
 		versionBump,
@@ -332,7 +334,7 @@ const ResumeHistoryModal = ({
 			if (restoringId) return;
 			setRestoringId(snapshot.id);
 			requestAnimationFrame(() => {
-				onRestore(snapshot.data, snapshot.version);
+				onRestore(snapshot.document, snapshot.version);
 			});
 		},
 		[restoringId, onRestore],

@@ -1,6 +1,12 @@
 import type React from "react";
 import { normalizeSafeUrl } from "./url";
 
+export type MarkdownLineBlock =
+	| { type: "paragraph"; text: string }
+	| { type: "list"; items: string[] };
+
+const markdownListMarkerPattern = /^[-*]\s+(.+)$/;
+
 /**
  * 解析行内 Markdown 语法，支持：
  *   **粗体**        → <strong>
@@ -56,21 +62,73 @@ export function parseInline(text: string): React.ReactNode[] {
 	return parts;
 }
 
-/**
- * 将多行文本渲染为支持行内 Markdown 的 <li> 列表
- * - 自动过滤空行
- * - 自动剥离行首可选的 "- " 前缀
- */
-export function renderMarkdownList(text: string): React.ReactNode {
-	if (!text.trim()) return null;
+export function parseMarkdownBlocks(text: string): MarkdownLineBlock[] {
+	const blocks: MarkdownLineBlock[] = [];
+	let pendingList: string[] = [];
 
-	return text
-		.split("\n")
-		.filter((line) => line.trim())
-		.map((line, index) => {
-			const content = line.replace(/^-\s*/, "");
+	const flushList = () => {
+		if (pendingList.length === 0) return;
+		blocks.push({ type: "list", items: pendingList });
+		pendingList = [];
+	};
+
+	for (const rawLine of text.split("\n")) {
+		const line = rawLine.trim();
+		if (!line) {
+			flushList();
+			continue;
+		}
+
+		const listMatch = line.match(markdownListMarkerPattern);
+		if (listMatch) {
+			pendingList.push(listMatch[1].trim());
+			continue;
+		}
+
+		flushList();
+		blocks.push({ type: "paragraph", text: line });
+	}
+
+	flushList();
+	return blocks;
+}
+
+export function renderMarkdownBlocks(
+	text: string,
+	{
+		listClassName = "",
+		paragraphClassName = "",
+	}: {
+		listClassName?: string;
+		paragraphClassName?: string;
+	} = {},
+): React.ReactNode {
+	const blocks = parseMarkdownBlocks(text);
+	if (blocks.length === 0) return null;
+
+	return blocks.map((block, index) => {
+		if (block.type === "list") {
 			return (
-				<li key={`${index}-${line.slice(0, 20)}`}>{parseInline(content)}</li>
+				<ul
+					key={`list-${index}`}
+					className={listClassName}
+				>
+					{block.items.map((item, itemIndex) => (
+						<li key={`${itemIndex}-${item.slice(0, 20)}`}>
+							{parseInline(item)}
+						</li>
+					))}
+				</ul>
 			);
-		});
+		}
+
+		return (
+			<div
+				key={`paragraph-${index}-${block.text.slice(0, 20)}`}
+				className={paragraphClassName}
+			>
+				{parseInline(block.text)}
+			</div>
+		);
+	});
 }

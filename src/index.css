@@ -42,8 +42,8 @@
 	display: none;
 }
 
-html.resume-space-panning,
-body.resume-space-panning {
+html.resume-canvas-pan-ready,
+body.resume-canvas-pan-ready {
 	overflow: hidden;
 }
 
@@ -145,6 +145,15 @@ body.resume-space-panning {
 	}
 
 	/* A4 纸张容器：去掉固定宽高和阴影，让内容自由流动 */
+	.resume-canvas-inner {
+		min-width: 0 !important;
+		padding: 0 !important;
+	}
+
+	.resume-screen-preview {
+		display: none !important;
+	}
+
 	.resume-preview-scale-shell {
 		width: auto !important;
 		height: auto !important;
@@ -164,7 +173,10 @@ body.resume-space-panning {
 		position: static !important;
 		top: auto !important;
 		left: auto !important;
-		width: auto !important;
+		display: block !important;
+		width: 210mm !important;
+		max-width: 210mm !important;
+		margin: 0 !important;
 		pointer-events: auto !important;
 	}
 
@@ -186,7 +198,8 @@ body.resume-space-panning {
 		box-sizing: border-box !important;
 		padding: var(--resume-page-margin) !important;
 		min-height: 0 !important;
-		width: 100% !important;
+		width: 210mm !important;
+		max-width: 210mm !important;
 		background: white !important;
 		box-shadow: none !important;
 		-webkit-box-decoration-break: clone;
@@ -233,9 +246,48 @@ body.resume-space-panning {
    不使用 break-all，避免影响中文文本的正常排版。
    ===================================================== */
 .resume-content {
-	--resume-page-margin: 12mm;
+	--resume-page-margin: 32px;
+	--resume-base-font-size: 16px;
+	--resume-section-title-font-size: 20px;
+	--resume-item-title-font-size: 16px;
+	--resume-paragraph-spacing: 12px;
+	--resume-accent: #2563eb;
+	--resume-accent-hover: #1d4ed8;
+	--resume-accent-soft: #eff6ff;
+	--resume-accent-soft-border: #bfdbfe;
+	--resume-accent-banner: #1e293b;
+	--resume-accent-banner-text: #fbbf24;
 	overflow-wrap: break-word;
 	word-break: break-word;
+	font-size: var(--resume-base-font-size);
+}
+
+.resume-accent-text {
+	color: var(--resume-accent);
+}
+
+.resume-accent-hover:hover {
+	color: var(--resume-accent-hover);
+}
+
+.resume-accent-soft-bg {
+	background-color: var(--resume-accent-soft);
+}
+
+.resume-accent-border {
+	border-color: var(--resume-accent);
+}
+
+.resume-accent-soft-border {
+	border-color: var(--resume-accent-soft-border);
+}
+
+.resume-accent-banner-bg {
+	background-color: var(--resume-accent-banner);
+}
+
+.resume-accent-banner-text {
+	color: var(--resume-accent-banner-text);
 }
 
 .resume-banner-header {
@@ -252,7 +304,7 @@ body.resume-space-panning {
 @media screen {
 	.resume-editable-section {
 		border-radius: 2px;
-		cursor: text;
+		cursor: pointer;
 		outline: 1px solid transparent;
 		outline-offset: 5px;
 		transition: outline-color 120ms ease;
@@ -263,30 +315,45 @@ body.resume-space-panning {
 	}
 }
 
-.resume-content[data-font-scaled="true"] {
-	font-size: calc(10.5pt * var(--resume-font-scale));
+.resume-content .text-xs {
+	font-size: calc(var(--resume-base-font-size) * 0.82);
 }
 
-.resume-content[data-font-scaled="true"] .text-xs {
-	font-size: calc(0.75rem * var(--resume-font-scale));
+.resume-content .text-sm,
+.resume-content .text-base {
+	font-size: var(--resume-base-font-size);
 }
 
-.resume-content[data-font-scaled="true"] .text-sm {
-	font-size: calc(0.875rem * var(--resume-font-scale));
+.resume-content .text-lg {
+	font-size: calc(var(--resume-base-font-size) * 1.1);
 }
 
-.resume-content[data-font-scaled="true"] .text-base {
-	font-size: calc(1rem * var(--resume-font-scale));
+.resume-content .text-3xl {
+	font-size: calc(var(--resume-base-font-size) * 1.75);
 }
 
-.resume-content[data-font-scaled="true"] .text-lg {
-	font-size: calc(1.125rem * var(--resume-font-scale));
+.resume-content .text-\[11px\] {
+	font-size: calc(var(--resume-base-font-size) * 0.75);
 }
 
-.resume-content[data-font-scaled="true"] .text-3xl {
-	font-size: calc(1.875rem * var(--resume-font-scale));
+.resume-content .resume-section-title {
+	font-size: var(--resume-section-title-font-size) !important;
 }
 
-.resume-content[data-font-scaled="true"] .text-\[11px\] {
-	font-size: calc(11px * var(--resume-font-scale));
+.resume-content .resume-item-title {
+	font-size: var(--resume-item-title-font-size) !important;
+}
+
+.resume-content .resume-paragraph-block,
+.resume-content .resume-markdown-list {
+	margin-bottom: var(--resume-paragraph-spacing) !important;
+}
+
+.resume-content .resume-paragraph-block:last-child,
+.resume-content .resume-markdown-list:last-child {
+	margin-bottom: 0 !important;
+}
+
+.resume-content .resume-markdown-list > li + li {
+	margin-top: calc(var(--resume-paragraph-spacing) * 0.36);
 }

@@ -4,6 +4,7 @@ import {
 	Calendar,
 	Code,
 	ExternalLink,
+	FileText,
 	Folder,
 	Github,
 	GraduationCap,
@@ -16,46 +17,56 @@ import {
 } from "lucide-react";
 import React, { forwardRef } from "react";
 import {
-	DEFAULT_RESUME_FONT_SIZE_PT,
 	DEFAULT_RESUME_PAGE_MARGIN_MM,
 	normalizeResumeSectionPreferences,
-	normalizeResumeFontSize,
-	normalizeResumePageMargin,
-	normalizeResumeFontFamily,
-	getResumeFontFamilyCss,
 	type ResumeFontSizePt,
+	type ResumeItemTitleFontSizePx,
 	type ResumePageMarginMm,
 	type ResumeFontFamily,
+	type ResumeLineHeight,
 	type ResumeLinkStyle,
+	type ResumeParagraphSpacingPx,
 	type ResumeSectionPreferences,
+	type ResumeSectionSpacing,
+	type ResumeSectionTitleFontSizePx,
 } from "../data/resumeStyle";
-import { themes } from "../data/themes";
+import { formatSkillsAsMarkdown, hasSkillContent } from "../data/resumeSkills";
+import { isCustomSectionKey } from "../data/resumeData";
+import { templateConfigs } from "../data/templateConfigs";
 import type {
 	Education,
 	Experience,
 	Project,
 	ResumeData,
+	ResumeEditableSectionKey,
 	SectionEntry,
 	SectionIconVisibility,
 	SectionKey,
-	SkillItem,
+	StandardSectionKey,
 } from "../types/resume";
-import type { ContentDensity, ThemeId } from "../types/theme";
-import { parseInline, renderMarkdownList } from "../utils/markdown";
+import type { ContentDensity, TemplateId } from "../types/template";
+import { renderMarkdownBlocks } from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { normalizeSafeUrl } from "../utils/url";
+import { resolvePreviewStyle } from "../templates/resolvePreviewStyle";
 
-interface ResumePreviewProps {
+export interface ResumePreviewProps {
 	data: ResumeData;
-	themeId?: ThemeId;
+	templateId?: TemplateId;
+	accentColor?: string;
 	fontSizePt?: ResumeFontSizePt;
+	sectionTitleFontSizePx?: ResumeSectionTitleFontSizePx;
+	itemTitleFontSizePx?: ResumeItemTitleFontSizePx;
 	fontFamily?: ResumeFontFamily;
 	pageMarginMm?: ResumePageMarginMm;
+	lineHeight?: ResumeLineHeight;
+	sectionSpacing?: ResumeSectionSpacing;
+	paragraphSpacingPx?: ResumeParagraphSpacingPx;
 	sectionIcons?: SectionIconVisibility;
 	sectionPreferences?: ResumeSectionPreferences;
 	minPageCount?: number;
 	contentRef?: React.Ref<HTMLDivElement>;
-	onSectionClick?: (section: SectionKey) => void;
+	onSectionClick?: (section: ResumeEditableSectionKey) => void;
 }
 
 interface BannerLinkProps {
@@ -67,8 +78,6 @@ interface BannerLinkProps {
 	style: ResumeLinkStyle;
 	showLabel: boolean;
 }
-
-const A4_HEIGHT_MM = 297;
 
 const densityClasses: Record<
 	ContentDensity,
@@ -107,7 +116,7 @@ const densityClasses: Record<
 	},
 };
 
-const sectionIconNodes: Record<SectionKey, React.ReactNode> = {
+const sectionIconNodes: Record<StandardSectionKey, React.ReactNode> = {
 	skills: <Code size={13} />,
 	experience: <Briefcase size={13} />,
 	projects: <Folder size={13} />,
@@ -116,33 +125,13 @@ const sectionIconNodes: Record<SectionKey, React.ReactNode> = {
 	campus: <School size={13} />,
 	other: <MoreHorizontal size={13} />,
 };
-
-const splitSkillContent = (content: string) =>
-	content
-		.split(/[,，、;；|]/)
-		.map((item) => item.trim())
-		.filter(Boolean);
-
-const hasSkillContent = (skill: SkillItem) =>
-	skill.label.trim() || skill.content.trim();
+const customSectionIconNode = <FileText size={13} />;
 
 const hasSectionEntryContent = (item: SectionEntry) =>
 	item.title.trim() ||
 	item.subtitle.trim() ||
 	item.date.trim() ||
 	item.details.trim();
-
-const getSectionEntryDetailSummary = (details: string) =>
-	details
-		.split("\n")
-		.map((line) =>
-			line
-				.trim()
-				.replace(/^[-*•]\s*/, "")
-				.replace(/^\d+[.)、]\s*/, ""),
-		)
-		.filter(Boolean)
-		.join("；");
 
 const linkAddressClasses: Record<ResumeLinkStyle, string> = {
 	text: "",
@@ -193,10 +182,16 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 	function ResumePreview(
 		{
 			data,
-			themeId = "classic",
+			templateId = "classic",
+			accentColor,
 			fontSizePt,
+			sectionTitleFontSizePx,
+			itemTitleFontSizePx,
 			fontFamily,
 			pageMarginMm,
+			lineHeight,
+			sectionSpacing,
+			paragraphSpacingPx,
 			sectionIcons,
 			sectionPreferences: sectionPreferencesInput,
 			minPageCount = 1,
@@ -205,47 +200,48 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		},
 		ref,
 	) {
-		const theme = themes[themeId];
-		const c = theme.colors;
-		const normalizedFontSize = normalizeResumeFontSize(fontSizePt);
-		const normalizedPageMargin = normalizeResumePageMargin(pageMarginMm);
-		const isDefaultFontSize =
-			normalizedFontSize === DEFAULT_RESUME_FONT_SIZE_PT;
-		const density = theme.contentDensity ?? "standard";
+		const template = templateConfigs[templateId];
+		const c = template.colors;
+		const {
+			rootStyle: previewStyle,
+			normalizedPageMargin,
+			normalizedSectionSpacing,
+		} = resolvePreviewStyle({
+			accentColor,
+			fontSizePt,
+			sectionTitleFontSizePx,
+			itemTitleFontSizePx,
+			fontFamily,
+			pageMarginMm,
+			lineHeight,
+			sectionSpacing,
+			paragraphSpacingPx,
+			minPageCount,
+		});
+		const customSectionSpacing = normalizedSectionSpacing;
+		const density = template.contentDensity ?? "standard";
 		const spacing = densityClasses[density];
-		const skillLayout = theme.skillLayout ?? "rows";
-		const experienceStyle = theme.experienceStyle ?? "plain";
-		const projectStyle = theme.projectStyle ?? "plain";
-		const tagStyle = theme.tagStyle ?? "soft";
+		const experienceStyle = template.experienceStyle ?? "plain";
+		const projectStyle = template.projectStyle ?? "plain";
 		const sectionPreferences = normalizeResumeSectionPreferences(
 			sectionPreferencesInput,
 		);
+		const tagStyle =
+			sectionPreferences.projects.tagStyle === "text"
+				? "plain"
+				: template.tagStyle === "outline"
+					? "outline"
+					: "soft";
 		const personalLinkStyle = sectionPreferences.personal.linkStyle;
 		const showLinkLabels = sectionPreferences.personal.showLinkLabels;
 		const styledLinks = personalLinkStyle !== "text";
-		const minHeightMm = Math.max(1, minPageCount) * A4_HEIGHT_MM;
-		const normalizedFontFamily = normalizeResumeFontFamily(fontFamily);
-		const fontFamilyCss = getResumeFontFamilyCss(normalizedFontFamily);
-		const fontClass = theme.fontStyle === "serif" ? "font-serif" : "font-sans";
+		const fontClass = template.fontStyle === "serif" ? "font-serif" : "font-sans";
 		const photoUrl = normalizeResumePhotoSrc(data.personal.photoUrl);
 		const photoVisible = Boolean(
 			photoUrl && sectionPreferences.personal.showPhoto,
 		);
 		const photoOnLeft = sectionPreferences.personal.photoPosition === "left";
 		const photoSizeRatio = sectionPreferences.personal.photoSizeRatio;
-
-		const previewStyle = {
-			"--resume-page-margin": `${normalizedPageMargin}mm`,
-			minHeight: `${minHeightMm}mm`,
-			padding: `${normalizedPageMargin}mm`,
-			...(isDefaultFontSize
-				? {}
-				: {
-						"--resume-font-scale":
-							normalizedFontSize / DEFAULT_RESUME_FONT_SIZE_PT,
-					}),
-			...(fontFamilyCss ? { fontFamily: fontFamilyCss } : {}),
-		} as React.CSSProperties;
 
 		const hasPhone = data.personal.phone.trim();
 		const hasEmail = data.personal.email.trim();
@@ -259,24 +255,52 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const githubHref = normalizeSafeUrl(data.personal.github);
 		const websiteHref = normalizeSafeUrl(data.personal.website);
 
-		const sectionVisible: Record<SectionKey, boolean> = {
-			skills:
-				data.sectionVisibility.skills &&
-				data.skills.length > 0 &&
-				data.skills.some((skill) => hasSkillContent(skill)),
-			experience: data.sectionVisibility.experience && data.experience.length > 0,
-			projects: data.sectionVisibility.projects && data.projects.length > 0,
-			education: data.sectionVisibility.education && data.education.length > 0,
-			awards:
-				data.sectionVisibility.awards &&
-				data.awards.some((item) => hasSectionEntryContent(item)),
-			campus:
-				data.sectionVisibility.campus &&
-				data.campus.some((item) => hasSectionEntryContent(item)),
-			other: data.sectionVisibility.other && data.other.trim().length > 0,
+		const getCustomSection = (key: SectionKey) =>
+			isCustomSectionKey(key)
+				? data.customSections.find((section) => section.id === key)
+				: undefined;
+		const getSectionTitle = (key: SectionKey) => {
+			const customSection = getCustomSection(key);
+			if (customSection) {
+				return (
+					data.sectionTitles[key]?.trim() ||
+					customSection.title.trim() ||
+					"自定义区块"
+				);
+			}
+			if (isCustomSectionKey(key)) {
+				return data.sectionTitles[key]?.trim() || "自定义区块";
+			}
+
+			return data.sectionTitles[key];
+		};
+		const getSectionIcon = (key: SectionKey) =>
+			isCustomSectionKey(key) ? customSectionIconNode : sectionIconNodes[key];
+		const isSectionVisible = (key: SectionKey) => {
+			if (data.sectionVisibility[key] === false) return false;
+			if (isCustomSectionKey(key)) {
+				return Boolean(getCustomSection(key)?.content.trim());
+			}
+
+			switch (key) {
+				case "skills":
+					return data.skills.length > 0 && data.skills.some(hasSkillContent);
+				case "experience":
+					return data.experience.length > 0;
+				case "projects":
+					return data.projects.length > 0;
+				case "education":
+					return data.education.length > 0;
+				case "awards":
+					return data.awards.some((item) => hasSectionEntryContent(item));
+				case "campus":
+					return data.campus.some((item) => hasSectionEntryContent(item));
+				case "other":
+					return data.other.trim().length > 0;
+			}
 		};
 
-		const visibleOrder = data.sectionOrder.filter((key) => sectionVisible[key]);
+		const visibleOrder = data.sectionOrder.filter(isSectionVisible);
 
 		const shouldIgnoreSectionClick = (
 			event: React.MouseEvent<HTMLElement>,
@@ -310,10 +334,13 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			className: `${isLast ? "" : spacing.section} ${
 				onSectionClick ? "resume-editable-section" : ""
 			}`.trim(),
+			...(customSectionSpacing && !isLast
+				? { style: { marginBottom: "var(--resume-section-spacing)" } }
+				: {}),
 			...(onSectionClick
 				? {
 						"data-preview-section": key,
-						title: `点击编辑${data.sectionTitles[key]}`,
+						title: `点击编辑${getSectionTitle(key)}`,
 						onClick: (event) => {
 							if (shouldIgnoreSectionClick(event)) return;
 							onSectionClick(key);
@@ -322,13 +349,33 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				: {}),
 		});
 
+		const getPersonalSectionProps = (
+			className: string,
+		): React.HTMLAttributes<HTMLElement> & {
+			"data-preview-section"?: ResumeEditableSectionKey;
+		} => ({
+			className: `${className} ${
+				onSectionClick ? "resume-editable-section" : ""
+			}`.trim(),
+			...(onSectionClick
+				? {
+						"data-preview-section": "personal",
+						title: "点击编辑个人信息",
+						onClick: (event) => {
+							if (shouldIgnoreSectionClick(event)) return;
+							onSectionClick("personal");
+						},
+					}
+				: {}),
+		});
+
 		const renderSectionTitle = (key: SectionKey) => {
-			const title = data.sectionTitles[key];
+			const title = getSectionTitle(key);
 			if (!sectionIcons?.[key]) return title;
 
 			return (
 				<span className="inline-flex items-center gap-1.5">
-					<span className={c.muted}>{sectionIconNodes[key]}</span>
+					<span className={c.muted}>{getSectionIcon(key)}</span>
 					{title}
 				</span>
 			);
@@ -336,11 +383,11 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 		const renderSectionHeader = (key: SectionKey) => {
 			const title = renderSectionTitle(key);
-			switch (theme.sectionHeaderStyle) {
+			switch (template.sectionHeaderStyle) {
 				case "underline":
 					return (
 						<h2
-							className={`text-lg font-bold ${c.heading} border-b-2 border-slate-100 mb-2 pb-1`}
+							className={`resume-section-title text-lg font-bold ${c.heading} border-b-2 border-slate-100 mb-2 pb-1`}
 						>
 							{title}
 						</h2>
@@ -349,7 +396,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				case "left-border":
 					return (
 						<h2
-							className={`text-lg font-bold ${c.heading} border-l-[3px] ${c.primaryBorder} pl-3 mb-3`}
+							className={`resume-section-title text-lg font-bold ${c.heading} border-l-[3px] ${c.primaryBorder} pl-3 mb-3`}
 						>
 							{title}
 						</h2>
@@ -359,7 +406,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					return (
 						<h2 className="mb-3">
 							<span
-								className={`inline-block text-sm font-bold ${c.primary} ${c.primaryLight} px-3 py-1 rounded-md`}
+								className={`resume-section-title inline-block text-sm font-bold ${c.primary} ${c.primaryLight} px-3 py-1 rounded-md`}
 							>
 								{title}
 							</span>
@@ -369,7 +416,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				case "minimal":
 					return (
 						<h2
-							className={`text-[11px] font-bold uppercase tracking-[0.15em] ${c.muted} border-b ${c.divider} mb-2 pb-1.5`}
+							className={`resume-section-title text-[11px] font-bold uppercase tracking-[0.15em] ${c.muted} border-b ${c.divider} mb-2 pb-1.5`}
 						>
 							{title}
 						</h2>
@@ -378,7 +425,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				case "dotted":
 					return (
 						<h2
-							className={`text-base font-bold ${c.heading} border-b border-dotted ${c.divider} mb-2 pb-1`}
+							className={`resume-section-title text-base font-bold ${c.heading} border-b border-dotted ${c.divider} mb-2 pb-1`}
 						>
 							{title}
 						</h2>
@@ -387,7 +434,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				case "double-line":
 					return (
 						<div className="mb-3">
-							<h2 className={`text-base font-bold ${c.heading} pb-1`}>
+							<h2 className={`resume-section-title text-base font-bold ${c.heading} pb-1`}>
 								{title}
 							</h2>
 							<div className="flex flex-col gap-px">
@@ -399,12 +446,18 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 				default:
 					return (
-						<h2 className={`text-lg font-bold ${c.heading} mb-2`}>
+						<h2 className={`resume-section-title text-lg font-bold ${c.heading} mb-2`}>
 							{title}
 						</h2>
 					);
 			}
 		};
+
+		const renderDetailBlocks = (text: string) =>
+			renderMarkdownBlocks(text, {
+				listClassName: `resume-markdown-list list-disc list-outside ml-4 ${spacing.list} ${spacing.skillRow} text-sm ${c.body} last:mb-0`,
+				paragraphClassName: `resume-paragraph-block ${spacing.skillRow} text-sm ${c.body} last:mb-0`,
+			});
 
 		const renderContactInfo = () => {
 			if (!hasContactInfo) return null;
@@ -433,7 +486,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				});
 			}
 
-			switch (theme.contactStyle) {
+			switch (template.contactStyle) {
 				case "icons-right":
 					return (
 						<div className={`text-right text-sm ${c.body} space-y-1`}>
@@ -452,7 +505,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									) : (
 										<span>{item.text}</span>
 									)}
-									{theme.showContactIcons && item.icon}
+									{template.showContactIcons && item.icon}
 								</div>
 							))}
 						</div>
@@ -494,7 +547,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 										<span className={`${c.muted} select-none`}>|</span>
 									)}
 									<span className="flex items-center gap-1.5">
-										{theme.showContactIcons && (
+										{template.showContactIcons && (
 											<span className={c.muted}>{item.icon}</span>
 										)}
 										{item.href ? (
@@ -520,7 +573,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						>
 							{items.map((item) => (
 								<span key={item.text} className="flex items-center gap-1.5">
-									{theme.showContactIcons && (
+									{template.showContactIcons && (
 										<span className={c.primary}>{item.icon}</span>
 									)}
 									{item.href ? (
@@ -547,8 +600,8 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			if (!hasLinks) return null;
 
 			const isCentered =
-				theme.headerLayout === "centered" ||
-				theme.contactStyle === "centered-icons";
+				template.headerLayout === "centered" ||
+				template.contactStyle === "centered-icons";
 			const renderLink = (
 				text: string,
 				href: string | undefined,
@@ -563,7 +616,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							}`;
 				const content = (
 					<>
-						{(styledLinks || theme.showLinkIcons) && icon}
+						{(styledLinks || template.showLinkIcons) && icon}
 						{showLinkLabels && (
 							<strong className="font-semibold">{label}</strong>
 						)}
@@ -621,8 +674,8 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						<BannerLink
 							href={githubHref}
 							text={data.personal.github}
-							icon={(styledLinks || theme.showLinkIcons) && <Github size={14} />}
-							accentClass={theme.bannerAccent}
+							icon={(styledLinks || template.showLinkIcons) && <Github size={14} />}
+							accentClass={template.bannerAccent}
 							label="GitHub"
 							style={personalLinkStyle}
 							showLabel={showLinkLabels}
@@ -632,8 +685,8 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						<BannerLink
 							href={websiteHref}
 							text={data.personal.website}
-							icon={(styledLinks || theme.showLinkIcons) && <UserRound size={14} />}
-							accentClass={theme.bannerAccent}
+							icon={(styledLinks || template.showLinkIcons) && <UserRound size={14} />}
+							accentClass={template.bannerAccent}
 							label="主页"
 							style={personalLinkStyle}
 							showLabel={showLinkLabels}
@@ -672,7 +725,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 		const renderHeader = () => {
 			const dividerClass =
-				theme.headerDivider && (hasContactInfo || hasLinks || photoVisible)
+				template.headerDivider && (hasContactInfo || hasLinks || photoVisible)
 					? `border-b ${c.divider} pb-4 ${spacing.header}`
 					: spacing.header;
 			const emailHref = normalizeSafeUrl(`mailto:${data.personal.email}`);
@@ -681,10 +734,10 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 				hasContactInfo || (photoVisible && !photoOnLeft),
 			);
 
-			switch (theme.headerLayout) {
+			switch (template.headerLayout) {
 				case "split":
 					return (
-						<header className={dividerClass}>
+						<header {...getPersonalSectionProps(dividerClass)}>
 							<div
 								className={`flex gap-6 ${
 									hasHeaderColumns
@@ -706,7 +759,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 											{data.personal.title}
 										</p>
 									)}
-									{theme.contactStyle === "icons-right" && renderLinks()}
+									{template.contactStyle === "icons-right" && renderLinks()}
 								</div>
 								{hasRightAside && (
 									<div className="flex shrink-0 items-start justify-end gap-4">
@@ -715,14 +768,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									</div>
 								)}
 							</div>
-							{theme.contactStyle !== "icons-right" && renderLinks()}
+							{template.contactStyle !== "icons-right" && renderLinks()}
 						</header>
 					);
 
 				case "centered":
 					if (photoVisible) {
 						return (
-							<header className={dividerClass}>
+							<header {...getPersonalSectionProps(dividerClass)}>
 								<div
 									className={`flex items-start gap-4 ${
 										photoOnLeft ? "" : "flex-row-reverse"
@@ -753,7 +806,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					}
 
 					return (
-						<header className={`text-center ${dividerClass}`}>
+						<header {...getPersonalSectionProps(`text-center ${dividerClass}`)}>
 							{data.personal.name.trim() && (
 								<h1
 									className={`text-3xl font-bold ${c.heading} tracking-tight`}
@@ -775,7 +828,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 				case "accent":
 					return (
-						<header className={spacing.header}>
+						<header {...getPersonalSectionProps(spacing.header)}>
 							<div className={`border-l-4 ${c.primaryBorder} pl-4`}>
 								<div className="flex items-start justify-between gap-6">
 									{photoOnLeft && renderProfilePhoto()}
@@ -807,9 +860,13 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 				case "banner":
 					return (
-						<header className={`resume-banner-header ${spacing.header}`}>
+						<header
+							{...getPersonalSectionProps(
+								`resume-banner-header ${spacing.header}`,
+							)}
+						>
 							<div
-								className={`resume-banner-inner ${theme.bannerBg ?? "bg-slate-800"} text-white`}
+								className={`resume-banner-inner ${template.bannerBg ?? "bg-slate-800"} text-white`}
 							>
 								<div className="flex items-start justify-between gap-6">
 									{photoOnLeft && renderProfilePhoto("banner")}
@@ -821,7 +878,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 										)}
 										{data.personal.title.trim() && (
 											<p
-												className={`${theme.bannerAccent ?? "text-amber-400"} font-medium mt-1 text-lg`}
+												className={`${template.bannerAccent ?? "text-amber-400"} font-medium mt-1 text-lg`}
 											>
 												{data.personal.title}
 											</p>
@@ -835,7 +892,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 													{hasPhone && (
 														<div className="flex items-center justify-end gap-2">
 															<span>{data.personal.phone}</span>
-															{theme.showContactIcons && <Phone size={13} />}
+															{template.showContactIcons && <Phone size={13} />}
 														</div>
 													)}
 													{hasEmail && (
@@ -843,26 +900,26 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 															{emailHref ? (
 																<a
 																	href={emailHref}
-																	className={`${theme.bannerAccent ?? "text-amber-400"} hover:opacity-80 hover:underline`}
+																	className={`${template.bannerAccent ?? "text-amber-400"} hover:opacity-80 hover:underline`}
 																>
 																	{data.personal.email}
 																</a>
 															) : (
 																<span>{data.personal.email}</span>
 															)}
-															{theme.showContactIcons && <Mail size={13} />}
+															{template.showContactIcons && <Mail size={13} />}
 														</div>
 													)}
 													{hasLocation && (
 														<div className="flex items-center justify-end gap-2">
 															<span>{data.personal.location}</span>
-															{theme.showContactIcons && <MapPin size={13} />}
+															{template.showContactIcons && <MapPin size={13} />}
 														</div>
 													)}
 													{hasAvailability && (
 														<div className="flex items-center justify-end gap-2">
 															<span>{data.personal.availability}</span>
-															{theme.showContactIcons && <Calendar size={13} />}
+															{template.showContactIcons && <Calendar size={13} />}
 														</div>
 													)}
 												</div>
@@ -880,111 +937,18 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			}
 		};
 
-		const renderSkillContent = (skill: SkillItem) => {
-			const useChips =
-				sectionPreferences.skills.contentStyle === "chips" ||
-				(sectionPreferences.skills.contentStyle === "theme" &&
-					skillLayout === "chips");
-
-			if (!useChips) return parseInline(skill.content);
-
-			const parts = splitSkillContent(skill.content);
-			if (parts.length <= 1) return parseInline(skill.content);
-
-			return (
-				<span className="inline-flex flex-wrap gap-x-1.5 gap-y-1 align-top">
-					{parts.map((part) => (
-						<span
-							key={part}
-							className={`rounded-sm border border-current/15 bg-transparent px-1.5 py-[1px] text-[11px] leading-5 ${c.tagText}`}
-						>
-							{parseInline(part)}
-						</span>
-					))}
-				</span>
-			);
-		};
-
 		const renderSkills = (isLast: boolean) => {
 			const visibleSkills = data.skills.filter(hasSkillContent);
-			const showSkillLabels = sectionPreferences.skills.showLabels;
-
-			if (!showSkillLabels) {
-				return (
-					<section key="skills" {...getSectionProps("skills", isLast)}>
-						{renderSectionHeader("skills")}
-						<div
-							className={`text-sm ${
-								skillLayout === "columns" ? "grid grid-cols-2 gap-x-5" : ""
-							}`}
-						>
-							{visibleSkills.map((skill) => (
-								<div
-									key={skill.id}
-									className={`print-skill-row min-w-0 ${spacing.skillRow} last:mb-0`}
-								>
-									<span className={c.body}>{renderSkillContent(skill)}</span>
-								</div>
-							))}
-						</div>
-					</section>
-				);
-			}
-
-			if (skillLayout === "columns") {
-				return (
-					<section key="skills" {...getSectionProps("skills", isLast)}>
-						{renderSectionHeader("skills")}
-						<div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
-							{visibleSkills.map((skill) => (
-								<div key={skill.id} className="print-skill-row min-w-0">
-									<div className={`font-semibold ${c.heading}`}>
-										{skill.label}
-									</div>
-									<div className={c.body}>{renderSkillContent(skill)}</div>
-								</div>
-							))}
-						</div>
-					</section>
-				);
-			}
-
-			if (skillLayout === "inline") {
-				return (
-					<section key="skills" {...getSectionProps("skills", isLast)}>
-						{renderSectionHeader("skills")}
-						<div className="text-sm">
-							{visibleSkills.map((skill) => (
-								<div
-									key={skill.id}
-									className={`print-skill-row flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${spacing.skillRow} last:mb-0`}
-								>
-									<span className={`font-semibold ${c.heading}`}>
-										{skill.label}
-									</span>
-									<span className={c.body}>{renderSkillContent(skill)}</span>
-								</div>
-							))}
-						</div>
-					</section>
-				);
-			}
+			const skillsText = formatSkillsAsMarkdown(visibleSkills);
 
 			return (
 				<section key="skills" {...getSectionProps("skills", isLast)}>
 					{renderSectionHeader("skills")}
 					<div className="text-sm">
-						{visibleSkills.map((skill) => (
-							<div
-								key={skill.id}
-								className={`print-skill-row grid grid-cols-[100px_1fr] gap-y-0 ${spacing.skillRow} last:mb-0`}
-							>
-								<span className={`font-semibold ${c.heading}`}>
-									{skill.label}
-								</span>
-								<span className={c.body}>{renderSkillContent(skill)}</span>
-							</div>
-						))}
+						{renderMarkdownBlocks(skillsText, {
+							listClassName: `resume-markdown-list list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body} last:mb-0`,
+							paragraphClassName: `resume-paragraph-block text-sm ${c.body} last:mb-0`,
+						})}
 					</div>
 				</section>
 			);
@@ -994,6 +958,12 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			const role = sectionPreferences.experience.showRole
 				? exp.role.trim()
 				: "";
+			const roleInMiddle =
+				role && sectionPreferences.experience.rolePosition === "middle";
+			const roleOnTitle =
+				role && sectionPreferences.experience.rolePosition === "title";
+			const roleAtBottom =
+				role && sectionPreferences.experience.rolePosition === "bottom";
 			const date = sectionPreferences.experience.showDates
 				? exp.date.trim()
 				: "";
@@ -1005,24 +975,45 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			if (compact) {
 				return (
 					<div className="print-item-header mb-1">
-						<div className="flex justify-between items-baseline gap-4">
-							<h3 className={`font-bold text-base ${c.heading}`}>
-								{exp.company}
-								{role && (
-									<span className={`font-medium ${c.primary}`}>
-										{" "}
-										· {role}
+						<div
+							className={
+								roleInMiddle
+									? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-baseline gap-4"
+									: "flex items-baseline justify-between gap-4"
+							}
+						>
+							<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+								<h3 className={`resume-item-title min-w-0 font-bold text-base ${c.heading}`}>
+									{exp.company}
+								</h3>
+								{roleOnTitle && (
+									<span className={`text-sm font-medium ${c.primary}`}>
+										{role}
 									</span>
 								)}
-							</h3>
-							{dateOnRight && (
-								<span className={`text-sm ${c.muted} shrink-0`}>
-									{date}
+							</div>
+							{roleInMiddle && (
+								<span
+									className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+								>
+									{role}
 								</span>
+							)}
+							{dateOnRight && (
+								<div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5">
+									<span className={`text-sm ${c.muted}`}>
+										{date}
+									</span>
+								</div>
 							)}
 						</div>
 						{dateBelow && (
 							<div className={`mt-1 text-xs ${c.muted}`}>{date}</div>
+						)}
+						{roleAtBottom && (
+							<div className={`mt-1 text-sm font-medium ${c.primary}`}>
+								{role}
+							</div>
 						)}
 					</div>
 				);
@@ -1030,22 +1021,42 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
 			return (
 				<div className="print-item-header">
-					<div className="flex justify-between items-baseline mb-1 gap-4">
-						<h3 className={`font-bold text-base ${c.heading}`}>
-							{exp.company}
-						</h3>
-						{dateOnRight && (
-							<span className={`text-sm ${c.muted} shrink-0`}>
-								{date}
+					<div
+						className={`mb-1 ${
+							roleInMiddle
+								? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-baseline gap-4"
+								: "flex items-baseline justify-between gap-4"
+						}`}
+					>
+						<div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+							<h3 className={`resume-item-title min-w-0 font-bold text-base ${c.heading}`}>
+								{exp.company}
+							</h3>
+							{roleOnTitle && (
+								<span className={`text-sm font-medium ${c.primary}`}>
+									{role}
+								</span>
+							)}
+						</div>
+						{roleInMiddle && (
+							<span
+								className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+							>
+								{role}
 							</span>
 						)}
+						{dateOnRight && (
+							<div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5">
+								<span className={`text-sm ${c.muted}`}>{date}</span>
+							</div>
+						)}
 					</div>
-					{(role || dateBelow) && (
+					{(roleAtBottom || dateBelow) && (
 						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
-							{role && (
+							{roleAtBottom && (
 								<span className={`font-medium ${c.primary}`}>{role}</span>
 							)}
-							{role && dateBelow && (
+							{roleAtBottom && dateBelow && (
 								<span className={`${c.muted} opacity-40`}>·</span>
 							)}
 							{dateBelow && <span className={c.muted}>{date}</span>}
@@ -1056,13 +1067,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		};
 
 		const renderExperienceDetails = (details: string) =>
-			details.trim() ? (
-				<ul
-					className={`list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body}`}
-				>
-					{renderMarkdownList(details)}
-				</ul>
-			) : null;
+			details.trim() ? <div>{renderDetailBlocks(details)}</div> : null;
 
 		const renderExperience = (isLast: boolean) => (
 			<section key="experience" {...getSectionProps("experience", isLast)}>
@@ -1154,6 +1159,15 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			const date = sectionPreferences.projects.showDates
 				? proj.date.trim()
 				: "";
+			const role = sectionPreferences.projects.showRole
+				? proj.role.trim()
+				: "";
+			const roleInMiddle =
+				role && sectionPreferences.projects.rolePosition === "middle";
+			const roleOnTitle =
+				role && sectionPreferences.projects.rolePosition === "title";
+			const roleAtBottom =
+				role && sectionPreferences.projects.rolePosition === "bottom";
 			const dateOnRight =
 				date && sectionPreferences.projects.datePosition === "right";
 			const dateBelow =
@@ -1177,22 +1191,45 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			const content = (
 				<>
 					<div className="print-item-header mb-1">
-						<div className="flex items-baseline justify-between gap-4">
+						<div
+							className={
+								roleInMiddle
+									? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-baseline gap-4"
+									: "flex items-baseline justify-between gap-4"
+							}
+						>
 							<div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-								<h3 className={`font-bold text-base ${c.heading}`}>
+								<h3 className={`resume-item-title font-bold text-base ${c.heading}`}>
 									{proj.name}
 								</h3>
+								{roleOnTitle && (
+									<span className={`text-sm font-medium ${c.primary}`}>
+										{role}
+									</span>
+								)}
 								{tagOnTitle}
 								{linksOnTitle}
 							</div>
+							{roleInMiddle && (
+								<span
+									className={`justify-self-center text-center text-sm font-medium ${c.primary}`}
+								>
+									{role}
+								</span>
+							)}
 							{dateOnRight && (
 								<div className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">
 									<span className={`text-sm ${c.muted}`}>{date}</span>
 								</div>
 							)}
 						</div>
-						{(dateBelow || tagBelow || linksBelow) && (
+						{(roleAtBottom || dateBelow || tagBelow || linksBelow) && (
 							<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+								{roleAtBottom && (
+									<span className={`text-sm font-medium ${c.primary}`}>
+										{role}
+									</span>
+								)}
 								{dateBelow && (
 									<span className={`text-xs ${c.muted}`}>{date}</span>
 								)}
@@ -1202,13 +1239,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						)}
 					</div>
 					{proj.description.trim() && (
-						<ul
-							className={`list-disc list-outside ml-4 ${
-								compact ? "space-y-1" : spacing.list
-							} text-sm ${c.body}`}
-						>
-							{renderMarkdownList(proj.description)}
-						</ul>
+						<div>
+							{renderMarkdownBlocks(proj.description, {
+								listClassName: `resume-markdown-list list-disc list-outside ml-4 ${
+									compact ? "space-y-1" : spacing.list
+								} ${spacing.skillRow} text-sm ${c.body} last:mb-0`,
+								paragraphClassName: `resume-paragraph-block ${spacing.skillRow} text-sm ${c.body} last:mb-0`,
+							})}
+						</div>
 					)}
 				</>
 			);
@@ -1274,48 +1312,6 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			isLast: boolean,
 		) => {
 			const visibleItems = items.filter(hasSectionEntryContent);
-			const displayStyle = sectionPreferences[key].displayStyle;
-
-			if (displayStyle === "list") {
-				return (
-					<section key={key} {...getSectionProps(key, isLast)}>
-						{renderSectionHeader(key)}
-						<ul
-							className={`list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body}`}
-						>
-							{visibleItems.map((item) => {
-								const title = item.title.trim();
-								const meta = [item.subtitle.trim(), item.date.trim()]
-									.filter(Boolean)
-									.join(" · ");
-								const details = getSectionEntryDetailSummary(item.details);
-
-								return (
-									<li key={item.id}>
-										{title && (
-											<span className={`font-semibold ${c.heading}`}>
-												{parseInline(title)}
-											</span>
-										)}
-										{meta && (
-											<span className={c.muted}>
-												{title ? " · " : ""}
-												{parseInline(meta)}
-											</span>
-										)}
-										{details && (
-											<span>
-												{title || meta ? "：" : ""}
-												{parseInline(details)}
-											</span>
-										)}
-									</li>
-								);
-							})}
-						</ul>
-					</section>
-				);
-			}
 
 			return (
 				<section key={key} {...getSectionProps(key, isLast)}>
@@ -1326,7 +1322,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 								<div className="flex items-baseline justify-between gap-4">
 									<div className="min-w-0">
 										{item.title.trim() && (
-											<h3 className={`font-bold text-base ${c.heading}`}>
+											<h3 className={`resume-item-title font-bold text-base ${c.heading}`}>
 												{item.title}
 											</h3>
 										)}
@@ -1344,11 +1340,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 								</div>
 							</div>
 							{item.details.trim() && (
-								<ul
-									className={`list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body}`}
-								>
-									{renderMarkdownList(item.details)}
-								</ul>
+								<div>{renderDetailBlocks(item.details)}</div>
 							)}
 						</div>
 					))}
@@ -1362,39 +1354,28 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const renderCampus = (isLast: boolean) =>
 			renderSectionEntries("campus", data.campus, isLast);
 
-		const renderOtherLines = () =>
-			data.other
-				.split("\n")
-				.filter((line) => line.trim())
-				.map((line, index) => {
-					const content = line.replace(/^-\s*/, "");
-					return (
-						<div
-							key={`${index}-${line.slice(0, 20)}`}
-							className={`${spacing.skillRow} last:mb-0`}
-						>
-							{parseInline(content)}
-						</div>
-					);
-				});
-
 		const renderOther = (isLast: boolean) => (
 			<section key="other" {...getSectionProps("other", isLast)}>
 				{renderSectionHeader("other")}
-				{sectionPreferences.other.listStyle === "plain" ? (
-					<div className={`text-sm ${c.body}`}>{renderOtherLines()}</div>
-				) : (
-					<ul
-						className={`list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body}`}
-					>
-						{renderMarkdownList(data.other)}
-					</ul>
-				)}
+				<div>{renderDetailBlocks(data.other)}</div>
 			</section>
 		);
 
+		const renderCustomSection = (key: SectionKey, isLast: boolean) => {
+			if (!isCustomSectionKey(key)) return null;
+			const section = getCustomSection(key);
+			if (!section) return null;
+
+			return (
+				<section key={key} {...getSectionProps(key, isLast)}>
+					{renderSectionHeader(key)}
+					<div>{renderDetailBlocks(section.content)}</div>
+				</section>
+			);
+		};
+
 		const sectionRenderers: Record<
-			SectionKey,
+			StandardSectionKey,
 			(isLast: boolean) => React.ReactElement
 		> = {
 			skills: renderSkills,
@@ -1410,7 +1391,6 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 			<div
 				ref={ref}
 				className={`resume-content resume-print-root w-full bg-white ${c.body} ${fontClass} leading-relaxed text-[10.5pt]`}
-				data-font-scaled={isDefaultFontSize ? undefined : "true"}
 				data-page-margin={
 					normalizedPageMargin === DEFAULT_RESUME_PAGE_MARGIN_MM
 						? undefined
@@ -1422,7 +1402,9 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					{renderHeader()}
 
 					{visibleOrder.map((key, index) =>
-						sectionRenderers[key](index === visibleOrder.length - 1),
+						isCustomSectionKey(key)
+							? renderCustomSection(key, index === visibleOrder.length - 1)
+							: sectionRenderers[key](index === visibleOrder.length - 1),
 					)}
 				</div>
 			</div>

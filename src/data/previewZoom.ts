@@ -1,4 +1,4 @@
-export const DEFAULT_PREVIEW_ZOOM = 1;
+export const DEFAULT_PREVIEW_ZOOM = 0.75;
 
 export const PREVIEW_ZOOM_OPTIONS = [0.6, 0.75, 0.9, 1, 1.15, 1.3] as const;
 

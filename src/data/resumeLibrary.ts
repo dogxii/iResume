@@ -7,31 +7,54 @@ import {
 } from "./resumeData";
 import {
 	DEFAULT_SECTION_PREFERENCES,
+	DEFAULT_RESUME_ACCENT_COLOR,
 	DEFAULT_RESUME_FONT_SIZE_PT,
 	DEFAULT_RESUME_PAGE_MARGIN_MM,
 	DEFAULT_RESUME_FONT_FAMILY,
+	DEFAULT_RESUME_LINE_HEIGHT,
+	DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
+	DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+	DEFAULT_RESUME_SECTION_SPACING,
+	DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
 	normalizeResumeFontSize,
+	normalizeResumeItemTitleFontSize,
 	normalizeResumePageMargin,
+	normalizeResumeParagraphSpacing,
 	normalizeResumeFontFamily,
+	normalizeResumeLineHeight,
+	normalizeResumeSectionSpacing,
+	normalizeResumeAccentColor,
 	normalizeResumeSectionPreferences,
+	normalizeResumeSectionTitleFontSize,
 	type ResumeFontSizePt,
+	type ResumeItemTitleFontSizePx,
 	type ResumePageMarginMm,
 	type ResumeFontFamily,
+	type ResumeLineHeight,
+	type ResumeParagraphSpacingPx,
 	type ResumeSectionPreferences,
+	type ResumeSectionSpacing,
+	type ResumeSectionTitleFontSizePx,
 } from "./resumeStyle";
 import {
-	DEFAULT_THEME_ID,
+	DEFAULT_TEMPLATE_ID,
 	getDefaultSectionIconVisibility,
-	isThemeId,
-} from "./themes";
+	isTemplateId,
+} from "./templateConfigs";
 import type { ResumeData, SectionIconVisibility } from "../types/resume";
-import type { ThemeId } from "../types/theme";
+import type { TemplateId } from "../types/template";
 
 export interface ResumeAppearance {
-	themeId: ThemeId;
+	templateId: TemplateId;
+	accentColor: string;
 	fontSizePt: ResumeFontSizePt;
+	sectionTitleFontSizePx: ResumeSectionTitleFontSizePx;
+	itemTitleFontSizePx: ResumeItemTitleFontSizePx;
 	pageMarginMm: ResumePageMarginMm;
 	fontFamily: ResumeFontFamily;
+	lineHeight: ResumeLineHeight;
+	sectionSpacing: ResumeSectionSpacing;
+	paragraphSpacingPx: ResumeParagraphSpacingPx;
 	sectionIcons: SectionIconVisibility;
 	sectionPreferences: ResumeSectionPreferences;
 }
@@ -48,7 +71,7 @@ export interface ResumeDocument {
 }
 
 export interface ResumeLibrary {
-	version: 1;
+	version: 2;
 	activeId: string;
 	documents: ResumeDocument[];
 }
@@ -101,18 +124,30 @@ export function normalizeResumeAppearance(
 	fallback?: Partial<ResumeAppearance>,
 ): ResumeAppearance {
 	const raw = isRecord(value) ? value : {};
-	const fallbackThemeId = fallback?.themeId ?? DEFAULT_THEME_ID;
-	const themeId =
-		typeof raw.themeId === "string" && isThemeId(raw.themeId)
-			? raw.themeId
-			: fallbackThemeId;
+	const fallbackTemplateId = fallback?.templateId ?? DEFAULT_TEMPLATE_ID;
+	const templateId =
+		typeof raw.templateId === "string" && isTemplateId(raw.templateId)
+			? raw.templateId
+			: fallbackTemplateId;
+	const accentFallback = fallback?.accentColor ?? DEFAULT_RESUME_ACCENT_COLOR;
 	const fallbackIcons =
-		fallback?.sectionIcons ?? getDefaultSectionIconVisibility(themeId);
+		fallback?.sectionIcons ?? getDefaultSectionIconVisibility();
 
 	return {
-		themeId,
+		templateId,
+		accentColor: normalizeResumeAccentColor(raw.accentColor, accentFallback),
 		fontSizePt: normalizeResumeFontSize(
 			raw.fontSizePt ?? fallback?.fontSizePt ?? DEFAULT_RESUME_FONT_SIZE_PT,
+		),
+		sectionTitleFontSizePx: normalizeResumeSectionTitleFontSize(
+			raw.sectionTitleFontSizePx ??
+				fallback?.sectionTitleFontSizePx ??
+				DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
+		),
+		itemTitleFontSizePx: normalizeResumeItemTitleFontSize(
+			raw.itemTitleFontSizePx ??
+				fallback?.itemTitleFontSizePx ??
+				DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
 		),
 		pageMarginMm: normalizeResumePageMargin(
 			raw.pageMarginMm ??
@@ -122,6 +157,19 @@ export function normalizeResumeAppearance(
 		fontFamily: normalizeResumeFontFamily(
 			raw.fontFamily ?? fallback?.fontFamily ?? DEFAULT_RESUME_FONT_FAMILY,
 		),
+		lineHeight: normalizeResumeLineHeight(
+			raw.lineHeight ?? fallback?.lineHeight ?? DEFAULT_RESUME_LINE_HEIGHT,
+		),
+		sectionSpacing: normalizeResumeSectionSpacing(
+			raw.sectionSpacing ??
+				fallback?.sectionSpacing ??
+				DEFAULT_RESUME_SECTION_SPACING,
+		),
+		paragraphSpacingPx: normalizeResumeParagraphSpacing(
+			raw.paragraphSpacingPx ??
+				fallback?.paragraphSpacingPx ??
+				DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+		),
 		sectionIcons: normalizeSectionIconVisibility(
 			raw.sectionIcons,
 			fallbackIcons,
@@ -129,10 +177,6 @@ export function normalizeResumeAppearance(
 		sectionPreferences: normalizeResumeSectionPreferences(
 			raw.sectionPreferences,
 			fallback?.sectionPreferences ?? DEFAULT_SECTION_PREFERENCES,
-			{
-				projectLinksPosition: raw.projectLinksPosition,
-				showProjectTags: raw.showProjectTags,
-			},
 		),
 	};
 }
@@ -144,11 +188,17 @@ export function createResumeDocument(
 	const baseData = options.data ?? initialResumeState;
 	const data = normalizeResumeData(baseData);
 	const appearance = normalizeResumeAppearance(options.appearance, {
-		themeId: DEFAULT_THEME_ID,
+		templateId: DEFAULT_TEMPLATE_ID,
+		accentColor: DEFAULT_RESUME_ACCENT_COLOR,
 		fontSizePt: DEFAULT_RESUME_FONT_SIZE_PT,
+		sectionTitleFontSizePx: DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
+		itemTitleFontSizePx: DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
 		pageMarginMm: DEFAULT_RESUME_PAGE_MARGIN_MM,
 		fontFamily: DEFAULT_RESUME_FONT_FAMILY,
-		sectionIcons: createSectionIconVisibility(true),
+		lineHeight: DEFAULT_RESUME_LINE_HEIGHT,
+		sectionSpacing: DEFAULT_RESUME_SECTION_SPACING,
+		paragraphSpacingPx: DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+		sectionIcons: createSectionIconVisibility(false),
 		sectionPreferences: DEFAULT_SECTION_PREFERENCES,
 	});
 	const personalName = data.personal.name.trim();
@@ -205,7 +255,7 @@ export function createResumeLibrary(
 			: firstDocument.id;
 
 	return {
-		version: 1,
+		version: 2,
 		activeId: safeActiveId,
 		documents: safeDocuments,
 	};

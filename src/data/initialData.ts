@@ -3,22 +3,20 @@ import type { ResumeData } from "../types/resume";
 export const initialResumeState: ResumeData = {
 	personal: {
 		name: "林小明",
-		title: "高级前端开发工程师",
+		title: "Web 前端工程师",
 		photoUrl: "",
 		phone: "138-1234-5678",
 		email: "linxiaoming@email.com",
-		location: "广东 深圳",
-		availability: "4天/周 3个月+",
+		location: "江西 南昌",
+		availability: "应届生 · 一周内到岗",
 		github: "github.com/linxiaoming",
 		website: "linxiaoming.dev",
 	},
 	sectionOrder: [
-		"skills",
+		"education",
 		"experience",
 		"projects",
-		"education",
-		"awards",
-		"campus",
+		"skills",
 		"other",
 	],
 	sectionVisibility: {
@@ -33,104 +31,89 @@ export const initialResumeState: ResumeData = {
 	sectionTitles: {
 		skills: "专业技能",
 		experience: "工作经历",
-		projects: "项目经验 & 开源贡献",
+		projects: "项目经历",
 		education: "教育背景",
 		awards: "获奖经历",
 		campus: "校园经历",
-		other: "其他补充",
+		other: "自我评价",
 	},
 	skills: [
 		{
 			id: 1,
-			label: "核心基础",
+			label: "",
 			content:
-				"扎实的 JavaScript (ES6+) / TypeScript 基础，熟练掌握 HTML5、CSS3 及响应式布局",
-		},
-		{
-			id: 2,
-			label: "框架生态",
-			content:
-				"深入理解 React 18 核心原理，熟练使用 Next.js、Zustand、React Query 等生态工具",
-		},
-		{
-			id: 3,
-			label: "前端工程化",
-			content:
-				"熟练配置 Vite、Webpack，具备脚手架开发能力；熟悉 CI/CD 流程、Docker 及 Nginx 部署",
-		},
-		{
-			id: 4,
-			label: "性能与规范",
-			content:
-				"精通 Web Vitals 性能调优，熟练使用 Lighthouse；推行 ESLint、Prettier、Husky 规范团队代码",
+				"- 熟悉 HTML5、CSS3、JavaScript (ES6+) 与 TypeScript，能够独立完成响应式页面开发\n- 熟悉 React、Vue 常用开发模式，了解 Hooks、状态管理、路由和组件化设计\n- 熟悉 HTTP、浏览器渲染、性能优化和前端工程化，日常使用 Vite、Git、ESLint\n- 了解 Node.js、RESTful API 对接和基础后端协作流程，具备问题排查与文档沉淀习惯",
 		},
 	],
 	experience: [
 		{
 			id: 1,
-			company: "某知名互联网科技公司",
-			role: "高级前端开发工程师",
-			date: "2021.06 - 至今",
+			company: "某互联网产品研发部",
+			role: "前端实习生",
+			date: "2022.07 - 2022.09",
 			details:
-				"架构升级与性能优化：主导核心业务线从 Webpack 到 Vite 的平滑迁移，冷启动速度提升 80%，HMR 响应时间缩短至毫秒级，显著提升团队开发体验。\n基础设施建设：设计并落地基于 Headless UI 的企业级 React 组件库，服务于内部 10+ 个中后台系统，复用率达 70%，提升团队 30% 开发效率。\n质量保障与监控：建立前端监控与异常上报机制，结合 Sentry 降低线上故障排查时间；引入 Jest + RTL 单元测试，核心业务逻辑覆盖率达 85% 以上。",
+				"- 参与内部运营平台迭代，负责数据列表、表单配置、权限入口等页面开发与联调\n- 基于团队组件规范沉淀筛选、表格和异常态处理逻辑，减少重复实现并提升问题反馈效率",
 		},
 		{
 			id: 2,
-			company: "某高成长型创业公司",
-			role: "前端开发工程师",
-			date: "2018.07 - 2021.05",
+			company: "校内创新实践团队",
+			role: "前端开发",
+			date: "2021.10 - 2022.06",
 			details:
-				"低代码表单引擎：负责低代码平台核心模块研发，基于 React Hook Form 与 JSON Schema 实现动态表单渲染引擎，支持 50+ 种复杂控件与联动逻辑。\n复杂数据可视化：主导数据可视化大屏项目，使用 ECharts 与 WebGL 渲染百万级节点数据，通过 Web Worker 与时间分片技术解决主线程阻塞问题，保持 60fps 流畅度。\n跨端开发：使用 Taro 参与开发公司核心业务小程序，实现一套代码多端运行，降低 40% 的维护成本。",
+				"- 负责活动报名、成员管理和数据看板等模块，完成需求拆解、页面实现和接口对接\n- 维护项目组件与样式规范，协助整理开发文档，降低新成员接入成本",
 		},
 	],
 	projects: [
 		{
 			id: 1,
-			name: "企业级全栈后台管理系统 (个人开源)",
-			date: "2023.03 - 2024.02",
-			tags: "Next.js 14, TypeScript, Tailwind CSS, Prisma",
-			link: "admin-demo.com",
-			source: "github.com/linxiaoming/admin",
+			name: "校园信息服务平台",
+			role: "前端负责人",
+			date: "2022.09 - 2023.06",
+			tags: "Vue 3, TypeScript, Vite",
+			link: "campus-demo.com",
+			source: "github.com/linxiaoming/campus-service",
 			description:
-				"采用 Next.js App Router 与 Server Actions 重构传统 SPA，首屏加载速度 (FCP) 提升 40%，SEO 表现显著提升。\n集成 RBAC 权限管理与多租户架构，使用 Zustand 进行全局状态管理，封装高阶组件实现细粒度（按钮级）权限控制。\n严格遵循 WAI-ARIA 无障碍标准，Lighthouse 性能、可访问性、最佳实践评分均达到 95+。",
+				"- 负责前端架构与核心页面开发，实现资讯发布、活动报名、消息通知等主要流程\n- 拆分业务组件和请求层，统一错误处理与权限校验，提升页面复用性和维护效率",
 		},
 		{
 			id: 2,
-			name: "轻量级响应式状态管理库",
-			date: "2022.06 - 2023.01",
-			tags: "TypeScript, Rollup, Proxy",
-			link: "npmjs.com/package/mini-store",
-			source: "github.com/linxiaoming/mini-store",
+			name: "在线简历编辑器",
+			role: "核心开发者",
+			date: "2023.03 - 2023.08",
+			tags: "React, Zustand, Tailwind CSS",
+			link: "resume-demo.com",
+			source: "github.com/linxiaoming/resume-editor",
 			description:
-				"从零实现一个基于 Proxy 的响应式状态管理库，核心代码仅 2KB，支持 React/Vue 多框架无缝接入。\n设计并实现了依赖收集与派发更新机制，避免不必要的组件重渲染，性能优于传统 Context API。\n配置完善的 CI/CD 自动化发布流程，单元测试覆盖率达 95%，在 GitHub 获得 500+ Stars。",
+				"- 实现结构化简历编辑、实时预览、PDF 导出和 JSON 备份，覆盖简历制作的主要流程\n- 优化预览缩放与打印样式，保证页面在浏览器预览和 PDF 输出中保持一致",
 		},
 	],
 	education: [
 		{
 			id: 1,
-			school: "某某大学",
-			degree: "计算机科学与技术 (本科)",
-			date: "2014.09 - 2018.06",
+			school: "南昌大学",
+			degree: "计算机科学与技术 (学士学位)",
+			date: "2019.09 - 2023.06",
 		},
 	],
 	awards: [
 		{
 			id: 1,
-			title: "全国大学生软件设计竞赛一等奖",
-			subtitle: "中国软件行业协会",
-			date: "2017.11",
+			title: "校级一等奖学金",
+			subtitle: "南昌大学",
+			date: "2021.12",
 			details: "",
 		},
 	],
 	campus: [
 		{
 			id: 1,
-			title: "校学生科技协会",
-			subtitle: "前端负责人",
-			date: "2016.09 - 2018.06",
-			details: "组织技术分享与项目实践，完成校园活动报名系统。",
+			title: "学生技术协会",
+			subtitle: "前端组成员",
+			date: "2020.09 - 2022.06",
+			details: "- 参与技术分享与项目实践，协助维护社团官网和活动报名页面。",
 		},
 	],
 	other:
-		"**开源贡献**：为 Ant Design、Vite 等知名开源项目提交过多个 PR 并被合并。\n**技术博客**：长期维护个人技术博客，分享前端工程化、性能优化等深度文章，累计阅读量 10w+。\n**英语能力**：CET-6，能流畅阅读英文技术文档并参与英文社区交流。\n**持续学习**：对新技术保持极高热情，目前正在深入学习 Rust 与 WebAssembly 在前端领域的应用。",
+		"- 对前端体验和工程质量保持关注，习惯用清晰结构推进需求落地\n- 保持技术学习与复盘，能在团队协作中主动沟通、及时反馈风险",
+	customSections: [],
 };

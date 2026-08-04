@@ -3,17 +3,27 @@ import {
 	ArrowUp,
 	Award,
 	BriefcaseBusiness,
+	Calendar,
+	ChevronDown,
 	Eye,
 	EyeOff,
 	FileText,
 	FolderGit2,
 	GraduationCap,
 	GripVertical,
+	Image as ImageIcon,
 	ImagePlus,
+	Link2,
+	Maximize2,
+	Minus,
+	MoveHorizontal,
 	Plus,
+	RotateCcw,
 	School,
+	Tags,
 	Trash2,
 	Upload,
+	UserRound,
 	Wrench,
 } from "lucide-react";
 import {
@@ -42,7 +52,50 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { createResumeItemId } from "../data/resumeData";
+import {
+	OPTIONAL_STANDARD_SECTION_KEYS,
+	STANDARD_SECTION_KEYS,
+	createResumeItemId,
+	isCustomSectionKey,
+} from "../data/resumeData";
+import type {
+	ResumeFontFamily,
+	ResumeFontSizePt,
+	ResumeItemTitleFontSizePx,
+	ResumeLineHeight,
+	ResumePageMarginMm,
+	ResumeParagraphSpacingPx,
+	ProjectLinksPosition,
+	ProjectTagStyle,
+	ProjectTagPosition,
+	ResumeLinkStyle,
+	ResumePhotoPosition,
+	ResumePhotoSizeRatio,
+	ResumeSectionPreferences,
+	ResumeSectionSpacing,
+	ResumeSectionTitleFontSizePx,
+	SectionDatePosition,
+	EntryRolePosition,
+} from "../data/resumeStyle";
+import {
+	DEFAULT_RESUME_FONT_SIZE_PT,
+	DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
+	DEFAULT_RESUME_PAGE_MARGIN_MM,
+	DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+	DEFAULT_RESUME_ACCENT_COLOR,
+	DEFAULT_RESUME_SECTION_SPACING,
+	DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
+	RESUME_ACCENT_COLOR_PRESETS,
+	RESUME_FONT_SIZE_OPTIONS,
+	RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS,
+	RESUME_LINE_HEIGHT_OPTIONS,
+	RESUME_PAGE_MARGIN_OPTIONS,
+	RESUME_PARAGRAPH_SPACING_OPTIONS,
+	RESUME_SECTION_SPACING_OPTIONS,
+	RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS,
+	normalizeResumeAccentColor,
+} from "../data/resumeStyle";
+import { formatSkillsAsMarkdown } from "../data/resumeSkills";
 import ToggleSwitch from "./ToggleSwitch";
 import {
 	RESUME_PHOTO_MAX_EDGE_PX,
@@ -51,16 +104,26 @@ import {
 	normalizeResumePhotoSrc,
 	resumePhotoFileTypePattern,
 } from "../utils/resumePhoto";
+import FontFamilyControl from "./FontFamilyControl";
+import TemplatePicker from "./TemplatePicker";
+import {
+	useAdaptiveMenuPlacement,
+	type AdaptiveMenuPlacement,
+} from "./useAdaptiveMenuPlacement";
 import type {
+	CustomSectionKey,
 	Education,
 	Experience,
 	Project,
 	ResumeData,
+	ResumeEditableSectionKey,
 	SectionEntry,
 	SectionKey,
 	SectionIconVisibility,
-	SkillItem,
+	SectionVisibility,
+	StandardSectionKey,
 } from "../types/resume";
+import type { TemplateId } from "../types/template";
 
 export type ResumeEditorPanel = "structure" | "details";
 
@@ -171,11 +234,37 @@ const InputGroup = ({
 interface ResumeEditorProps {
 	data: ResumeData;
 	sectionIcons: SectionIconVisibility;
+	sectionPreferences: ResumeSectionPreferences;
+	templateId: TemplateId;
+	favoriteTemplateIds: TemplateId[];
+	accentColor: string;
+	fontSizePt: ResumeFontSizePt;
+	sectionTitleFontSizePx: ResumeSectionTitleFontSizePx;
+	itemTitleFontSizePx: ResumeItemTitleFontSizePx;
+	fontFamily: ResumeFontFamily;
+	pageMarginMm: ResumePageMarginMm;
+	lineHeight: ResumeLineHeight;
+	sectionSpacing: ResumeSectionSpacing;
+	paragraphSpacingPx: ResumeParagraphSpacingPx;
 	panel: ResumeEditorPanel;
-	activeSection: SectionKey;
-	onActiveSectionChange: (section: SectionKey) => void;
+	activeSection: ResumeEditableSectionKey;
+	onActiveSectionChange: (section: ResumeEditableSectionKey) => void;
 	onChange: (data: ResumeData) => void;
 	onSectionIconsChange: (sectionIcons: SectionIconVisibility) => void;
+	onSectionPreferencesChange: (preferences: ResumeSectionPreferences) => void;
+	onTemplateChange: (id: TemplateId) => void;
+	onToggleFavoriteTemplate: (id: TemplateId) => void;
+	onAccentColorChange: (value: string) => void;
+	onFontSizeChange: (value: ResumeFontSizePt) => void;
+	onSectionTitleFontSizeChange: (
+		value: ResumeSectionTitleFontSizePx,
+	) => void;
+	onItemTitleFontSizeChange: (value: ResumeItemTitleFontSizePx) => void;
+	onFontFamilyChange: (value: ResumeFontFamily) => void;
+	onPageMarginChange: (value: ResumePageMarginMm) => void;
+	onLineHeightChange: (value: ResumeLineHeight) => void;
+	onSectionSpacingChange: (value: ResumeSectionSpacing) => void;
+	onParagraphSpacingChange: (value: ResumeParagraphSpacingPx) => void;
 }
 
 interface ItemActionsProps {
@@ -186,17 +275,17 @@ interface ItemActionsProps {
 	removeConfirmMessage?: string;
 }
 
-const sectionFallbackNames: Record<SectionKey, string> = {
+const sectionFallbackNames: Record<StandardSectionKey, string> = {
 	skills: "专业技能",
 	experience: "工作经历",
 	projects: "项目经历",
 	education: "教育背景",
 	awards: "获奖经历",
 	campus: "校园经历",
-	other: "其他",
+	other: "自我评价",
 };
 
-const sectionIconNodes: Record<SectionKey, ReactNode> = {
+const sectionIconNodes: Record<StandardSectionKey, ReactNode> = {
 	skills: <Wrench size={15} />,
 	experience: <BriefcaseBusiness size={15} />,
 	projects: <FolderGit2 size={15} />,
@@ -205,6 +294,314 @@ const sectionIconNodes: Record<SectionKey, ReactNode> = {
 	campus: <School size={15} />,
 	other: <FileText size={15} />,
 };
+
+const personalIconNode = <UserRound size={15} />;
+const customSectionIconNode = <FileText size={15} />;
+
+interface SegmentedOption<T extends string | number> {
+	value: T;
+	label: string;
+}
+
+const datePositionOptions: SegmentedOption<SectionDatePosition>[] = [
+	{ value: "right", label: "右侧" },
+	{ value: "below", label: "下方" },
+];
+
+const projectLinksOptions: SegmentedOption<ProjectLinksPosition>[] = [
+	{ value: "title", label: "标题右侧" },
+	{ value: "below", label: "标题下方" },
+];
+
+const projectTagOptions: SegmentedOption<ProjectTagPosition>[] = [
+	{ value: "title", label: "标题右侧" },
+	{ value: "below", label: "标题下方" },
+];
+
+const projectTagStyleOptions: SegmentedOption<ProjectTagStyle>[] = [
+	{ value: "badge", label: "标签" },
+	{ value: "text", label: "纯文本" },
+];
+
+const photoPositionOptions: SegmentedOption<ResumePhotoPosition>[] = [
+	{ value: "right", label: "右侧" },
+	{ value: "left", label: "左侧" },
+];
+
+const photoSizeRatioOptions: SegmentedOption<ResumePhotoSizeRatio>[] = [
+	{ value: 0.85, label: "85%" },
+	{ value: 1, label: "100%" },
+	{ value: 1.15, label: "115%" },
+];
+
+const linkStyleOptions: SegmentedOption<ResumeLinkStyle>[] = [
+	{ value: "text", label: "文本" },
+	{ value: "highlighted", label: "标识" },
+	{ value: "blue", label: "蓝色" },
+];
+
+const rolePositionOptions: SegmentedOption<EntryRolePosition>[] = [
+	{ value: "middle", label: "中间" },
+	{ value: "title", label: "标题右侧" },
+	{ value: "bottom", label: "底部" },
+];
+
+const lineHeightOptions: SegmentedOption<ResumeLineHeight>[] = [
+	{ value: "template", label: "跟随" },
+	...RESUME_LINE_HEIGHT_OPTIONS.map((value) => ({
+		value,
+		label: String(value),
+	})),
+];
+
+const SegmentedControl = <T extends string | number>({
+	label,
+	value,
+	options,
+	onChange,
+	icon,
+	disabled = false,
+}: {
+	label: string;
+	value: T;
+	options: SegmentedOption<T>[];
+	onChange: (value: T) => void;
+	icon?: ReactNode;
+	disabled?: boolean;
+}) => (
+	<div
+		className={`flex w-full items-center justify-between gap-3 ${
+			disabled ? "opacity-45" : ""
+		}`}
+	>
+		<span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+			{icon && <span className="shrink-0 text-slate-300">{icon}</span>}
+			{label}
+		</span>
+		<div className="inline-flex shrink-0 rounded-full bg-slate-100/70 p-0.5 ring-1 ring-slate-200/60">
+			{options.map((option) => (
+				<button
+					key={option.value}
+					type="button"
+					disabled={disabled}
+					onClick={() => onChange(option.value)}
+					className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:cursor-not-allowed ${
+						option.value === value
+							? "bg-white text-slate-700 shadow-sm shadow-slate-900/5"
+							: "text-slate-400 hover:text-slate-600"
+					}`}
+					aria-pressed={option.value === value}
+				>
+					{option.label}
+				</button>
+			))}
+		</div>
+	</div>
+);
+
+const DropdownControl = <T extends string | number>({
+	label,
+	value,
+	options,
+	onChange,
+	icon,
+	disabled = false,
+	menuPlacement = "top",
+}: {
+	label: string;
+	value: T;
+	options: SegmentedOption<T>[];
+	onChange: (value: T) => void;
+	icon?: ReactNode;
+	disabled?: boolean;
+	menuPlacement?: AdaptiveMenuPlacement;
+}) => {
+	const [open, setOpen] = useState(false);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const current = options.find((option) => option.value === value);
+	const placement = useAdaptiveMenuPlacement(containerRef, {
+		open,
+		preferred: menuPlacement,
+		estimatedHeight: options.length * 30 + 8,
+	});
+
+	useEffect(() => {
+		if (!open) return;
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(event.target as Node)
+			) {
+				setOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [open]);
+
+	return (
+		<div
+			ref={containerRef}
+			className={`relative flex w-full items-center justify-between gap-3 ${
+				disabled ? "opacity-45" : ""
+			}`}
+		>
+			<span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+				{icon && <span className="shrink-0 text-slate-300">{icon}</span>}
+				{label}
+			</span>
+			<button
+				type="button"
+				disabled={disabled}
+				onClick={() => setOpen((prev) => !prev)}
+				className="flex h-8 w-24 shrink-0 items-center justify-between gap-2 rounded-lg bg-white/60 px-2.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200/60 transition-colors hover:bg-white hover:text-slate-800 disabled:cursor-not-allowed"
+				aria-expanded={open}
+				aria-label={`选择${label}`}
+			>
+				<span className="truncate">{current?.label ?? String(value)}</span>
+				<ChevronDown size={12} className="shrink-0 text-slate-400" />
+			</button>
+			{open && !disabled && (
+				<div
+					className={`absolute right-0 z-40 w-24 overflow-hidden rounded-lg border border-slate-200/80 bg-white/95 py-1 shadow-xl shadow-slate-900/10 backdrop-blur ${
+						placement === "top" ? "bottom-full mb-1" : "top-full mt-1"
+					}`}
+				>
+					{options.map((option) => (
+						<button
+							key={option.value}
+							type="button"
+							onClick={() => {
+								onChange(option.value);
+								setOpen(false);
+							}}
+							className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors hover:bg-slate-50 ${
+								option.value === value
+									? "font-semibold text-blue-600"
+									: "text-slate-600"
+							}`}
+						>
+							{option.label}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	);
+};
+
+const getAdjacentNumberOption = <T extends number>(
+	options: readonly T[],
+	value: T,
+	direction: "smaller" | "larger",
+) => {
+	const sortedOptions = [...options].sort((a, b) => a - b);
+	const currentIndex = sortedOptions.findIndex((option) => option === value);
+	const index =
+		currentIndex >= 0
+			? currentIndex
+			: sortedOptions.findIndex((option) => option >= value);
+	const safeIndex =
+		index < 0
+			? sortedOptions.length - 1
+			: Math.min(Math.max(index, 0), sortedOptions.length - 1);
+	const nextIndex = direction === "smaller" ? safeIndex - 1 : safeIndex + 1;
+	return sortedOptions[
+		Math.min(Math.max(nextIndex, 0), sortedOptions.length - 1)
+	];
+};
+
+const NumberStepperControl = <T extends number>({
+	label,
+	value,
+	options,
+	defaultValue,
+	onChange,
+	unit = "px",
+	icon,
+}: {
+	label: string;
+	value: T;
+	options: readonly T[];
+	defaultValue: T;
+	onChange: (value: T) => void;
+	unit?: string;
+	icon?: ReactNode;
+}) => {
+	const sortedOptions = [...options].sort((a, b) => a - b);
+	const min = sortedOptions[0];
+	const max = sortedOptions[sortedOptions.length - 1];
+	const isDefault = value === defaultValue;
+
+	return (
+		<div className="flex w-full items-center justify-between gap-3">
+			<span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+				{icon && <span className="shrink-0 text-slate-300">{icon}</span>}
+				{label}
+			</span>
+			<div className="flex h-8 shrink-0 items-center gap-0.5 rounded-lg bg-white/60 px-1 text-xs ring-1 ring-slate-200/60">
+				<button
+					type="button"
+					onClick={() =>
+						onChange(getAdjacentNumberOption(options, value, "smaller"))
+					}
+					disabled={value <= min}
+					className="flex h-6 w-6 items-center justify-center rounded text-slate-500 transition-colors hover:bg-slate-100/80 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25"
+					title={`减少${label}`}
+					aria-label={`减少${label}`}
+				>
+					<Minus size={14} />
+				</button>
+				<span className="min-w-12 text-center font-medium tabular-nums text-slate-600">
+					{value}
+					{unit}
+				</span>
+				<button
+					type="button"
+					onClick={() =>
+						onChange(getAdjacentNumberOption(options, value, "larger"))
+					}
+					disabled={value >= max}
+					className="flex h-6 w-6 items-center justify-center rounded text-slate-500 transition-colors hover:bg-slate-100/80 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25"
+					title={`增加${label}`}
+					aria-label={`增加${label}`}
+				>
+					<Plus size={14} />
+				</button>
+				<button
+					type="button"
+					onClick={() => onChange(defaultValue)}
+					disabled={isDefault}
+					className="flex h-6 w-6 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100/80 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25"
+					title={`恢复默认${label}`}
+					aria-label={`恢复默认${label}`}
+				>
+					<RotateCcw size={13} />
+				</button>
+			</div>
+		</div>
+	);
+};
+
+const ToggleControl = ({
+	label,
+	checked,
+	onChange,
+	icon,
+}: {
+	label: string;
+	checked: boolean;
+	onChange: (checked: boolean) => void;
+	icon?: ReactNode;
+}) => (
+	<label className="flex w-full items-center justify-between gap-2">
+		<span className="flex items-center gap-1.5 text-xs text-slate-500">
+			{icon && <span className="text-slate-300">{icon}</span>}
+			{label}
+		</span>
+		<ToggleSwitch checked={checked} label={label} onChange={onChange} />
+	</label>
+);
 
 const panelBlockClass = "border-b border-slate-200 p-4 last:border-b-0";
 type SectionEntryTextKey = keyof Omit<SectionEntry, "id">;
@@ -468,13 +865,44 @@ const PhotoField = ({
 const ResumeEditor = ({
 	data,
 	sectionIcons,
+	sectionPreferences,
+	templateId,
+	favoriteTemplateIds,
+	accentColor,
+	fontSizePt,
+	sectionTitleFontSizePx,
+	itemTitleFontSizePx,
+	fontFamily,
+	pageMarginMm,
+	lineHeight,
+	sectionSpacing,
+	paragraphSpacingPx,
 	panel,
 	activeSection,
 	onActiveSectionChange,
 	onChange,
 	onSectionIconsChange,
+	onSectionPreferencesChange,
+	onTemplateChange,
+	onToggleFavoriteTemplate,
+	onAccentColorChange,
+	onFontSizeChange,
+	onSectionTitleFontSizeChange,
+	onItemTitleFontSizeChange,
+	onFontFamilyChange,
+	onPageMarginChange,
+	onLineHeightChange,
+	onSectionSpacingChange,
+	onParagraphSpacingChange,
 }: ResumeEditorProps) => {
 	const detailsScrollRef = useRef<HTMLDivElement>(null);
+	const addSectionMenuRef = useRef<HTMLDivElement>(null);
+	const [addSectionMenuOpen, setAddSectionMenuOpen] = useState(false);
+	const addSectionMenuPlacement = useAdaptiveMenuPlacement(addSectionMenuRef, {
+		open: addSectionMenuOpen,
+		preferred: "top",
+		estimatedHeight: 260,
+	});
 
 	const dndSensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -518,13 +946,57 @@ const ResumeEditor = ({
 		onChange({ ...data, personal: { ...data.personal, [key]: value } });
 	};
 
-	const updateSectionTitle = (
-		key: keyof ResumeData["sectionTitles"],
-		value: string,
-	) => {
+	const getSkillsText = () => formatSkillsAsMarkdown(data.skills);
+
+	const updateSkillsText = (content: string) => {
+		const existingSkill = data.skills[0];
 		onChange({
 			...data,
+			skills: content.trim()
+				? [
+						{
+							id: existingSkill?.id ?? createResumeItemId(),
+							label: "",
+							content,
+						},
+					]
+				: [],
+		});
+	};
+
+	const getCustomSection = (key: SectionKey) =>
+		isCustomSectionKey(key)
+			? data.customSections.find((section) => section.id === key)
+			: undefined;
+
+	const createCustomSectionId = (): CustomSectionKey => {
+		const usedIds = new Set(data.customSections.map((section) => section.id));
+		let nextId = Date.now();
+		while (usedIds.has(`custom-${nextId}` as CustomSectionKey)) nextId += 1;
+		return `custom-${nextId}` as CustomSectionKey;
+	};
+
+	const updateSectionTitle = (key: SectionKey, value: string) => {
+		const nextData: ResumeData = {
+			...data,
 			sectionTitles: { ...data.sectionTitles, [key]: value },
+		};
+
+		if (isCustomSectionKey(key)) {
+			nextData.customSections = data.customSections.map((section) =>
+				section.id === key ? { ...section, title: value } : section,
+			);
+		}
+
+		onChange(nextData);
+	};
+
+	const updateCustomSectionContent = (key: CustomSectionKey, value: string) => {
+		onChange({
+			...data,
+			customSections: data.customSections.map((section) =>
+				section.id === key ? { ...section, content: value } : section,
+			),
 		});
 	};
 
@@ -544,8 +1016,103 @@ const ResumeEditor = ({
 		);
 	};
 
+	const addStandardSection = (key: StandardSectionKey) => {
+		const nextOrder = data.sectionOrder.includes(key)
+			? data.sectionOrder
+			: [...data.sectionOrder, key];
+		onChange({
+			...data,
+			sectionOrder: nextOrder,
+			sectionVisibility: { ...data.sectionVisibility, [key]: true },
+		});
+		onSectionIconsChange({ ...sectionIcons, [key]: sectionIcons[key] ?? false });
+		onActiveSectionChange(key);
+		setAddSectionMenuOpen(false);
+	};
+
+	const addCustomSection = () => {
+		const id = createCustomSectionId();
+		const title = "自定义区块";
+		onChange({
+			...data,
+			customSections: [...data.customSections, { id, title, content: "" }],
+			sectionTitles: { ...data.sectionTitles, [id]: title },
+			sectionVisibility: { ...data.sectionVisibility, [id]: true },
+			sectionOrder: [...data.sectionOrder, id],
+		});
+		onSectionIconsChange({ ...sectionIcons, [id]: false });
+		onActiveSectionChange(id);
+		setAddSectionMenuOpen(false);
+	};
+
+	const removeSection = (key: SectionKey) => {
+		const customSection = getCustomSection(key);
+		const message = customSection
+			? `确定要删除「${getSectionTitle(key)}」吗？内容会一起删除。`
+			: `确定要从简历中移除「${getSectionTitle(key)}」吗？内容会保留，可从添加区块恢复。`;
+		if (!window.confirm(message)) return;
+
+		const nextOrder = data.sectionOrder.filter((item) => item !== key);
+		const nextVisibility: SectionVisibility = {
+			...data.sectionVisibility,
+			[key]: false,
+		};
+		let nextData: ResumeData = {
+			...data,
+			sectionOrder: nextOrder,
+			sectionVisibility: nextVisibility,
+		};
+		const nextIcons: SectionIconVisibility = { ...sectionIcons, [key]: false };
+
+		if (isCustomSectionKey(key)) {
+			const nextTitles = { ...data.sectionTitles };
+			delete nextTitles[key];
+			delete nextVisibility[key];
+			delete nextIcons[key];
+			nextData = {
+				...nextData,
+				customSections: data.customSections.filter(
+					(section) => section.id !== key,
+				),
+				sectionTitles: nextTitles,
+				sectionVisibility: nextVisibility,
+			};
+		}
+
+		onChange(nextData);
+		onSectionIconsChange(nextIcons);
+		if (activeSection === key) {
+			onActiveSectionChange(nextOrder[0] ?? "personal");
+		}
+	};
+
+	const updatePersonalPreferences = (
+		patch: Partial<ResumeSectionPreferences["personal"]>,
+	) => {
+		onSectionPreferencesChange({
+			...sectionPreferences,
+			personal: {
+				...sectionPreferences.personal,
+				...patch,
+			},
+		});
+	};
+
+	const updateSectionPreferences = <K extends keyof ResumeSectionPreferences>(
+		key: K,
+		patch: Partial<ResumeSectionPreferences[K]>,
+	) => {
+		onSectionPreferencesChange({
+			...sectionPreferences,
+			[key]: {
+				...sectionPreferences[key],
+				...patch,
+			},
+		});
+	};
+
 	const allSectionIconsVisible = data.sectionOrder.every(
-		(key) => sectionIcons[key],
+		(key) => sectionIcons[key] !== false,
 	);
 
 	useEffect(() => {
@@ -553,28 +1120,19 @@ const ResumeEditor = ({
 		detailsScrollRef.current?.scrollTo({ top: 0 });
 	}, [activeSection, panel]);
 
-	const updateSkill = (id: number, key: keyof SkillItem, value: string) => {
-		onChange({
-			...data,
-			skills: data.skills.map((skill) =>
-				skill.id === id ? { ...skill, [key]: value } : skill,
-			),
-		});
-	};
-
-	const addSkill = () => {
-		onChange({
-			...data,
-			skills: [
-				...data.skills,
-				{ id: createResumeItemId(), label: "新分类", content: "" },
-			],
-		});
-	};
-
-	const removeSkill = (id: number) => {
-		onChange({ ...data, skills: data.skills.filter((skill) => skill.id !== id) });
-	};
+	useEffect(() => {
+		if (!addSectionMenuOpen) return;
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				addSectionMenuRef.current &&
+				!addSectionMenuRef.current.contains(event.target as Node)
+			) {
+				setAddSectionMenuOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [addSectionMenuOpen]);
 
 	const updateEducation = (id: number, key: keyof Education, value: string) => {
 		onChange({
@@ -681,10 +1239,6 @@ const ResumeEditor = ({
 		return next;
 	};
 
-	const moveSkillItem = (index: number, direction: "up" | "down") => {
-		onChange({ ...data, skills: moveItem(data.skills, index, direction) });
-	};
-
 	const moveExperienceItem = (index: number, direction: "up" | "down") => {
 		onChange({
 			...data,
@@ -725,13 +1279,37 @@ const ResumeEditor = ({
 		onChange({ ...data, sectionOrder: nextOrder });
 	};
 
-	const getSectionTitle = (key: SectionKey) =>
-		data.sectionTitles[key] || sectionFallbackNames[key];
+	const getSectionTitle = (key: SectionKey) => {
+		const customSection = getCustomSection(key);
+		if (customSection) {
+			return (
+				data.sectionTitles[key]?.trim() ||
+				customSection.title.trim() ||
+				"自定义区块"
+			);
+		}
+		if (isCustomSectionKey(key)) {
+			return data.sectionTitles[key]?.trim() || "自定义区块";
+		}
+
+		return data.sectionTitles[key]?.trim() || sectionFallbackNames[key];
+	};
 
 	const getSectionSummary = (key: SectionKey) => {
+		const customSection = getCustomSection(key);
+		if (customSection) {
+			const lineCount = customSection.content
+				.split("\n")
+				.filter((line) => line.trim()).length;
+			return lineCount > 0 ? `${lineCount} 行内容` : "空";
+		}
+		if (isCustomSectionKey(key)) return "空";
+
 		switch (key) {
 			case "skills":
-				return `${data.skills.length} 个分类`;
+				return data.skills.some((skill) => skill.content.trim() || skill.label.trim())
+					? "已填写"
+					: "空";
 			case "experience":
 				return `${data.experience.length} 段经历`;
 			case "projects":
@@ -747,16 +1325,32 @@ const ResumeEditor = ({
 		}
 	};
 
+	const getSectionIconNode = (key: SectionKey) =>
+		isCustomSectionKey(key) ? customSectionIconNode : sectionIconNodes[key];
+
+	const getActiveSectionTitle = () =>
+		activeSection === "personal" ? "个人信息" : getSectionTitle(activeSection);
+
+	const getActiveSectionSummary = () =>
+		activeSection === "personal"
+			? ""
+			: getSectionSummary(activeSection);
+
+	const getActiveSectionIcon = () =>
+		activeSection === "personal"
+			? personalIconNode
+			: getSectionIconNode(activeSection);
+
 	const renderSectionVisibilityButton = (key: SectionKey) => {
-		const visible = data.sectionVisibility[key];
+		const visible = data.sectionVisibility[key] !== false;
 		return (
 			<button
 				type="button"
 				onClick={() => updateSectionVisibility(key, !visible)}
-				className={`flex h-8 w-8 shrink-0 items-center justify-center rounded transition ${
+				className={`flex h-7 w-7 shrink-0 items-center justify-center rounded transition ${
 					visible
-						? "text-slate-400 hover:bg-slate-100 hover:text-blue-500"
-						: "text-slate-300 hover:bg-slate-100 hover:text-slate-500"
+						? "text-slate-400 hover:bg-white/80 hover:text-blue-500"
+						: "text-slate-300 hover:bg-white/80 hover:text-slate-500"
 				}`}
 				title={visible ? "隐藏区块" : "显示区块"}
 				aria-label={visible ? "隐藏区块" : "显示区块"}
@@ -771,32 +1365,82 @@ const ResumeEditor = ({
 		<button
 			type="button"
 			onClick={() => onActiveSectionChange(key)}
-			className={`flex min-w-0 flex-1 items-center gap-2 rounded-md border px-2.5 py-2 text-left transition ${
-				active
-					? "border-blue-200 bg-blue-50 text-blue-700"
-					: data.sectionVisibility[key]
-						? "border-transparent bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
-						: "border-transparent bg-slate-50/50 text-slate-400 hover:border-slate-200 hover:bg-white"
-			}`}
+			className="flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-1 text-left transition hover:text-slate-900"
 			aria-pressed={active}
 		>
 			<span
-				className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${
-					active ? "bg-white text-blue-600" : "bg-white text-slate-400"
+				className={`flex h-7 w-7 shrink-0 items-center justify-center rounded bg-white/70 ${
+					active ? "text-blue-600" : "text-slate-400"
 				}`}
 			>
-				{sectionIconNodes[key]}
+				{getSectionIconNode(key)}
 			</span>
-			<span className="min-w-0 flex-1">
-				<span className="block truncate text-sm font-semibold">
-					{getSectionTitle(key)}
-				</span>
-				<span className="block text-xs text-slate-400">
-					{getSectionSummary(key)}
-				</span>
+			<span className="min-w-0 flex-1 truncate text-sm font-semibold">
+				{getSectionTitle(key)}
 			</span>
 		</button>
 	);
+
+	const renderSectionOrderRow = ({
+		key,
+		active,
+		dragHandle,
+		trailing,
+	}: {
+		key: SectionKey;
+		active: boolean;
+		dragHandle?: ReactNode;
+		trailing?: ReactNode;
+	}) => {
+		const visible = data.sectionVisibility[key] !== false;
+
+		return (
+			<div
+				className={`group flex w-full min-w-0 items-center gap-1 rounded-md border px-1.5 py-1.5 transition ${
+					active
+						? "border-blue-200 bg-blue-50 text-blue-700"
+						: visible
+							? "border-transparent bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
+							: "border-transparent bg-slate-50/50 text-slate-400 hover:border-slate-200 hover:bg-white"
+				}`}
+			>
+				{dragHandle}
+				{renderSectionOrderButton(key, active)}
+				<div className="flex shrink-0 items-center gap-0.5">
+					{renderSectionVisibilityButton(key)}
+					{renderSectionRemoveButton(key)}
+					{trailing}
+				</div>
+			</div>
+		);
+	};
+
+	const renderPersonalOrderButton = () => {
+		const active = activeSection === "personal";
+		return (
+			<button
+				type="button"
+				onClick={() => onActiveSectionChange("personal")}
+				className={`mb-2 flex w-full min-w-0 items-center gap-2 rounded-md border px-2.5 py-2 text-left transition ${
+					active
+						? "border-blue-200 bg-blue-50 text-blue-700"
+						: "border-transparent bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
+				}`}
+				aria-pressed={active}
+			>
+				<span
+					className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${
+						active ? "bg-white text-blue-600" : "bg-white text-slate-400"
+					}`}
+				>
+					{personalIconNode}
+				</span>
+				<span className="min-w-0 flex-1">
+					<span className="block truncate text-sm font-semibold">个人信息</span>
+				</span>
+			</button>
+		);
+	};
 
 	const renderPersonalPanel = () => (
 		<PanelBlock title="个人信息">
@@ -855,17 +1499,226 @@ const ResumeEditor = ({
 		</PanelBlock>
 	);
 
+	const renderAccentColorControl = () => {
+		const normalizedAccentColor = normalizeResumeAccentColor(accentColor);
+
+		return (
+			<div className="space-y-2">
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-xs font-medium text-slate-500">主题色</span>
+					<button
+						type="button"
+						onClick={() => onAccentColorChange(DEFAULT_RESUME_ACCENT_COLOR)}
+						disabled={normalizedAccentColor === DEFAULT_RESUME_ACCENT_COLOR}
+						className="flex h-6 w-6 items-center justify-center rounded text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-25"
+						title="恢复默认主题色"
+						aria-label="恢复默认主题色"
+					>
+						<RotateCcw size={13} />
+					</button>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					{RESUME_ACCENT_COLOR_PRESETS.map((color) => (
+						<button
+							key={color}
+							type="button"
+							onClick={() => onAccentColorChange(color)}
+							className={`h-6 w-6 rounded-full border border-black/10 shadow-sm outline-offset-2 transition-transform hover:scale-110 ${
+								normalizedAccentColor === color
+									? "outline-2 outline-slate-500"
+									: ""
+							}`}
+							style={{ backgroundColor: color }}
+							title={color}
+							aria-label={`选择主题色 ${color}`}
+							aria-pressed={normalizedAccentColor === color}
+						/>
+					))}
+					<label
+						className="relative h-6 w-6 overflow-hidden rounded-full border border-slate-200 bg-white"
+						title="自定义主题色"
+					>
+						<input
+							type="color"
+							value={normalizedAccentColor}
+							onChange={(event) => onAccentColorChange(event.target.value)}
+							className="absolute -inset-2 h-10 w-10 cursor-pointer border-0 bg-transparent p-0"
+							aria-label="打开自定义主题色取色器"
+						/>
+					</label>
+				</div>
+			</div>
+		);
+	};
+
+	const renderLayoutSettingsPanel = () => (
+		<PanelBlock title="布局与样式">
+			<div className="space-y-3">
+				<div className="space-y-1.5">
+					<span className="text-xs font-medium text-slate-500">布局</span>
+					<TemplatePicker
+						current={templateId}
+						favoriteTemplateIds={favoriteTemplateIds}
+						onChange={onTemplateChange}
+						onToggleFavorite={onToggleFavoriteTemplate}
+					/>
+				</div>
+				{renderAccentColorControl()}
+				<div className="flex w-full items-center justify-between gap-3">
+					<span className="text-xs font-medium text-slate-500">字体</span>
+					<FontFamilyControl
+						value={fontFamily}
+						onChange={onFontFamilyChange}
+						menuPlacement="top"
+					/>
+				</div>
+				<div className="space-y-2 border-t border-slate-100 pt-3">
+					<span className="text-xs font-medium text-slate-500">字号</span>
+					<NumberStepperControl
+						label="基础字号"
+						value={fontSizePt}
+						options={RESUME_FONT_SIZE_OPTIONS}
+						defaultValue={DEFAULT_RESUME_FONT_SIZE_PT}
+						onChange={onFontSizeChange}
+					/>
+					<NumberStepperControl
+						label="模块标题字号"
+						value={sectionTitleFontSizePx}
+						options={RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS}
+						defaultValue={DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX}
+						onChange={onSectionTitleFontSizeChange}
+					/>
+					<NumberStepperControl
+						label="一级标题字号"
+						value={itemTitleFontSizePx}
+						options={RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS}
+						defaultValue={DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX}
+						onChange={onItemTitleFontSizeChange}
+					/>
+				</div>
+				<div className="space-y-2 border-t border-slate-100 pt-3">
+					<span className="text-xs font-medium text-slate-500">间距</span>
+					<NumberStepperControl
+						label="页边距"
+						value={pageMarginMm}
+						options={RESUME_PAGE_MARGIN_OPTIONS}
+						defaultValue={DEFAULT_RESUME_PAGE_MARGIN_MM}
+						onChange={onPageMarginChange}
+					/>
+					<NumberStepperControl
+						label="模块间距"
+						value={sectionSpacing}
+						options={RESUME_SECTION_SPACING_OPTIONS}
+						defaultValue={DEFAULT_RESUME_SECTION_SPACING}
+						onChange={onSectionSpacingChange}
+					/>
+					<NumberStepperControl
+						label="段落间距"
+						value={paragraphSpacingPx}
+						options={RESUME_PARAGRAPH_SPACING_OPTIONS}
+						defaultValue={DEFAULT_RESUME_PARAGRAPH_SPACING_PX}
+						onChange={onParagraphSpacingChange}
+					/>
+				</div>
+				<DropdownControl
+					label="行高"
+					value={lineHeight}
+					options={lineHeightOptions}
+					onChange={onLineHeightChange}
+					menuPlacement="top"
+				/>
+				<ToggleControl
+					label="标题图标"
+					checked={allSectionIconsVisible}
+					onChange={updateAllSectionIcons}
+					icon={<FileText size={12} />}
+				/>
+			</div>
+		</PanelBlock>
+	);
+
+	const renderSectionRemoveButton = (key: SectionKey) => (
+		<button
+			type="button"
+			onClick={() => removeSection(key)}
+			className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-300 transition hover:bg-white/80 hover:text-red-500"
+			title="删除区块"
+			aria-label="删除区块"
+		>
+			<Trash2 size={14} />
+		</button>
+	);
+
+	const renderAddSectionMenu = () => {
+		const addableStandardSections = STANDARD_SECTION_KEYS.filter(
+			(key) => !data.sectionOrder.includes(key),
+		);
+
+		return (
+			<div ref={addSectionMenuRef} className="relative mt-3">
+				<button
+					type="button"
+					onClick={() => setAddSectionMenuOpen((open) => !open)}
+					className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-200 bg-slate-50/70 text-sm font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+					aria-expanded={addSectionMenuOpen}
+				>
+					<Plus size={15} />
+					添加区块
+				</button>
+				{addSectionMenuOpen && (
+					<div
+						className={`absolute left-0 right-0 z-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10 ${
+							addSectionMenuPlacement === "top"
+								? "bottom-full mb-1"
+								: "top-full mt-1"
+						}`}
+					>
+						{addableStandardSections.length === 0 ? (
+							<div className="px-3 py-2 text-xs text-slate-400">
+								标准区块已全部添加
+							</div>
+						) : (
+							addableStandardSections.map((key) => (
+								<button
+									key={key}
+									type="button"
+									onClick={() => addStandardSection(key)}
+									className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+								>
+									<span className="flex min-w-0 items-center gap-2">
+										<span className="text-slate-300">
+											{sectionIconNodes[key]}
+										</span>
+										<span className="truncate">{getSectionTitle(key)}</span>
+									</span>
+									{OPTIONAL_STANDARD_SECTION_KEYS.includes(key) && (
+										<span className="shrink-0 text-[10px] text-slate-300">
+											默认隐藏
+										</span>
+									)}
+								</button>
+							))
+						)}
+						<button
+							type="button"
+							onClick={addCustomSection}
+							className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+							aria-label="添加自定义区块"
+						>
+							<span className="text-slate-300">{customSectionIconNode}</span>
+							自定义区块
+						</button>
+					</div>
+				)}
+			</div>
+		);
+	};
+
 	const renderStructurePanel = () => (
 		<div>
-			<PanelBlock
-				title="区块顺序"
-				action={
-					<span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-400">
-						{data.sectionOrder.length}
-					</span>
-				}
-			>
-				<div className="hidden sm:block">
+			<PanelBlock title="区块顺序">
+				{renderPersonalOrderButton()}
+				<div className="mt-3 hidden sm:block">
 					<DndContext
 						sensors={dndSensors}
 						collisionDetection={closestCenter}
@@ -881,11 +1734,11 @@ const ResumeEditor = ({
 									return (
 										<SortableItemWithHandle key={key} id={key}>
 											{(dragHandle) => (
-												<div className="group flex items-center gap-1.5">
-													<DragHandle {...dragHandle} />
-													{renderSectionOrderButton(key, active)}
-													{renderSectionVisibilityButton(key)}
-												</div>
+												renderSectionOrderRow({
+													key,
+													active,
+													dragHandle: <DragHandle {...dragHandle} />,
+												})
 											)}
 										</SortableItemWithHandle>
 									);
@@ -894,129 +1747,278 @@ const ResumeEditor = ({
 						</SortableContext>
 					</DndContext>
 				</div>
-				<div className="space-y-1.5 sm:hidden">
+				<div className="mt-3 space-y-1.5 sm:hidden">
 					{data.sectionOrder.map((key, index) => {
-							const active = key === activeSection;
-							return (
-								<div key={key} className="group flex items-center gap-1.5">
-									{renderSectionOrderButton(key, active)}
-									{renderSectionVisibilityButton(key)}
-									<div className="flex shrink-0 gap-0.5">
-										<button
-											type="button"
-											onClick={() => moveSectionOrder(index, "up")}
-											disabled={index === 0}
-											className="flex h-8 w-7 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-25"
-											title="上移"
-											aria-label="上移"
-										>
-											<ArrowUp size={14} />
-										</button>
-										<button
-											type="button"
-											onClick={() => moveSectionOrder(index, "down")}
-											disabled={index === data.sectionOrder.length - 1}
-											className="flex h-8 w-7 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-25"
-											title="下移"
-											aria-label="下移"
-										>
-											<ArrowDown size={14} />
-										</button>
-									</div>
-								</div>
-							);
-						})}
-					</div>
-				<label className="mt-3 flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-					<span className="flex items-center gap-2">
-						<span className="text-slate-400">
-							{sectionIconNodes[activeSection]}
-						</span>
-						<span>标题图标</span>
-					</span>
-					<ToggleSwitch
-						checked={allSectionIconsVisible}
-						onChange={updateAllSectionIcons}
-						label="标题图标"
-					/>
-				</label>
+						const active = key === activeSection;
+						return (
+							<div key={key}>
+								{renderSectionOrderRow({
+									key,
+									active,
+									trailing: (
+										<div className="flex shrink-0 gap-0.5">
+											<button
+												type="button"
+												onClick={() => moveSectionOrder(index, "up")}
+												disabled={index === 0}
+												className="flex h-7 w-7 items-center justify-center rounded text-slate-400 transition hover:bg-white/80 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-25"
+												title="上移"
+												aria-label="上移"
+											>
+												<ArrowUp size={14} />
+											</button>
+											<button
+												type="button"
+												onClick={() => moveSectionOrder(index, "down")}
+												disabled={index === data.sectionOrder.length - 1}
+												className="flex h-7 w-7 items-center justify-center rounded text-slate-400 transition hover:bg-white/80 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-25"
+												title="下移"
+												aria-label="下移"
+											>
+												<ArrowDown size={14} />
+											</button>
+										</div>
+									),
+								})}
+							</div>
+						);
+					})}
+				</div>
+				{renderAddSectionMenu()}
 			</PanelBlock>
-			{renderPersonalPanel()}
+			{renderLayoutSettingsPanel()}
 		</div>
 	);
 
-	const renderSectionSettings = () => (
-		<PanelBlock title="区块设置">
-			<InputGroup
-				label="标题"
-				value={data.sectionTitles[activeSection]}
-				onChange={(value) => updateSectionTitle(activeSection, value)}
-			/>
+	const renderSectionSettings = () => {
+		if (activeSection === "personal") return null;
+
+		return (
+			<PanelBlock title="区块设置">
+				<InputGroup
+					label="标题"
+					value={getSectionTitle(activeSection)}
+					onChange={(value) => updateSectionTitle(activeSection, value)}
+				/>
+			</PanelBlock>
+		);
+	};
+
+	const renderPersonalDisplaySettings = () => (
+		<PanelBlock title="显示设置">
+			<div className="space-y-2">
+				<ToggleControl
+					label="头像"
+					checked={sectionPreferences.personal.showPhoto}
+					onChange={(showPhoto) => updatePersonalPreferences({ showPhoto })}
+					icon={<ImageIcon size={12} />}
+				/>
+				<SegmentedControl
+					label="位置"
+					value={sectionPreferences.personal.photoPosition}
+					options={photoPositionOptions}
+					onChange={(photoPosition) =>
+						updatePersonalPreferences({ photoPosition })
+					}
+					icon={<MoveHorizontal size={12} />}
+					disabled={!sectionPreferences.personal.showPhoto}
+				/>
+				<SegmentedControl
+					label="大小"
+					value={sectionPreferences.personal.photoSizeRatio}
+					options={photoSizeRatioOptions}
+					onChange={(photoSizeRatio) =>
+						updatePersonalPreferences({ photoSizeRatio })
+					}
+					icon={<Maximize2 size={12} />}
+					disabled={!sectionPreferences.personal.showPhoto}
+				/>
+				<SegmentedControl
+					label="链接样式"
+					value={sectionPreferences.personal.linkStyle}
+					options={linkStyleOptions}
+					onChange={(linkStyle) => updatePersonalPreferences({ linkStyle })}
+					icon={<Link2 size={12} />}
+				/>
+				<ToggleControl
+					label="显示名称"
+					checked={sectionPreferences.personal.showLinkLabels}
+					onChange={(showLinkLabels) =>
+						updatePersonalPreferences({ showLinkLabels })
+					}
+					icon={<Tags size={12} />}
+				/>
+			</div>
 		</PanelBlock>
 	);
 
+	const renderSectionPreferenceControls = (key: StandardSectionKey) => {
+		switch (key) {
+			case "skills":
+				return null;
+			case "experience":
+				return (
+					<>
+						<ToggleControl
+							label="时间"
+							checked={sectionPreferences.experience.showDates}
+							onChange={(showDates) =>
+								updateSectionPreferences("experience", { showDates })
+							}
+							icon={<Calendar size={12} />}
+						/>
+						<SegmentedControl
+							label="时间位置"
+							value={sectionPreferences.experience.datePosition}
+							options={datePositionOptions}
+							onChange={(datePosition) =>
+								updateSectionPreferences("experience", { datePosition })
+							}
+							disabled={!sectionPreferences.experience.showDates}
+						/>
+						<ToggleControl
+							label="职位"
+							checked={sectionPreferences.experience.showRole}
+							onChange={(showRole) =>
+								updateSectionPreferences("experience", { showRole })
+							}
+						/>
+						<SegmentedControl
+							label="职位位置"
+							value={sectionPreferences.experience.rolePosition}
+							options={rolePositionOptions}
+							onChange={(rolePosition) =>
+								updateSectionPreferences("experience", { rolePosition })
+							}
+							disabled={!sectionPreferences.experience.showRole}
+						/>
+					</>
+				);
+			case "projects":
+				return (
+					<>
+						<ToggleControl
+							label="时间"
+							checked={sectionPreferences.projects.showDates}
+							onChange={(showDates) =>
+								updateSectionPreferences("projects", { showDates })
+							}
+							icon={<Calendar size={12} />}
+						/>
+						<SegmentedControl
+							label="时间位置"
+							value={sectionPreferences.projects.datePosition}
+							options={datePositionOptions}
+							onChange={(datePosition) =>
+								updateSectionPreferences("projects", { datePosition })
+							}
+							disabled={!sectionPreferences.projects.showDates}
+						/>
+						<ToggleControl
+							label="职责"
+							checked={sectionPreferences.projects.showRole}
+							onChange={(showRole) =>
+								updateSectionPreferences("projects", { showRole })
+							}
+							icon={<BriefcaseBusiness size={12} />}
+						/>
+						<SegmentedControl
+							label="职责位置"
+							value={sectionPreferences.projects.rolePosition}
+							options={rolePositionOptions}
+							onChange={(rolePosition) =>
+								updateSectionPreferences("projects", { rolePosition })
+							}
+							disabled={!sectionPreferences.projects.showRole}
+						/>
+						<ToggleControl
+							label="标签"
+							checked={sectionPreferences.projects.showTags}
+							onChange={(showTags) =>
+								updateSectionPreferences("projects", { showTags })
+							}
+							icon={<Tags size={12} />}
+						/>
+						<SegmentedControl
+							label="标签位置"
+							value={sectionPreferences.projects.tagPosition}
+							options={projectTagOptions}
+							onChange={(tagPosition) =>
+								updateSectionPreferences("projects", { tagPosition })
+							}
+							icon={<Tags size={12} />}
+							disabled={!sectionPreferences.projects.showTags}
+						/>
+						<SegmentedControl
+							label="标签样式"
+							value={sectionPreferences.projects.tagStyle}
+							options={projectTagStyleOptions}
+							onChange={(tagStyle) =>
+								updateSectionPreferences("projects", { tagStyle })
+							}
+							icon={<Tags size={12} />}
+							disabled={!sectionPreferences.projects.showTags}
+						/>
+						<SegmentedControl
+							label="Demo / Code"
+							value={sectionPreferences.projects.linksPosition}
+							options={projectLinksOptions}
+							onChange={(linksPosition) =>
+								updateSectionPreferences("projects", { linksPosition })
+							}
+							icon={<Link2 size={12} />}
+						/>
+					</>
+				);
+			case "education":
+				return (
+					<ToggleControl
+						label="时间"
+						checked={sectionPreferences.education.showDates}
+						onChange={(showDates) =>
+							updateSectionPreferences("education", { showDates })
+						}
+						icon={<Calendar size={12} />}
+					/>
+				);
+			case "awards":
+			case "campus":
+			case "other":
+				return null;
+		}
+	};
+
+	const renderDisplaySettings = () => {
+		if (activeSection === "personal") return renderPersonalDisplaySettings();
+		if (isCustomSectionKey(activeSection)) return null;
+
+		const controls = renderSectionPreferenceControls(activeSection);
+		if (!controls) return null;
+
+		return (
+			<PanelBlock title="显示设置">
+				<div className="space-y-2">
+					{controls}
+				</div>
+			</PanelBlock>
+		);
+	};
+
 	const renderSkillsEditor = () => (
-		<PanelBlock
-			title={getSectionTitle("skills")}
-			action={<AddButton title="添加技能分类" onClick={addSkill} />}
-		>
-			<DndContext
-				sensors={dndSensors}
-				collisionDetection={closestCenter}
-				onDragEnd={handleItemsDragEnd(data.skills, "skills")}
-			>
-				<SortableContext
-					items={data.skills.map((s) => s.id)}
-					strategy={verticalListSortingStrategy}
-				>
-					<div className="space-y-3">
-						{data.skills.map((skill, index) => (
-							<SortableItemWithHandle key={skill.id} id={skill.id}>
-								{(dragHandle) => (
-									<div className="group border-t border-slate-100 px-1 py-3 first:border-t-0">
-										<div className="mb-2 flex items-center justify-between gap-2">
-											<div className="flex min-w-0 items-center gap-1">
-												<DragHandle {...dragHandle} />
-												<span className="min-w-0 truncate text-xs font-medium text-slate-400">
-													{skill.label || `分类 ${index + 1}`}
-												</span>
-											</div>
-											<ItemActions
-												index={index}
-												total={data.skills.length}
-												onMove={(direction) => moveSkillItem(index, direction)}
-												onRemove={() => removeSkill(skill.id)}
-											/>
-										</div>
-										<div className="sm:pl-8">
-											<InputGroup
-												label="分类名称"
-												value={skill.label}
-												onChange={(value) => updateSkill(skill.id, "label", value)}
-												placeholder="例：核心能力"
-											/>
-											<InputGroup
-												type="textarea"
-												label="内容"
-												value={skill.content}
-												onChange={(value) => updateSkill(skill.id, "content", value)}
-												placeholder="例：**JavaScript**, TypeScript, React"
-												rows={3}
-											/>
-										</div>
-									</div>
-								)}
-							</SortableItemWithHandle>
-						))}
-						{data.skills.length === 0 && (
-							<EmptyState
-								text="暂无技能分类"
-								action={<AddButton title="添加技能分类" onClick={addSkill} />}
-							/>
-						)}
-					</div>
-				</SortableContext>
-			</DndContext>
+		<PanelBlock title={getSectionTitle("skills")}>
+			<textarea
+				className={`${inputClass} min-h-56 resize-y font-mono`}
+				value={getSkillsText()}
+				onChange={(event) => updateSkillsText(event.target.value)}
+				placeholder={
+					"- 熟悉 HTML、CSS、JavaScript / TypeScript\n- 熟练使用 React、Vue、Vite 等前端技术栈\n- 了解性能优化、工程化和自动化部署"
+				}
+			/>
+			{data.skills.length === 0 && (
+				<p className="mt-2 text-xs text-slate-400">
+					清空内容后「专业技能」区块将不在简历中显示
+				</p>
+			)}
 		</PanelBlock>
 	);
 
@@ -1116,7 +2118,7 @@ const ResumeEditor = ({
 														value,
 													)
 												}
-												placeholder="每行一条经历亮点"
+												placeholder={"- 主导核心模块重构\n普通补充说明"}
 											/>
 										</div>
 									</div>
@@ -1156,6 +2158,7 @@ const ResumeEditor = ({
 					onClick={() =>
 						addItem<Project>("projects", {
 							name: "新项目",
+							role: "",
 							date: "",
 							tags: "",
 							link: "",
@@ -1201,6 +2204,14 @@ const ResumeEditor = ({
 												onChange={(value) =>
 													updateArrayItem<Project>("projects", project.id, "name", value)
 												}
+											/>
+											<InputGroup
+												label="职责"
+												value={project.role}
+												onChange={(value) =>
+													updateArrayItem<Project>("projects", project.id, "role", value)
+												}
+												placeholder="例：前端负责人"
 											/>
 											<div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
 												<InputGroup
@@ -1269,7 +2280,7 @@ const ResumeEditor = ({
 														value,
 													)
 												}
-												placeholder="每行一条项目亮点"
+												placeholder={"- 完成核心功能设计与落地\n普通补充说明"}
 											/>
 										</div>
 									</div>
@@ -1285,6 +2296,7 @@ const ResumeEditor = ({
 										onClick={() =>
 											addItem<Project>("projects", {
 												name: "新项目",
+												role: "",
 												date: "",
 												tags: "",
 												link: "",
@@ -1474,7 +2486,7 @@ const ResumeEditor = ({
 													onChange={(value) =>
 														updateSectionEntry(section, item.id, "details", value)
 													}
-													placeholder="每行一条亮点"
+													placeholder={"- 负责组织协调与项目交付\n普通补充说明"}
 												/>
 											</div>
 										</div>
@@ -1540,19 +2552,49 @@ const ResumeEditor = ({
 				value={data.other}
 				onChange={(event) => onChange({ ...data, other: event.target.value })}
 				placeholder={
-					"**开源项目**：维护 [my-project](https://github.com/yourname/project)\n**工具链**：Vercel、Cloudflare Pages"
+					"- **开源项目**：维护 [my-project](https://github.com/yourname/project)\n- **工具链**：Vercel、Cloudflare Pages"
 				}
 			/>
 			{data.other.trim() === "" && (
 				<p className="mt-2 text-xs text-slate-400">
-					清空内容后「其他」区块将不在简历中显示
+					清空内容后「自我评价」区块将不在简历中显示
 				</p>
 			)}
 		</PanelBlock>
 	);
 
+	const renderCustomSectionEditor = (key: CustomSectionKey) => {
+		const section = getCustomSection(key);
+
+		return (
+			<PanelBlock title={getSectionTitle(key)}>
+				<textarea
+					className={`${inputClass} min-h-40 resize-y font-mono`}
+					value={section?.content ?? ""}
+				onChange={(event) =>
+					updateCustomSectionContent(key, event.target.value)
+				}
+					placeholder={
+						"- 开源贡献：维护 [my-project](https://github.com/yourname/project)\n个人博客：yourname.dev"
+					}
+				/>
+				{!section?.content.trim() && (
+					<p className="mt-2 text-xs text-slate-400">
+						清空内容后该区块不会在简历中显示
+					</p>
+				)}
+			</PanelBlock>
+		);
+	};
+
 	const renderActiveSectionEditor = () => {
+		if (isCustomSectionKey(activeSection)) {
+			return renderCustomSectionEditor(activeSection);
+		}
+
 		switch (activeSection) {
+			case "personal":
+				return renderPersonalPanel();
 			case "skills":
 				return renderSkillsEditor();
 			case "experience":
@@ -1571,21 +2613,24 @@ const ResumeEditor = ({
 	};
 
 	if (panel === "structure") return renderStructurePanel();
+	const activeSectionSummary = getActiveSectionSummary();
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="shrink-0 border-b border-slate-200 px-4 py-3">
 				<div className="flex items-center gap-2">
 					<span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-600">
-						{sectionIconNodes[activeSection]}
+						{getActiveSectionIcon()}
 					</span>
 					<div className="min-w-0 flex-1">
 						<h2 className="truncate text-sm font-bold text-slate-800">
-							{getSectionTitle(activeSection)}
+							{getActiveSectionTitle()}
 						</h2>
-						<p className="text-xs text-slate-400">
-							{getSectionSummary(activeSection)}
-						</p>
+						{activeSectionSummary && (
+							<p className="text-xs text-slate-400">
+								{activeSectionSummary}
+							</p>
+						)}
 					</div>
 				</div>
 			</div>
@@ -1594,6 +2639,7 @@ const ResumeEditor = ({
 				className="min-h-0 flex-1 overflow-y-auto custom-scrollbar"
 			>
 				{renderSectionSettings()}
+				{renderDisplaySettings()}
 				{renderActiveSectionEditor()}
 			</div>
 		</div>

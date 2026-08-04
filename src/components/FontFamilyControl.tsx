@@ -5,17 +5,33 @@ import {
 	RESUME_FONT_FAMILY_OPTIONS,
 	type ResumeFontFamily,
 } from "../data/resumeStyle";
+import {
+	useAdaptiveMenuPlacement,
+	type AdaptiveMenuPlacement,
+} from "./useAdaptiveMenuPlacement";
 
 interface FontFamilyControlProps {
 	value: ResumeFontFamily;
 	onChange: (value: ResumeFontFamily) => void;
+	className?: string;
+	menuPlacement?: AdaptiveMenuPlacement;
 }
 
-const FontFamilyControl = ({ value, onChange }: FontFamilyControlProps) => {
+const FontFamilyControl = ({
+	value,
+	onChange,
+	className = "",
+	menuPlacement = "bottom",
+}: FontFamilyControlProps) => {
 	const [open, setOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const current = RESUME_FONT_FAMILY_OPTIONS.find((opt) => opt.value === value);
 	const isDefault = value === DEFAULT_RESUME_FONT_FAMILY;
+	const placement = useAdaptiveMenuPlacement(containerRef, {
+		open,
+		preferred: menuPlacement,
+		estimatedHeight: RESUME_FONT_FAMILY_OPTIONS.length * 30 + 8,
+	});
 
 	useEffect(() => {
 		if (!open) return;
@@ -34,14 +50,14 @@ const FontFamilyControl = ({ value, onChange }: FontFamilyControlProps) => {
 	return (
 		<div
 			ref={containerRef}
-			className="relative flex h-8 items-center gap-0.5 rounded-lg bg-white/60 px-1 text-xs ring-1 ring-slate-200/60"
+			className={`relative flex h-8 w-36 items-center gap-1 rounded-lg bg-white/60 px-2 text-xs ring-1 ring-slate-200/60 ${className}`}
 			title="选择简历字体"
 		>
-			<Type size={14} className="ml-1 text-slate-400" aria-hidden="true" />
+			<Type size={14} className="shrink-0 text-slate-400" aria-hidden="true" />
 			<button
 				type="button"
 				onClick={() => setOpen((prev) => !prev)}
-				className="flex h-6 w-[110px] items-center justify-between gap-1 rounded px-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-100/80 hover:text-slate-800"
+				className="flex h-6 min-w-0 flex-1 items-center justify-between gap-1 rounded px-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-100/80 hover:text-slate-800"
 				aria-expanded={open}
 				aria-label="选择字体"
 			>
@@ -51,7 +67,11 @@ const FontFamilyControl = ({ value, onChange }: FontFamilyControlProps) => {
 				<ChevronDown size={12} className="shrink-0 text-slate-400" />
 			</button>
 			{open && (
-				<div className="absolute left-0 top-full z-30 mt-1 min-w-full rounded-lg border border-slate-200/80 bg-white/95 py-1 shadow-xl shadow-slate-900/10 backdrop-blur">
+				<div
+					className={`absolute left-0 z-40 min-w-full overflow-hidden rounded-lg border border-slate-200/80 bg-white/95 py-1 shadow-xl shadow-slate-900/10 backdrop-blur ${
+						placement === "top" ? "bottom-full mb-1" : "top-full mt-1"
+					}`}
+				>
 					{RESUME_FONT_FAMILY_OPTIONS.map((option) => (
 						<button
 							key={option.value}

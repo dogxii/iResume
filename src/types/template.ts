@@ -1,21 +1,19 @@
-// 主题 ID
-export type ThemeId =
+// 模板 ID
+export type TemplateId =
 	| "classic"
 	| "minimal"
 	| "outline"
 	| "ats"
+	| "structured"
 	| "timeline"
 	| "focus"
 	| "executive"
 	| "fresh"
 	| "elegant"
-	| "mono"
-	| "sage"
-	| "rose"
-	| "aurora";
+	| "rose";
 
-// 主题颜色配置
-export interface ThemeColors {
+// 模板使用的颜色类配置，强调色由简历外观单独提供
+export interface TemplateColors {
 	// 主色调（用于强调元素）
 	primary: string;
 	// 主色调悬停
@@ -42,7 +40,7 @@ export interface ThemeColors {
 	tagBorder: string;
 }
 
-// 主题头部布局
+// 模板头部布局
 export type HeaderLayout = "split" | "centered" | "banner" | "accent";
 
 // 区块标题样式
@@ -96,18 +94,16 @@ export type ProjectStyle =
 export type TagStyle =
 	| "soft" // 默认浅底色
 	| "outline" // 线框
-	| "plain"; // 纯文本
+	| "plain"; // 文字样式
 
-// 主题配置
-export interface ThemeConfig {
-	id: ThemeId;
+// 模板配置
+export interface TemplateConfig {
+	id: TemplateId;
 	name: string;
 	nameEn: string;
 	description: string;
-	// 预览卡片用的渐变/色块
-	previewColors: [string, string];
 	// 颜色
-	colors: ThemeColors;
+	colors: TemplateColors;
 	// 头部布局
 	headerLayout: HeaderLayout;
 	// 区块标题样式
@@ -120,8 +116,6 @@ export interface ThemeConfig {
 	showLinkIcons: boolean;
 	// 联系信息是否显示图标
 	showContactIcons: boolean;
-	// 区块标题是否显示线性图标
-	showSectionIcons?: boolean;
 	// 字体风格（可选，默认 sans）
 	fontStyle?: FontStyle;
 	// 内容密度（可选，默认 standard）

@@ -6,14 +6,17 @@ import type {
 	Project,
 	ResumeData,
 	SectionEntry,
+	CustomSection,
+	CustomSectionKey,
 	SectionKey,
 	SectionIconVisibility,
 	SectionTitles,
 	SectionVisibility,
+	StandardSectionKey,
 	SkillItem,
 } from "../types/resume";
 
-export const ALL_SECTION_KEYS: SectionKey[] = [
+export const STANDARD_SECTION_KEYS: StandardSectionKey[] = [
 	"skills",
 	"experience",
 	"projects",
@@ -22,6 +25,21 @@ export const ALL_SECTION_KEYS: SectionKey[] = [
 	"campus",
 	"other",
 ];
+
+export const OPTIONAL_STANDARD_SECTION_KEYS: StandardSectionKey[] = [
+	"awards",
+	"campus",
+];
+
+export const isStandardSectionKey = (value: unknown): value is StandardSectionKey =>
+	typeof value === "string" &&
+	STANDARD_SECTION_KEYS.includes(value as StandardSectionKey);
+
+export const isCustomSectionKey = (value: unknown): value is CustomSectionKey =>
+	typeof value === "string" && /^custom-\d+$/.test(value);
+
+export const isSectionKey = (value: unknown): value is SectionKey =>
+	isStandardSectionKey(value) || isCustomSectionKey(value);
 
 const skillLabelMap: Record<string, string> = {
 	core: "核心能力",
@@ -66,11 +84,14 @@ function normalizePersonal(value: unknown): PersonalInfo {
 	};
 }
 
-function normalizeSectionTitles(value: unknown): SectionTitles {
+function normalizeSectionTitles(
+	value: unknown,
+	customSections: CustomSection[],
+): SectionTitles {
 	const raw = isRecord(value) ? value : {};
 	const defaults = initialResumeState.sectionTitles;
 
-	return {
+	const titles: SectionTitles = {
 		skills: readString(raw.skills, defaults.skills),
 		experience: readString(raw.experience, defaults.experience),
 		projects: readString(raw.projects, defaults.projects),
@@ -79,32 +100,61 @@ function normalizeSectionTitles(value: unknown): SectionTitles {
 		campus: readString(raw.campus, defaults.campus),
 		other: readString(raw.other, defaults.other),
 	};
+
+	for (const section of customSections) {
+		titles[section.id] = readString(raw[section.id], section.title);
+	}
+
+	return titles;
 }
 
-function normalizeSectionVisibility(value: unknown): SectionVisibility {
+function normalizeSectionVisibility(
+	value: unknown,
+	customSections: CustomSection[],
+): SectionVisibility {
 	const raw = isRecord(value) ? value : {};
 	const defaults = initialResumeState.sectionVisibility;
 	const result = {} as SectionVisibility;
 
-	for (const key of ALL_SECTION_KEYS) {
+	for (const key of STANDARD_SECTION_KEYS) {
 		result[key] = typeof raw[key] === "boolean" ? raw[key] : defaults[key];
+	}
+
+	for (const section of customSections) {
+		const rawVisible = raw[section.id];
+		result[section.id] = typeof rawVisible === "boolean" ? rawVisible : true;
 	}
 
 	return result;
 }
 
-function normalizeSectionOrder(value: unknown): SectionKey[] {
+function normalizeSectionOrder(
+	value: unknown,
+	customSections: CustomSection[],
+): SectionKey[] {
 	if (!Array.isArray(value)) return [...initialResumeState.sectionOrder];
 
+	const customIds = new Set(customSections.map((section) => section.id));
 	const seen = new Set<SectionKey>();
 	const valid = value.filter((key): key is SectionKey => {
-		if (!ALL_SECTION_KEYS.includes(key as SectionKey)) return false;
+		if (
+			!isStandardSectionKey(key) &&
+			(!isCustomSectionKey(key) || !customIds.has(key))
+		) {
+			return false;
+		}
 		if (seen.has(key as SectionKey)) return false;
 		seen.add(key as SectionKey);
 		return true;
 	});
-	const missing = ALL_SECTION_KEYS.filter((key) => !seen.has(key));
-	return [...valid, ...missing];
+	const baseOrder =
+		valid.length > 0 ? valid : [...initialResumeState.sectionOrder];
+	const orderedIds = new Set(baseOrder);
+	const missingCustomIds = customSections
+		.map((section) => section.id)
+		.filter((id) => !orderedIds.has(id));
+
+	return [...baseOrder, ...missingCustomIds];
 }
 
 function normalizeSkills(value: unknown): SkillItem[] {
@@ -188,6 +238,7 @@ function normalizeProjects(value: unknown): Project[] {
 		return {
 			id: readId(raw.id, index + 1, usedIds),
 			name: readString(raw.name),
+			role: readString(raw.role),
 			date: readString(raw.date),
 			tags: readString(raw.tags),
 			link: readString(raw.link),
@@ -218,14 +269,42 @@ function normalizeSectionEntries(
 	});
 }
 
+function normalizeCustomSections(value: unknown): CustomSection[] {
+	if (!Array.isArray(value)) return [];
+
+	const usedIds = new Set<CustomSectionKey>();
+	return value
+		.map((item, index): CustomSection | null => {
+			const raw = isRecord(item) ? item : {};
+			let id: CustomSectionKey = isCustomSectionKey(raw.id)
+				? raw.id
+				: (`custom-${Date.now() + index}` as CustomSectionKey);
+			while (usedIds.has(id)) {
+				id = (`custom-${Date.now() + index + usedIds.size}` as CustomSectionKey);
+			}
+			usedIds.add(id);
+			const title = readString(raw.title, `自定义区块 ${index + 1}`).trim();
+			return {
+				id,
+				title: title || `自定义区块 ${index + 1}`,
+				content: readString(raw.content),
+			};
+		})
+		.filter((item): item is CustomSection => Boolean(item));
+}
+
 export function normalizeResumeData(raw: unknown): ResumeData {
 	const data = isRecord(raw) ? raw : {};
+	const customSections = normalizeCustomSections(data.customSections);
 
 	return {
 		personal: normalizePersonal(data.personal),
-		sectionTitles: normalizeSectionTitles(data.sectionTitles),
-		sectionVisibility: normalizeSectionVisibility(data.sectionVisibility),
-		sectionOrder: normalizeSectionOrder(data.sectionOrder),
+		sectionTitles: normalizeSectionTitles(data.sectionTitles, customSections),
+		sectionVisibility: normalizeSectionVisibility(
+			data.sectionVisibility,
+			customSections,
+		),
+		sectionOrder: normalizeSectionOrder(data.sectionOrder, customSections),
 		skills: normalizeSkills(data.skills),
 		experience: normalizeExperience(data.experience),
 		projects: normalizeProjects(data.projects),
@@ -233,6 +312,7 @@ export function normalizeResumeData(raw: unknown): ResumeData {
 		awards: normalizeSectionEntries(data.awards, initialResumeState.awards),
 		campus: normalizeSectionEntries(data.campus, initialResumeState.campus),
 		other: readString(data.other, initialResumeState.other),
+		customSections,
 	};
 }
 
@@ -246,7 +326,7 @@ export function createResumeItemId(): number {
 export function createSectionIconVisibility(
 	visible: boolean,
 ): SectionIconVisibility {
-	return ALL_SECTION_KEYS.reduce(
+	return STANDARD_SECTION_KEYS.reduce(
 		(result, key) => ({ ...result, [key]: visible }),
 		{} as SectionIconVisibility,
 	);
@@ -258,11 +338,19 @@ export function normalizeSectionIconVisibility(
 ): SectionIconVisibility {
 	const raw = isRecord(value) ? value : {};
 
-	return ALL_SECTION_KEYS.reduce(
+	const normalized = STANDARD_SECTION_KEYS.reduce(
 		(result, key) => ({
 			...result,
 			[key]: typeof raw[key] === "boolean" ? raw[key] : fallback[key],
 		}),
 		{} as SectionIconVisibility,
 	);
+
+	for (const [key, rawValue] of Object.entries(raw)) {
+		if (isCustomSectionKey(key) && typeof rawValue === "boolean") {
+			normalized[key] = rawValue;
+		}
+	}
+
+	return normalized;
 }

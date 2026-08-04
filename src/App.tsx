@@ -1,6 +1,11 @@
 import {
+	ChevronDown,
+	ClipboardCopy,
 	Clock,
 	Download,
+	FileJson,
+	FileText,
+	FileUp,
 	Github,
 	Hand,
 	ImageDown,
@@ -9,37 +14,35 @@ import {
 	PanelRightClose,
 	PanelRightOpen,
 	Printer,
-	RotateCcw,
-	SlidersHorizontal,
+	Redo2,
 	Tags,
 	TrendingUp,
-	Upload,
+	Undo2,
 } from "lucide-react";
 import {
 	useCallback,
 	useEffect,
 	useRef,
 	useState,
+	type CSSProperties,
+	type ChangeEvent as ReactChangeEvent,
+	type KeyboardEvent as ReactKeyboardEvent,
+	type MouseEvent as ReactMouseEvent,
 	type PointerEvent as ReactPointerEvent,
 	type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
-import FontFamilyControl from "./components/FontFamilyControl";
-import FontSizeControl from "./components/FontSizeControl";
-import PageMarginControl from "./components/PageMarginControl";
 import PreviewPageModeControl from "./components/PreviewPageModeControl";
 import PreviewZoomControl from "./components/PreviewZoomControl";
 import ResumeEditor from "./components/ResumeEditor";
-import ResumeDisplayPreferencesEditor from "./components/ResumeDisplayPreferencesEditor";
 import ResumeHistoryModal from "./components/ResumeHistory";
-import ResumeManager from "./components/ResumeManager";
-import ResumePreview from "./components/ResumePreview";
-import ThemePicker from "./components/ThemePicker";
+import ResumeManager, { type ManagerView } from "./components/ResumeManager";
+import ResumePreview from "./components/TemplateResumePreview";
 import {
 	createResumeBackup,
 	normalizeResumeBackup,
 	type ImportedResumeBackup,
 } from "./data/resumeBackup";
+import { createResumeMarkdown } from "./data/resumeMarkdown";
 import {
 	createGitHubSyncGist,
 	decryptCloudSyncData,
@@ -50,23 +53,27 @@ import {
 	updateGitHubSyncGist,
 } from "./data/cloudSync";
 import {
-	normalizeResumeData,
-	normalizeSectionIconVisibility,
-} from "./data/resumeData";
+	clearLocalFolderSyncDirectoryHandle,
+	loadLocalFolderSyncDirectoryHandle,
+	pickLocalFolderSyncDirectory,
+	readLocalFolderSyncSnapshot,
+	saveLocalFolderSyncDirectoryHandle,
+	verifyLocalFolderPermission,
+	writeLocalFolderSyncSnapshot,
+	type LocalFolderSyncSettings,
+	type LocalFolderSyncStatus,
+} from "./data/localFolderSync";
 import {
 	addSnapshot,
 	computeNextVersion,
 	createDocumentHistory,
 	DEFAULT_SNAPSHOT_LABEL,
 	getLatestSnapshotVersion,
-	normalizeDocumentHistory,
 	type DocumentHistory,
 } from "./data/resumeHistory";
 import {
 	createResumeDocument,
-	createResumeLibrary,
 	normalizeResumeAppearance,
-	normalizeResumeLibrary,
 	normalizeResumeTags,
 	normalizeResumeVersion,
 	type ResumeAppearance,
@@ -85,42 +92,47 @@ import {
 	type PreviewPageMode,
 } from "./data/previewPageMode";
 import {
-	DEFAULT_SECTION_PREFERENCES,
-	DEFAULT_RESUME_FONT_SIZE_PT,
-	DEFAULT_RESUME_PAGE_MARGIN_MM,
-	DEFAULT_RESUME_FONT_FAMILY,
-	normalizeResumeFontSize,
-	normalizeResumePageMargin,
+	normalizeResumeAccentColor,
+	resumePageMarginPxToMm,
 	type ResumeFontSizePt,
+	type ResumeItemTitleFontSizePx,
 	type ResumePageMarginMm,
 	type ResumeFontFamily,
+	type ResumeLineHeight,
+	type ResumeParagraphSpacingPx,
 	type ResumeSectionPreferences,
+	type ResumeSectionSpacing,
+	type ResumeSectionTitleFontSizePx,
 } from "./data/resumeStyle";
 import {
-	DEFAULT_THEME_ID,
+	DEFAULT_TEMPLATE_ID,
 	getDefaultSectionIconVisibility,
-	isThemeId,
-	normalizeThemeIdList,
-	themes,
-} from "./data/themes";
-import type { ResumeData, SectionIconVisibility, SectionKey } from "./types/resume";
-import type { ThemeId } from "./types/theme";
+	normalizeTemplateIdList,
+} from "./data/templateConfigs";
+import { useResumeWorkspace } from "./store/useResumeWorkspace";
+import {
+	normalizeResumeWorkspace,
+	type ResumeWorkspace,
+} from "./domain/resumeWorkspace";
+import type {
+	ResumeData,
+	ResumeEditableSectionKey,
+	SectionIconVisibility,
+} from "./types/resume";
+import type { TemplateId } from "./types/template";
 
-const STORAGE_KEY = "resume-data";
-const THEME_STORAGE_KEY = "resume-theme";
-const FONT_SIZE_STORAGE_KEY = "resume-font-size";
-const PAGE_MARGIN_STORAGE_KEY = "resume-page-margin";
-const SECTION_ICONS_STORAGE_KEY = "resume-section-icons";
-const SECTION_ICONS_UNIFIED_MIGRATION_KEY = "resume-section-icons-unified-v2";
-const FAVORITE_THEMES_STORAGE_KEY = "resume-favorite-themes";
-const LIBRARY_STORAGE_KEY = "resume-library";
-const PREVIEW_ZOOM_STORAGE_KEY = "resume-preview-zoom";
+const FAVORITE_TEMPLATES_STORAGE_KEY = "iresume:v2:favorite-templates";
+const PREVIEW_ZOOM_STORAGE_KEY = "iresume:v2:preview-zoom";
 const PREVIEW_PAGE_MODE_STORAGE_KEY = "resume-preview-page-mode";
 const APP_VIEW_STORAGE_KEY = "resume-app-view";
 const CLOUD_SYNC_AUTH_STORAGE_KEY = "resume-cloud-sync-auth";
 const CLOUD_SYNC_SETTINGS_STORAGE_KEY = "resume-cloud-sync-settings";
 const CLOUD_SYNC_OAUTH_STATE_STORAGE_KEY = "resume-cloud-sync-oauth-state";
-const HISTORY_STORAGE_KEY_PREFIX = "resume-history-";
+const LOCAL_FOLDER_SYNC_SETTINGS_STORAGE_KEY =
+	"iresume:v2:local-folder-sync-settings";
+const EDITOR_LEFT_PANEL_WIDTH_STORAGE_KEY = "iresume:v2:editor-left-panel-width";
+const EDITOR_RIGHT_PANEL_WIDTH_STORAGE_KEY =
+	"iresume:v2:editor-right-panel-width";
 const A4_HEIGHT_MM = 297;
 const A4_WIDTH_MM = 210;
 const PREVIEW_PAGE_GAP_MM = 10;
@@ -129,14 +141,20 @@ const CSS_PX_PER_MM = 96 / 25.4;
 const MOBILE_PREVIEW_BREAKPOINT_PX = 640;
 const MOBILE_PREVIEW_SIDE_PADDING_PX = 32;
 const MIN_MOBILE_PREVIEW_ZOOM = 0.1;
+const DESKTOP_PREVIEW_BREAKPOINT_PX = 1024;
+const MAX_EDITOR_PANEL_WIDTH_PX = 540;
+const MIN_EDITOR_PANEL_WIDTH_PX = {
+	left: 280,
+	right: 300,
+} as const;
 
 type CloudSyncStatus = "idle" | "connecting" | "uploading" | "downloading";
 
 interface UserDataBackup {
-	version: 1;
+	version: 2;
 	exportedAt: string;
-	library: ResumeLibrary;
-	favoriteThemeIds: ThemeId[];
+	workspace: ResumeWorkspace;
+	favoriteTemplateIds: TemplateId[];
 	previewZoom: PreviewZoom;
 	previewPageMode: PreviewPageMode;
 }
@@ -162,8 +180,8 @@ interface CloudSyncSettings {
 	lastDirection?: "push" | "pull";
 }
 
-const getPrintablePageHeightMm = (pageMarginMm: ResumePageMarginMm) =>
-	A4_HEIGHT_MM - pageMarginMm * 2;
+const getPrintablePageHeightMm = (pageMarginPx: ResumePageMarginMm) =>
+	A4_HEIGHT_MM - resumePageMarginPxToMm(pageMarginPx) * 2;
 
 const readTimeMs = (value: unknown) => {
 	if (typeof value !== "string") return null;
@@ -183,16 +201,26 @@ const getImportedResumeAppearance = (
 	imported: ImportedResumeBackup,
 	fallback?: ResumeAppearance,
 ): ResumeAppearance => {
-	const importedThemeId = imported.themeId ?? fallback?.themeId ?? DEFAULT_THEME_ID;
+	const importedTemplateId = imported.templateId ?? fallback?.templateId ?? DEFAULT_TEMPLATE_ID;
 
 	return normalizeResumeAppearance(
 		{
-			themeId: importedThemeId,
+			templateId: importedTemplateId,
+			accentColor: imported.accentColor ?? fallback?.accentColor,
 			fontSizePt: imported.fontSizePt ?? fallback?.fontSizePt,
+			sectionTitleFontSizePx:
+				imported.sectionTitleFontSizePx ??
+				fallback?.sectionTitleFontSizePx,
+			itemTitleFontSizePx:
+				imported.itemTitleFontSizePx ?? fallback?.itemTitleFontSizePx,
 			pageMarginMm: imported.pageMarginMm ?? fallback?.pageMarginMm,
 			fontFamily: imported.fontFamily ?? fallback?.fontFamily,
+			lineHeight: imported.lineHeight ?? fallback?.lineHeight,
+			sectionSpacing: imported.sectionSpacing ?? fallback?.sectionSpacing,
+			paragraphSpacingPx:
+				imported.paragraphSpacingPx ?? fallback?.paragraphSpacingPx,
 			sectionIcons:
-				imported.sectionIcons ?? getDefaultSectionIconVisibility(importedThemeId),
+				imported.sectionIcons ?? getDefaultSectionIconVisibility(),
 			sectionPreferences:
 				imported.sectionPreferences ?? fallback?.sectionPreferences,
 		},
@@ -212,21 +240,37 @@ const getBackupExportedAtMs = (backup: unknown) =>
 
 type AppView = "manager" | "editor";
 
+type EditorPanelSide = "left" | "right";
+
+const getDefaultEditorPanelWidth = (
+	side: EditorPanelSide,
+	width = typeof window === "undefined" ? 1280 : window.innerWidth,
+) => {
+	const wide = width >= 1280;
+	if (side === "left") return wide ? 320 : 300;
+	return wide ? 360 : 330;
+};
+
+const normalizeEditorPanelWidth = (
+	value: unknown,
+	side: EditorPanelSide,
+	fallback = getDefaultEditorPanelWidth(side),
+) => {
+	if (value === null || value === undefined || value === "") return fallback;
+	const width = Number(value);
+	if (!Number.isFinite(width)) return fallback;
+	const minimumWidth = MIN_EDITOR_PANEL_WIDTH_PX[side];
+	return Math.min(
+		MAX_EDITOR_PANEL_WIDTH_PX,
+		Math.max(minimumWidth, width),
+	);
+};
+
 const readInitialView = (library: ResumeLibrary): AppView =>
 	localStorage.getItem(APP_VIEW_STORAGE_KEY) === "editor" &&
 	library.documents.length > 0
 		? "editor"
 		: "manager";
-
-const readDocumentHistory = (documentId: string): DocumentHistory => {
-	const saved = localStorage.getItem(HISTORY_STORAGE_KEY_PREFIX + documentId);
-	if (!saved) return createDocumentHistory();
-	try {
-		return normalizeDocumentHistory(JSON.parse(saved));
-	} catch {
-		return createDocumentHistory();
-	}
-};
 
 const sanitizeFileNamePart = (value: string) =>
 	value
@@ -258,6 +302,34 @@ const readFileAsText = (file: File) =>
 		reader.onerror = () => reject(new Error("无法读取文件"));
 		reader.readAsText(file);
 	});
+
+const downloadTextFile = (content: string, type: string, filename: string) => {
+	const blob = new Blob([content], { type });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(url);
+};
+
+const copyTextToClipboard = async (text: string) => {
+	if (navigator.clipboard && window.isSecureContext) {
+		await navigator.clipboard.writeText(text);
+		return;
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "true");
+	textarea.style.position = "fixed";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
+	const copied = document.execCommand("copy");
+	document.body.removeChild(textarea);
+	if (!copied) throw new Error("无法复制文本");
+};
 
 const readCloudSyncAuth = (): CloudSyncAuth | null => {
 	const saved = localStorage.getItem(CLOUD_SYNC_AUTH_STORAGE_KEY);
@@ -310,6 +382,31 @@ const readCloudSyncSettings = (): CloudSyncSettings => {
 		};
 	} catch {
 		return { gistId: "" };
+	}
+};
+
+const readLocalFolderSyncSettings = (): LocalFolderSyncSettings => {
+	const saved = localStorage.getItem(LOCAL_FOLDER_SYNC_SETTINGS_STORAGE_KEY);
+	if (!saved) return { directoryName: "" };
+
+	try {
+		const value = JSON.parse(saved) as unknown;
+		if (!isPlainObject(value)) return { directoryName: "" };
+
+		return {
+			directoryName:
+				typeof value.directoryName === "string" ? value.directoryName : "",
+			lastSyncedAt:
+				typeof value.lastSyncedAt === "string"
+					? value.lastSyncedAt
+					: undefined,
+			lastDirection:
+				value.lastDirection === "push" || value.lastDirection === "pull"
+					? value.lastDirection
+					: undefined,
+		};
+	} catch {
+		return { directoryName: "" };
 	}
 };
 
@@ -464,97 +561,6 @@ const ResumeMetaEditor = ({
 	</div>
 );
 
-function readLegacyResumeDocument(): ResumeDocument {
-	const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-	const themeId = isThemeId(savedTheme) ? savedTheme : DEFAULT_THEME_ID;
-	const fallbackIcons = getDefaultSectionIconVisibility(themeId);
-	const savedSectionIcons = localStorage.getItem(SECTION_ICONS_STORAGE_KEY);
-	let sectionIcons = fallbackIcons;
-
-	if (savedSectionIcons) {
-		try {
-			sectionIcons = normalizeSectionIconVisibility(
-				JSON.parse(savedSectionIcons),
-				fallbackIcons,
-			);
-		} catch {
-			sectionIcons = fallbackIcons;
-		}
-	}
-
-	let data: ResumeData | undefined;
-	const savedData = localStorage.getItem(STORAGE_KEY);
-	if (savedData) {
-		try {
-			data = normalizeResumeData(JSON.parse(savedData));
-		} catch (error) {
-			console.error("Failed to parse resume data", error);
-		}
-	}
-
-	return createResumeDocument({
-		name: data?.personal.name.trim() || "默认简历",
-		data,
-		appearance: {
-			themeId,
-			fontSizePt: normalizeResumeFontSize(
-				localStorage.getItem(FONT_SIZE_STORAGE_KEY) ??
-					DEFAULT_RESUME_FONT_SIZE_PT,
-			),
-			pageMarginMm: normalizeResumePageMargin(
-				localStorage.getItem(PAGE_MARGIN_STORAGE_KEY) ??
-					DEFAULT_RESUME_PAGE_MARGIN_MM,
-			),
-			sectionIcons,
-		},
-	});
-}
-
-function migrateUnifiedSectionIcons(library: ResumeLibrary): ResumeLibrary {
-	if (localStorage.getItem(SECTION_ICONS_UNIFIED_MIGRATION_KEY)) return library;
-	localStorage.setItem(SECTION_ICONS_UNIFIED_MIGRATION_KEY, "1");
-
-	return {
-		...library,
-		documents: library.documents.map((document) => {
-			const hasVisibleIcon = Object.values(document.appearance.sectionIcons).some(
-				Boolean,
-			);
-			if (hasVisibleIcon) return document;
-
-			return {
-				...document,
-				appearance: {
-					...document.appearance,
-					sectionIcons: getDefaultSectionIconVisibility(
-						document.appearance.themeId,
-					),
-				},
-			};
-		}),
-	};
-}
-
-function readInitialLibrary(): ResumeLibrary {
-	const legacyDocument = readLegacyResumeDocument();
-	const savedLibrary = localStorage.getItem(LIBRARY_STORAGE_KEY);
-	if (savedLibrary) {
-		try {
-			return migrateUnifiedSectionIcons(
-				normalizeResumeLibrary(JSON.parse(savedLibrary), legacyDocument),
-			);
-		} catch {
-			return migrateUnifiedSectionIcons(
-				createResumeLibrary([legacyDocument], legacyDocument.id),
-			);
-		}
-	}
-
-	return migrateUnifiedSectionIcons(
-		createResumeLibrary([legacyDocument], legacyDocument.id),
-	);
-}
-
 function App() {
 	const importInputRef = useRef<HTMLInputElement>(null);
 	const resumePreviewRef = useRef<HTMLDivElement>(null);
@@ -564,15 +570,35 @@ function App() {
 	const wheelZoomLastAtRef = useRef(0);
 	const panStateRef = useRef<{
 		pointerId: number;
+		source: "middle" | "space";
 		startX: number;
 		startY: number;
 		scrollLeft: number;
 		scrollTop: number;
 	} | null>(null);
+	const editorPanelResizeRef = useRef<{
+		side: EditorPanelSide;
+		pointerId: number;
+		startX: number;
+		startWidth: number;
+	} | null>(null);
 	const canvasShortcutsActiveRef = useRef(false);
-	const isSpacePanningRef = useRef(false);
+	const isCanvasPanReadyRef = useRef(false);
 	const isPanningRef = useRef(false);
-	const [library, setLibrary] = useState<ResumeLibrary>(readInitialLibrary);
+	const {
+		workspace,
+		replaceWorkspace,
+		library,
+		setLibrary,
+		updateDocument,
+		updateActiveDocument,
+		setDocumentHistory,
+		undo,
+		redo,
+		canUndo,
+		canRedo,
+		storageError,
+	} = useResumeWorkspace();
 	const [view, setView] = useState<AppView>(() => readInitialView(library));
 	const [cloudSyncAuth, setCloudSyncAuth] = useState<CloudSyncAuth | null>(
 		readCloudSyncAuth,
@@ -582,23 +608,50 @@ function App() {
 	const [cloudSyncStatus, setCloudSyncStatus] =
 		useState<CloudSyncStatus>("idle");
 	const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>(null);
-	const [importError, setImportError] = useState<string | null>(null);
+	const [localFolderHandle, setLocalFolderHandle] =
+		useState<FileSystemDirectoryHandle | null>(null);
+	const [localFolderSyncSettings, setLocalFolderSyncSettings] =
+		useState<LocalFolderSyncSettings>(readLocalFolderSyncSettings);
+	const [localFolderSyncStatus, setLocalFolderSyncStatus] =
+		useState<LocalFolderSyncStatus>("idle");
+	const [localFolderSyncMessage, setLocalFolderSyncMessage] =
+		useState<string | null>(null);
 	const [imageExportStatus, setImageExportStatus] = useState<
 		"idle" | "exporting" | "error"
 	>("idle");
+	const [copyTextStatus, setCopyTextStatus] = useState<
+		"idle" | "copied" | "error"
+	>("idle");
+	const [importError, setImportError] = useState<string | null>(null);
+	const [exportMenuOpen, setExportMenuOpen] = useState(false);
+	const [managerInitialView, setManagerInitialView] =
+		useState<ManagerView>("resumes");
 	const [previewPageCount, setPreviewPageCount] = useState(1);
 	const [previewPageLayouts, setPreviewPageLayouts] = useState<
 		PreviewPageLayout[]
 	>([{ startMm: 0, bottomBlankMm: 0 }]);
-	const [activeSection, setActiveSection] = useState<SectionKey>("skills");
-	const [isSpacePanning, setIsSpacePanning] = useState(false);
+	const [activeSection, setActiveSection] =
+		useState<ResumeEditableSectionKey>("personal");
+	const [isCanvasPanReady, setIsCanvasPanReady] = useState(false);
 	const [isPanning, setIsPanning] = useState(false);
 	const [canvasShortcutsActive, setCanvasShortcutsActive] = useState(false);
 	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 	const [rightPanelOpen, setRightPanelOpen] = useState(true);
-	const [appearancePanelOpen, setAppearancePanelOpen] = useState(false);
+	const [leftPanelWidth, setLeftPanelWidth] = useState(() =>
+		normalizeEditorPanelWidth(
+			localStorage.getItem(EDITOR_LEFT_PANEL_WIDTH_STORAGE_KEY),
+			"left",
+			getDefaultEditorPanelWidth("left"),
+		),
+	);
+	const [rightPanelWidth, setRightPanelWidth] = useState(() =>
+		normalizeEditorPanelWidth(
+			localStorage.getItem(EDITOR_RIGHT_PANEL_WIDTH_STORAGE_KEY),
+			"right",
+			getDefaultEditorPanelWidth("right"),
+		),
+	);
 	const [historyModalOpen, setHistoryModalOpen] = useState(false);
-	const [, setHistoryRevision] = useState(0);
 	const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 	const [previewZoom, setPreviewZoom] = useState<PreviewZoom>(() =>
 		normalizePreviewZoom(
@@ -616,15 +669,23 @@ function App() {
 		library.documents.find((document) => document.id === library.activeId) ??
 		library.documents[0];
 	const resumeData = activeDocument.data;
-	const resolvedActiveSection = resumeData.sectionOrder.includes(activeSection)
-		? activeSection
-		: (resumeData.sectionOrder[0] ?? "skills");
-	const documentHistory = readDocumentHistory(activeDocument.id);
+	const resolvedActiveSection =
+		activeSection === "personal" || resumeData.sectionOrder.includes(activeSection)
+			? activeSection
+			: (resumeData.sectionOrder[0] ?? "personal");
+	const documentHistory =
+		workspace.histories[activeDocument.id] ?? createDocumentHistory();
 	const {
-		themeId,
+		templateId,
+		accentColor,
 		fontSizePt,
+		sectionTitleFontSizePx,
+		itemTitleFontSizePx,
 		fontFamily,
 		pageMarginMm,
+		lineHeight,
+		sectionSpacing,
+		paragraphSpacingPx,
 		sectionIcons,
 		sectionPreferences,
 	} = activeDocument.appearance;
@@ -641,10 +702,6 @@ function App() {
 	const previewRenderZoom = isMobilePreviewViewport
 		? Math.min(previewZoom, mobilePreviewFitZoom)
 		: previewZoom;
-
-	useEffect(() => {
-		localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
-	}, [library]);
 
 	useEffect(() => {
 		const updateViewportWidth = () => {
@@ -680,19 +737,61 @@ function App() {
 	}, [cloudSyncSettings]);
 
 	useEffect(() => {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(resumeData));
-		localStorage.setItem(THEME_STORAGE_KEY, themeId);
-		localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(fontSizePt));
-		localStorage.setItem(PAGE_MARGIN_STORAGE_KEY, String(pageMarginMm));
-		localStorage.setItem(SECTION_ICONS_STORAGE_KEY, JSON.stringify(sectionIcons));
-	}, [fontSizePt, pageMarginMm, resumeData, sectionIcons, themeId]);
+		localStorage.setItem(
+			LOCAL_FOLDER_SYNC_SETTINGS_STORAGE_KEY,
+			JSON.stringify(localFolderSyncSettings),
+		);
+	}, [localFolderSyncSettings]);
 
-	const [favoriteThemeIds, setFavoriteThemeIds] = useState<ThemeId[]>(() => {
-		const saved = localStorage.getItem(FAVORITE_THEMES_STORAGE_KEY);
+	useEffect(() => {
+		localStorage.setItem(
+			EDITOR_LEFT_PANEL_WIDTH_STORAGE_KEY,
+			String(Math.round(leftPanelWidth)),
+		);
+	}, [leftPanelWidth]);
+
+	useEffect(() => {
+		localStorage.setItem(
+			EDITOR_RIGHT_PANEL_WIDTH_STORAGE_KEY,
+			String(Math.round(rightPanelWidth)),
+		);
+	}, [rightPanelWidth]);
+
+	useEffect(() => {
+		let canceled = false;
+		loadLocalFolderSyncDirectoryHandle()
+			.then((handle) => {
+				if (canceled || !handle) return;
+				setLocalFolderHandle(handle);
+				setLocalFolderSyncSettings((current) => ({
+					...current,
+					directoryName: current.directoryName || handle.name,
+				}));
+			})
+			.catch((error: unknown) => {
+				if (canceled) return;
+				console.warn("Failed to load local sync directory", error);
+			});
+
+		return () => {
+			canceled = true;
+		};
+	}, []);
+
+	useEffect(
+		() => () => {
+			document.body.style.cursor = "";
+			document.body.style.userSelect = "";
+		},
+		[],
+	);
+
+	const [favoriteTemplateIds, setFavoriteTemplateIds] = useState<TemplateId[]>(() => {
+		const saved = localStorage.getItem(FAVORITE_TEMPLATES_STORAGE_KEY);
 		if (!saved) return [];
 
 		try {
-			return normalizeThemeIdList(JSON.parse(saved));
+			return normalizeTemplateIdList(JSON.parse(saved));
 		} catch {
 			return [];
 		}
@@ -700,10 +799,10 @@ function App() {
 
 	useEffect(() => {
 		localStorage.setItem(
-			FAVORITE_THEMES_STORAGE_KEY,
-			JSON.stringify(favoriteThemeIds),
+			FAVORITE_TEMPLATES_STORAGE_KEY,
+			JSON.stringify(favoriteTemplateIds),
 		);
-	}, [favoriteThemeIds]);
+	}, [favoriteTemplateIds]);
 
 	useEffect(() => {
 		localStorage.setItem(PREVIEW_ZOOM_STORAGE_KEY, String(previewZoom));
@@ -803,23 +902,24 @@ function App() {
 	}, [canvasShortcutsActive]);
 
 	useEffect(() => {
-		isSpacePanningRef.current = isSpacePanning;
-	}, [isSpacePanning]);
+		isCanvasPanReadyRef.current = isCanvasPanReady;
+	}, [isCanvasPanReady]);
 
 	useEffect(() => {
 		isPanningRef.current = isPanning;
 	}, [isPanning]);
 
 	useEffect(() => {
-		if (!appearancePanelOpen) return;
+		if (!exportMenuOpen) return;
 
 		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setAppearancePanelOpen(false);
+			if (event.key !== "Escape") return;
+			setExportMenuOpen(false);
 		};
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [appearancePanelOpen]);
+	}, [exportMenuOpen]);
 
 	useEffect(() => {
 		if (view !== "editor") return;
@@ -864,18 +964,21 @@ function App() {
 			event.key === "Spacebar" ||
 			event.key === "Space";
 
-		const syncSpacePanningClass = (enabled: boolean) => {
-			document.documentElement.classList.toggle("resume-space-panning", enabled);
-			document.body.classList.toggle("resume-space-panning", enabled);
+		const syncCanvasPanReadyClass = (enabled: boolean) => {
+			document.documentElement.classList.toggle(
+				"resume-canvas-pan-ready",
+				enabled,
+			);
+			document.body.classList.toggle("resume-canvas-pan-ready", enabled);
 		};
 
 		const releaseHand = () => {
 			panStateRef.current = null;
 			isPanningRef.current = false;
-			isSpacePanningRef.current = false;
+			isCanvasPanReadyRef.current = false;
 			setIsPanning(false);
-			setIsSpacePanning(false);
-			syncSpacePanningClass(false);
+			setIsCanvasPanReady(false);
+			syncCanvasPanReadyClass(false);
 		};
 
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -885,9 +988,9 @@ function App() {
 				event.preventDefault();
 				event.stopPropagation();
 				if (!event.repeat) {
-					isSpacePanningRef.current = true;
-					setIsSpacePanning(true);
-					syncSpacePanningClass(true);
+					isCanvasPanReadyRef.current = true;
+					setIsCanvasPanReady(true);
+					syncCanvasPanReadyClass(true);
 				}
 				return;
 			}
@@ -915,15 +1018,15 @@ function App() {
 
 		const handleKeyUp = (event: KeyboardEvent) => {
 			if (!isSpaceKey(event)) return;
-			if (!isSpacePanningRef.current && !isPanningRef.current) return;
+			if (!isCanvasPanReadyRef.current && !isPanningRef.current) return;
 			event.preventDefault();
 			event.stopPropagation();
 			panStateRef.current = null;
 			isPanningRef.current = false;
-			isSpacePanningRef.current = false;
+			isCanvasPanReadyRef.current = false;
 			setIsPanning(false);
-			setIsSpacePanning(false);
-			syncSpacePanningClass(false);
+			setIsCanvasPanReady(false);
+			syncCanvasPanReadyClass(false);
 		};
 
 		const handleWheel = (event: WheelEvent) => {
@@ -970,8 +1073,8 @@ function App() {
 		};
 	}, [view]);
 
-	const handleToggleFavoriteTheme = (id: ThemeId) => {
-		setFavoriteThemeIds((current) =>
+	const handleToggleFavoriteTemplate = (id: TemplateId) => {
+		setFavoriteTemplateIds((current) =>
 			current.includes(id)
 				? current.filter((item) => item !== id)
 				: [id, ...current],
@@ -980,30 +1083,30 @@ function App() {
 
 	const createUserDataBackup = useCallback(
 		(): UserDataBackup => ({
-			version: 1,
+			version: 2,
 			exportedAt: new Date().toISOString(),
-			library,
-			favoriteThemeIds,
+			workspace,
+			favoriteTemplateIds,
 			previewZoom,
 			previewPageMode,
 		}),
-		[favoriteThemeIds, library, previewPageMode, previewZoom],
+		[favoriteTemplateIds, previewPageMode, previewZoom, workspace],
 	);
 
 	const applyUserDataBackup = useCallback((parsed: unknown): string | null => {
-		const rawLibrary =
-			isPlainObject(parsed) && "library" in parsed ? parsed.library : parsed;
-		if (!isPlainObject(rawLibrary) || !Array.isArray(rawLibrary.documents)) {
-			return "未找到有效的简历库数据";
+		if (
+			!isPlainObject(parsed) ||
+			parsed.version !== 2 ||
+			!isPlainObject(parsed.workspace)
+		) {
+			return "这不是有效的 iResume 2.0 用户数据备份";
 		}
 
-		const nextLibrary = migrateUnifiedSectionIcons(
-			normalizeResumeLibrary(rawLibrary, readLegacyResumeDocument()),
-		);
+		const nextWorkspace = normalizeResumeWorkspace(parsed.workspace);
 
 		if (isPlainObject(parsed)) {
-			if ("favoriteThemeIds" in parsed) {
-				setFavoriteThemeIds(normalizeThemeIdList(parsed.favoriteThemeIds));
+			if ("favoriteTemplateIds" in parsed) {
+				setFavoriteTemplateIds(normalizeTemplateIdList(parsed.favoriteTemplateIds));
 			}
 			if (parsed.previewZoom !== undefined) {
 				setPreviewZoom(normalizePreviewZoom(parsed.previewZoom));
@@ -1015,25 +1118,19 @@ function App() {
 			}
 		}
 
-		setLibrary(nextLibrary);
+		replaceWorkspace(nextWorkspace);
 		canvasShortcutsActiveRef.current = false;
 		setCanvasShortcutsActive(false);
-		setAppearancePanelOpen(false);
+		setExportMenuOpen(false);
 		setView("manager");
 		return null;
-	}, []);
+	}, [replaceWorkspace]);
 
 	const handleExportUserData = () => {
 		const backup = createUserDataBackup();
 		const json = JSON.stringify(backup, null, 2);
-		const blob = new Blob([json], { type: "application/json" });
-		const url = URL.createObjectURL(blob);
 		const date = new Date().toISOString().slice(0, 10);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = `iresume-user-data-${date}.json`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadTextFile(json, "application/json", `iresume-user-data-${date}.json`);
 	};
 
 	const handleImportUserData = async (file: File): Promise<string | null> => {
@@ -1046,6 +1143,152 @@ function App() {
 		} catch (error) {
 			console.error("Failed to import user data", error);
 			return "导入失败，请检查文件内容";
+		}
+	};
+
+	const ensureLocalFolderHandle = async () => {
+		const handle = localFolderHandle ?? (await pickLocalFolderSyncDirectory());
+		const granted = await verifyLocalFolderPermission(handle, "readwrite");
+		if (!granted) throw new Error("没有本地同步目录的读写权限");
+
+		if (handle !== localFolderHandle) {
+			setLocalFolderHandle(handle);
+			await saveLocalFolderSyncDirectoryHandle(handle);
+		}
+		setLocalFolderSyncSettings((current) => ({
+			...current,
+			directoryName: handle.name,
+		}));
+		return handle;
+	};
+
+	const handleLocalFolderConnect = async () => {
+		try {
+			const handle = await pickLocalFolderSyncDirectory();
+			setLocalFolderSyncStatus("selecting");
+			setLocalFolderSyncMessage(null);
+			const granted = await verifyLocalFolderPermission(handle, "readwrite");
+			if (!granted) throw new Error("没有本地同步目录的读写权限");
+			await saveLocalFolderSyncDirectoryHandle(handle);
+			setLocalFolderHandle(handle);
+			setLocalFolderSyncSettings((current) => ({
+				...current,
+				directoryName: handle.name,
+			}));
+			setLocalFolderSyncMessage("已选择本地同步目录");
+		} catch (error) {
+			console.error("Failed to select local sync directory", error);
+			setLocalFolderSyncMessage(
+				error instanceof Error ? error.message : "选择本地目录失败",
+			);
+		} finally {
+			setLocalFolderSyncStatus("idle");
+		}
+	};
+
+	const handleLocalFolderDisconnect = async () => {
+		try {
+			await clearLocalFolderSyncDirectoryHandle();
+		} catch (error) {
+			console.warn("Failed to clear local sync directory handle", error);
+		}
+		setLocalFolderHandle(null);
+		setLocalFolderSyncSettings({ directoryName: "" });
+		setLocalFolderSyncMessage("已移除本地同步目录");
+	};
+
+	const handleLocalFolderPush = async () => {
+		if (localFolderHandle) {
+			setLocalFolderSyncStatus("syncing");
+			setLocalFolderSyncMessage("正在同步到本地目录...");
+		}
+
+		try {
+			const handle = await ensureLocalFolderHandle();
+			setLocalFolderSyncStatus("syncing");
+			setLocalFolderSyncMessage("正在同步到本地目录...");
+			const result = await writeLocalFolderSyncSnapshot(
+				handle,
+				createUserDataBackup(),
+			);
+			setLocalFolderSyncSettings({
+				directoryName: handle.name,
+				lastSyncedAt: result.exportedAt,
+				lastDirection: "push",
+			});
+			setLocalFolderSyncMessage(
+				`已同步 ${result.resumeCount} 份简历到本地目录`,
+			);
+		} catch (error) {
+			console.error("Failed to sync local folder", error);
+			setLocalFolderSyncMessage(
+				error instanceof Error ? error.message : "同步到本地目录失败",
+			);
+		} finally {
+			setLocalFolderSyncStatus("idle");
+		}
+	};
+
+	const handleLocalFolderPull = async () => {
+		if (localFolderHandle) {
+			setLocalFolderSyncStatus("restoring");
+			setLocalFolderSyncMessage("正在从本地目录读取...");
+		}
+
+		try {
+			const handle = await ensureLocalFolderHandle();
+			setLocalFolderSyncStatus("restoring");
+			setLocalFolderSyncMessage("正在从本地目录读取...");
+			const result = await readLocalFolderSyncSnapshot(handle);
+			const folderExportedAt = result.exportedAt
+				? readTimeMs(result.exportedAt)
+				: null;
+			const localUpdatedAt = getLatestLibraryUpdatedAtMs(library);
+			if (
+				folderExportedAt !== null &&
+				localUpdatedAt !== null &&
+				folderExportedAt < localUpdatedAt
+			) {
+				const confirmed = window.confirm(
+					[
+						"本地同步目录可能早于当前数据，继续恢复会覆盖当前简历库。",
+						"",
+						`目录备份：${formatSyncDateTime(folderExportedAt)}`,
+						`本地最新：${formatSyncDateTime(localUpdatedAt)}`,
+						"",
+						"确定要继续从目录恢复吗？",
+					].join("\n"),
+				);
+				if (!confirmed) {
+					setLocalFolderSyncMessage("已取消从本地目录恢复");
+					return;
+				}
+			}
+
+			replaceWorkspace(result.workspace);
+			setFavoriteTemplateIds(result.favoriteTemplateIds);
+			setPreviewZoom(result.previewZoom);
+			setPreviewPageMode(result.previewPageMode);
+			canvasShortcutsActiveRef.current = false;
+			setCanvasShortcutsActive(false);
+			setExportMenuOpen(false);
+			setView("manager");
+			const syncedAt = new Date().toISOString();
+			setLocalFolderSyncSettings({
+				directoryName: handle.name,
+				lastSyncedAt: syncedAt,
+				lastDirection: "pull",
+			});
+			setLocalFolderSyncMessage(
+				`已从本地目录恢复 ${result.resumeCount} 份简历`,
+			);
+		} catch (error) {
+			console.error("Failed to restore local folder", error);
+			setLocalFolderSyncMessage(
+				error instanceof Error ? error.message : "从本地目录恢复失败",
+			);
+		} finally {
+			setLocalFolderSyncStatus("idle");
 		}
 	};
 
@@ -1192,44 +1435,103 @@ function App() {
 	};
 
 	useEffect(() => {
+		if (imageExportStatus !== "error") return;
+		const timer = setTimeout(() => setImageExportStatus("idle"), 4000);
+		return () => clearTimeout(timer);
+	}, [imageExportStatus]);
+
+	useEffect(() => {
 		if (!importError) return;
 		const timer = setTimeout(() => setImportError(null), 4000);
 		return () => clearTimeout(timer);
 	}, [importError]);
 
 	useEffect(() => {
-		if (imageExportStatus !== "error") return;
-		const timer = setTimeout(() => setImageExportStatus("idle"), 4000);
+		if (copyTextStatus === "idle") return;
+		const timer = setTimeout(() => setCopyTextStatus("idle"), 1800);
 		return () => clearTimeout(timer);
-	}, [imageExportStatus]);
+	}, [copyTextStatus]);
 
 	const closeEditorChrome = useCallback(() => {
 		canvasShortcutsActiveRef.current = false;
 		setCanvasShortcutsActive(false);
-		setAppearancePanelOpen(false);
+		setExportMenuOpen(false);
 	}, []);
 
 	const openManagerView = useCallback(() => {
 		closeEditorChrome();
+		setManagerInitialView("resumes");
 		setView("manager");
 	}, [closeEditorChrome]);
 
-	const updateActiveDocument = useCallback(
-		(updater: (document: ResumeDocument) => ResumeDocument) => {
-			setLibrary((current) => ({
-				...current,
-				documents: current.documents.map((document) =>
-					document.id === current.activeId
-						? {
-								...updater(document),
-								updatedAt: new Date().toISOString(),
-							}
-						: document,
-				),
-			}));
-		},
-		[],
-	);
+	const startEditorPanelResize =
+		(side: EditorPanelSide) =>
+		(event: ReactPointerEvent<HTMLButtonElement>) => {
+			event.preventDefault();
+			editorPanelResizeRef.current = {
+				side,
+				pointerId: event.pointerId,
+				startX: event.clientX,
+				startWidth: side === "left" ? leftPanelWidth : rightPanelWidth,
+			};
+			event.currentTarget.setPointerCapture(event.pointerId);
+			document.body.style.cursor = "col-resize";
+			document.body.style.userSelect = "none";
+		};
+
+	const handleEditorPanelResize = (
+		event: ReactPointerEvent<HTMLButtonElement>,
+	) => {
+		const state = editorPanelResizeRef.current;
+		if (!state || state.pointerId !== event.pointerId) return;
+
+		const delta =
+			state.side === "left"
+				? event.clientX - state.startX
+				: state.startX - event.clientX;
+		const nextWidth = normalizeEditorPanelWidth(
+			state.startWidth + delta,
+			state.side,
+			state.startWidth,
+		);
+
+		if (state.side === "left") {
+			setLeftPanelWidth(nextWidth);
+		} else {
+			setRightPanelWidth(nextWidth);
+		}
+	};
+
+	const stopEditorPanelResize = (
+		event: ReactPointerEvent<HTMLButtonElement>,
+	) => {
+		if (editorPanelResizeRef.current?.pointerId !== event.pointerId) return;
+		editorPanelResizeRef.current = null;
+		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+			event.currentTarget.releasePointerCapture(event.pointerId);
+		}
+		document.body.style.cursor = "";
+		document.body.style.userSelect = "";
+	};
+
+	const handleEditorPanelResizeKeyDown =
+		(side: EditorPanelSide) =>
+		(event: ReactKeyboardEvent<HTMLButtonElement>) => {
+			const delta =
+				event.key === "ArrowLeft" ? -8 : event.key === "ArrowRight" ? 8 : 0;
+			if (delta === 0) return;
+			event.preventDefault();
+			const signedDelta = side === "left" ? delta : -delta;
+			if (side === "left") {
+				setLeftPanelWidth((current) =>
+					normalizeEditorPanelWidth(current + signedDelta, "left", current),
+				);
+			} else {
+				setRightPanelWidth((current) =>
+					normalizeEditorPanelWidth(current + signedDelta, "right", current),
+				);
+			}
+		};
 
 	const updateDocumentHistory = useCallback(
 		(
@@ -1237,80 +1539,192 @@ function App() {
 				| DocumentHistory
 				| ((current: DocumentHistory) => DocumentHistory),
 		) => {
-			const currentHistory = readDocumentHistory(activeDocument.id);
+			const currentHistory =
+				workspace.histories[activeDocument.id] ?? createDocumentHistory();
 			const resolvedHistory =
 				typeof nextHistory === "function"
 					? nextHistory(currentHistory)
 					: nextHistory;
 
-			localStorage.setItem(
-				HISTORY_STORAGE_KEY_PREFIX + activeDocument.id,
-				JSON.stringify(resolvedHistory),
-			);
-			setHistoryRevision((current) => current + 1);
+			setDocumentHistory(activeDocument.id, resolvedHistory);
 		},
-		[activeDocument.id],
+		[activeDocument.id, setDocumentHistory, workspace.histories],
 	);
 
 	const handleResumeDataChange = (nextData: ResumeData) => {
-		updateActiveDocument((document) => ({ ...document, data: nextData }));
+		updateActiveDocument(
+			(document) => ({ ...document, data: nextData }),
+			"content",
+		);
 	};
 
-	const handleThemeChange = (nextThemeId: ThemeId) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: {
-				...document.appearance,
-				themeId: nextThemeId,
-				sectionIcons: getDefaultSectionIconVisibility(nextThemeId),
+	const handleTemplateChange = (nextTemplateId: TemplateId) => {
+		updateActiveDocument(
+			(document) => {
+				const customSectionIcons = Object.fromEntries(
+					document.data.customSections.map((section) => [
+						section.id,
+						document.appearance.sectionIcons[section.id] !== false,
+					]),
+				);
+
+				return {
+					...document,
+					appearance: {
+						...document.appearance,
+						templateId: nextTemplateId,
+						sectionIcons: {
+							...getDefaultSectionIconVisibility(),
+							...customSectionIcons,
+						},
+					},
+				};
 			},
-		}));
-		setAppearancePanelOpen(false);
+			"appearance-template",
+		);
+	};
+
+	const handleAccentColorChange = (nextAccentColor: string) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					accentColor: normalizeResumeAccentColor(nextAccentColor),
+				},
+			}),
+			"appearance-color",
+		);
 	};
 
 	const handleFontSizeChange = (nextFontSize: ResumeFontSizePt) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: { ...document.appearance, fontSizePt: nextFontSize },
-		}));
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: { ...document.appearance, fontSizePt: nextFontSize },
+			}),
+			"appearance-font-size",
+		);
+	};
+
+	const handleSectionTitleFontSizeChange = (
+		nextFontSize: ResumeSectionTitleFontSizePx,
+	) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					sectionTitleFontSizePx: nextFontSize,
+				},
+			}),
+			"appearance-section-title-font-size",
+		);
+	};
+
+	const handleItemTitleFontSizeChange = (
+		nextFontSize: ResumeItemTitleFontSizePx,
+	) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					itemTitleFontSizePx: nextFontSize,
+				},
+			}),
+			"appearance-item-title-font-size",
+		);
 	};
 
 	const handleFontFamilyChange = (nextFontFamily: ResumeFontFamily) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: { ...document.appearance, fontFamily: nextFontFamily },
-		}));
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: { ...document.appearance, fontFamily: nextFontFamily },
+			}),
+			"appearance-font-family",
+		);
 	};
 
 	const handlePageMarginChange = (nextPageMargin: ResumePageMarginMm) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: { ...document.appearance, pageMarginMm: nextPageMargin },
-		}));
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: { ...document.appearance, pageMarginMm: nextPageMargin },
+			}),
+			"appearance-page-margin",
+		);
+	};
+
+	const handleLineHeightChange = (nextLineHeight: ResumeLineHeight) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: { ...document.appearance, lineHeight: nextLineHeight },
+			}),
+			"appearance-line-height",
+		);
+	};
+
+	const handleSectionSpacingChange = (
+		nextSectionSpacing: ResumeSectionSpacing,
+	) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					sectionSpacing: nextSectionSpacing,
+				},
+			}),
+			"appearance-section-spacing",
+		);
+	};
+
+	const handleParagraphSpacingChange = (
+		nextParagraphSpacing: ResumeParagraphSpacingPx,
+	) => {
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					paragraphSpacingPx: nextParagraphSpacing,
+				},
+			}),
+			"appearance-paragraph-spacing",
+		);
 	};
 
 	const handleSectionPreferencesChange = (
 		nextPreferences: ResumeSectionPreferences,
 	) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: {
-				...document.appearance,
-				sectionPreferences: nextPreferences,
-			},
-		}));
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					sectionPreferences: nextPreferences,
+				},
+			}),
+			"appearance-preferences",
+		);
 	};
 
 	const handleSectionIconsChange = (
 		nextSectionIcons: SectionIconVisibility,
 	) => {
-		updateActiveDocument((document) => ({
-			...document,
-			appearance: {
-				...document.appearance,
-				sectionIcons: nextSectionIcons,
-			},
-		}));
+		updateActiveDocument(
+			(document) => ({
+				...document,
+				appearance: {
+					...document.appearance,
+					sectionIcons: nextSectionIcons,
+				},
+			}),
+			"appearance-icons",
+		);
 	};
 
 	const handleCanvasPointerDown = (
@@ -1319,14 +1733,27 @@ function App() {
 		event.currentTarget.focus({ preventScroll: true });
 		setCanvasShortcutsActive(true);
 		canvasShortcutsActiveRef.current = true;
-		setAppearancePanelOpen(false);
-		if (!isSpacePanningRef.current || event.button !== 0) return;
+		setExportMenuOpen(false);
+		const target = event.target;
+		const isInteractiveTarget =
+			target instanceof HTMLElement &&
+			Boolean(
+				target.closest(
+					'a, input, textarea, select, button, [role="button"], [contenteditable="true"]',
+				),
+			);
+		const startedWithMiddleButton = event.button === 1 && !isInteractiveTarget;
+		const startedWithSpaceKey =
+			event.button === 0 && isCanvasPanReadyRef.current;
+		if (!startedWithMiddleButton && !startedWithSpaceKey) return;
 		const node = canvasScrollRef.current;
 		if (!node) return;
 
 		event.preventDefault();
+		event.stopPropagation();
 		panStateRef.current = {
 			pointerId: event.pointerId,
+			source: startedWithMiddleButton ? "middle" : "space",
 			startX: event.clientX,
 			startY: event.clientY,
 			scrollLeft: node.scrollLeft,
@@ -1350,26 +1777,49 @@ function App() {
 	};
 
 	const stopCanvasPan = (event: ReactPointerEvent<HTMLDivElement>) => {
-		if (panStateRef.current?.pointerId !== event.pointerId) return;
+		const state = panStateRef.current;
+		if (state?.pointerId !== event.pointerId) return;
 		panStateRef.current = null;
 		isPanningRef.current = false;
 		setIsPanning(false);
+		if (state.source === "middle") {
+			isCanvasPanReadyRef.current = false;
+			setIsCanvasPanReady(false);
+		}
 		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
 			event.currentTarget.releasePointerCapture(event.pointerId);
 		}
 	};
 
-	const handlePreviewSectionClick = (section: SectionKey) => {
-		if (isPanningRef.current || isSpacePanningRef.current) return;
-		setActiveSection(section);
-		setRightPanelOpen(true);
-		setAppearancePanelOpen(false);
+	const handleCanvasAuxClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+		if (event.button !== 1) return;
+		event.preventDefault();
+		event.stopPropagation();
 	};
 
-	const handleCreateResume = (input: { name: string; tags: string[] }) => {
+	const handlePreviewSectionClick = (section: ResumeEditableSectionKey) => {
+		if (isPanningRef.current || isCanvasPanReadyRef.current) return;
+		setActiveSection(section);
+		setRightPanelOpen(true);
+		setExportMenuOpen(false);
+	};
+
+	const handleCreateResume = (input: {
+		name: string;
+		tags: string[];
+		templateId?: TemplateId;
+		accentColor?: string;
+	}) => {
 		const nextDocument = createResumeDocument({
 			name: input.name,
 			tags: input.tags,
+			appearance:
+				input.templateId || input.accentColor
+					? {
+							templateId: input.templateId,
+							accentColor: input.accentColor,
+						}
+					: undefined,
 		});
 		setLibrary((current) => ({
 			...current,
@@ -1415,7 +1865,9 @@ function App() {
 	};
 
 	const handleOpenResume = (id: string) => {
-		setLibrary((current) => ({ ...current, activeId: id }));
+		setLibrary((current) =>
+			current.activeId === id ? current : { ...current, activeId: id },
+		);
 		setView("editor");
 	};
 
@@ -1460,29 +1912,23 @@ function App() {
 		id: string,
 		meta: Partial<Pick<ResumeDocument, "name" | "tags" | "version">>,
 	) => {
-		setLibrary((current) => ({
-			...current,
-			documents: current.documents.map((document) =>
-				document.id === id
-					? {
-							...document,
-							name:
-								meta.name !== undefined
-									? meta.name.slice(0, 80)
-									: document.name,
-							tags:
-								meta.tags !== undefined
-									? normalizeResumeTags(meta.tags)
-									: document.tags,
-							version:
-								meta.version !== undefined
-									? normalizeResumeVersion(meta.version)
-									: document.version,
-							updatedAt: new Date().toISOString(),
-						}
-					: document,
-			),
-		}));
+		updateDocument(
+			id,
+			(document) => ({
+				...document,
+				name:
+					meta.name !== undefined ? meta.name.slice(0, 80) : document.name,
+				tags:
+					meta.tags !== undefined
+						? normalizeResumeTags(meta.tags)
+						: document.tags,
+				version:
+					meta.version !== undefined
+						? normalizeResumeVersion(meta.version)
+						: document.version,
+			}),
+			"metadata",
+		);
 	};
 
 	const handleBumpResumeVersion = () => {
@@ -1493,7 +1939,7 @@ function App() {
 		);
 
 		updateDocumentHistory((current) =>
-			addSnapshot(current, resumeData, DEFAULT_SNAPSHOT_LABEL, nextVersion),
+			addSnapshot(current, activeDocument, DEFAULT_SNAPSHOT_LABEL, nextVersion),
 		);
 		handleUpdateResumeMeta(activeDocument.id, { version: nextVersion });
 	};
@@ -1626,29 +2072,19 @@ function App() {
 	}, [
 		measurePreviewPages,
 		resumeData,
-		themeId,
+		templateId,
 		fontSizePt,
+		sectionTitleFontSizePx,
+		itemTitleFontSizePx,
+		fontFamily,
+		pageMarginMm,
+		lineHeight,
+		sectionSpacing,
+		paragraphSpacingPx,
 		sectionIcons,
 		sectionPreferences,
 		view,
 	]);
-
-	const handleReset = () => {
-		if (window.confirm("确定要重置当前简历到默认模版吗？")) {
-			updateActiveDocument((document) => ({
-				...document,
-				data: normalizeResumeData(undefined),
-				appearance: {
-					themeId: DEFAULT_THEME_ID,
-					fontSizePt: DEFAULT_RESUME_FONT_SIZE_PT,
-					pageMarginMm: DEFAULT_RESUME_PAGE_MARGIN_MM,
-					fontFamily: DEFAULT_RESUME_FONT_FAMILY,
-					sectionIcons: getDefaultSectionIconVisibility(DEFAULT_THEME_ID),
-					sectionPreferences: DEFAULT_SECTION_PREFERENCES,
-				},
-			}));
-		}
-	};
 
 	const handlePrint = useCallback(() => {
 		const filename = getResumeExportFileBaseName(activeDocument, resumeData);
@@ -1705,29 +2141,75 @@ function App() {
 		window.print();
 	}, [activeDocument, resumeData]);
 
-	const handleExport = () => {
-		const backup = createResumeBackup(
-			resumeData,
-			themeId,
-			fontSizePt,
-			pageMarginMm,
-			fontFamily,
-			sectionIcons,
-			sectionPreferences,
-		);
+	const handleExportJson = () => {
+		const backup = createResumeBackup(resumeData, activeDocument.appearance);
 		const json = JSON.stringify(backup, null, 2);
-		const blob = new Blob([json], { type: "application/json" });
-		const url = URL.createObjectURL(blob);
 		const filename = `${getResumeExportFileBaseName(
 			activeDocument,
 			resumeData,
 		)}.json`;
+		downloadTextFile(json, "application/json", filename);
+	};
 
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = filename;
-		a.click();
-		URL.revokeObjectURL(url);
+	const handleExportMarkdown = () => {
+		const markdown = createResumeMarkdown(resumeData);
+		const filename = `${getResumeExportFileBaseName(
+			activeDocument,
+			resumeData,
+		)}.md`;
+		downloadTextFile(markdown, "text/markdown;charset=utf-8", filename);
+	};
+
+	const handleCopyMarkdownText = async () => {
+		setExportMenuOpen(false);
+		try {
+			await copyTextToClipboard(createResumeMarkdown(resumeData));
+			setCopyTextStatus("copied");
+		} catch (error) {
+			console.error("Failed to copy resume markdown", error);
+			setCopyTextStatus("error");
+		}
+	};
+
+	const handleImportClick = () => {
+		setImportError(null);
+		setExportMenuOpen(false);
+		importInputRef.current?.click();
+	};
+
+	const handleImportFile = async (
+		event: ReactChangeEvent<HTMLInputElement>,
+	) => {
+		const file = event.target.files?.[0];
+		event.target.value = "";
+		if (!file) return;
+
+		if (!file.name.endsWith(".json")) {
+			setImportError("请选择 .json 文件");
+			return;
+		}
+
+		try {
+			const text = await readFileAsText(file);
+			const parsed = JSON.parse(text) as unknown;
+			if (isPlainObject(parsed) && "library" in parsed) {
+				setImportError("这是用户数据备份，请在设置中导入");
+				return;
+			}
+
+			const imported = normalizeResumeBackup(parsed);
+			updateActiveDocument((document) => ({
+				...document,
+				data: imported.data,
+				appearance: getImportedResumeAppearance(
+					imported,
+					document.appearance,
+				),
+			}));
+		} catch (error) {
+			console.error("Failed to import resume JSON", error);
+			setImportError("文件解析失败，请确认是有效的单份简历 JSON");
+		}
 	};
 
 	const handleExportImage = async () => {
@@ -1773,178 +2255,166 @@ function App() {
 		}
 	};
 
-	const handleImportClick = () => {
-		setImportError(null);
-		importInputRef.current?.click();
-	};
-
-	const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		event.target.value = "";
-		if (!file) return;
-
-		if (!file.name.endsWith(".json")) {
-			setImportError("请选择 .json 文件");
-			return;
-		}
-
-		const reader = new FileReader();
-		reader.onload = (ev) => {
-			try {
-				const parsed = JSON.parse(ev.target?.result as string);
-				const imported = normalizeResumeBackup(parsed);
-				updateActiveDocument((document) => ({
-					...document,
-					data: imported.data,
-					appearance: getImportedResumeAppearance(
-						imported,
-						document.appearance,
-					),
-				}));
-			} catch {
-				setImportError("文件解析失败，请确认是有效的简历 JSON 文件");
-			}
-		};
-		reader.readAsText(file);
-	};
-
+	const previewPageMarginMm = resumePageMarginPxToMm(pageMarginMm);
 	const printablePageHeightMm = getPrintablePageHeightMm(pageMarginMm);
 
 	if (view === "manager") {
-			return (
-				<ResumeManager
-					documents={library.documents}
-					onCreate={handleCreateResume}
-					onCreateFromJson={handleCreateResumeFromJson}
-					onOpen={handleOpenResume}
-					onDuplicate={handleDuplicateResume}
-					onDelete={handleDeleteResume}
-					onExportUserData={handleExportUserData}
-					onImportUserData={handleImportUserData}
-					cloudSync={{
-						connected: Boolean(cloudSyncAuth),
-						login: cloudSyncAuth?.login,
-						avatarUrl: cloudSyncAuth?.avatarUrl,
-						gistId: cloudSyncSettings.gistId,
-						lastDirection: cloudSyncSettings.lastDirection,
-						lastSyncedAt: cloudSyncSettings.lastSyncedAt,
-						message: cloudSyncMessage,
-						status: cloudSyncStatus,
-						oauthConfigured: Boolean(
-							import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID,
-						),
-					}}
-					onCloudConnect={handleCloudConnect}
-					onCloudDisconnect={handleCloudDisconnect}
-					onCloudGistIdChange={handleCloudGistIdChange}
-					onCloudPush={handleCloudPush}
-					onCloudPull={handleCloudPull}
-				/>
-			);
-		}
+		return (
+			<ResumeManager
+				documents={library.documents}
+				onCreate={handleCreateResume}
+				onCreateFromJson={handleCreateResumeFromJson}
+				onOpen={handleOpenResume}
+				onDuplicate={handleDuplicateResume}
+				onDelete={handleDeleteResume}
+				onExportUserData={handleExportUserData}
+				onImportUserData={handleImportUserData}
+				localFolderSync={{
+					connected: Boolean(localFolderHandle),
+					directoryName:
+						localFolderSyncSettings.directoryName ||
+						localFolderHandle?.name ||
+						"",
+					lastDirection: localFolderSyncSettings.lastDirection,
+					lastSyncedAt: localFolderSyncSettings.lastSyncedAt,
+					message: localFolderSyncMessage,
+					status: localFolderSyncStatus,
+				}}
+				onLocalFolderConnect={handleLocalFolderConnect}
+				onLocalFolderDisconnect={() => void handleLocalFolderDisconnect()}
+				onLocalFolderPush={handleLocalFolderPush}
+				onLocalFolderPull={handleLocalFolderPull}
+				cloudSync={{
+					connected: Boolean(cloudSyncAuth),
+					login: cloudSyncAuth?.login,
+					avatarUrl: cloudSyncAuth?.avatarUrl,
+					gistId: cloudSyncSettings.gistId,
+					lastDirection: cloudSyncSettings.lastDirection,
+					lastSyncedAt: cloudSyncSettings.lastSyncedAt,
+					message: cloudSyncMessage,
+					status: cloudSyncStatus,
+					oauthConfigured: Boolean(
+						import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID,
+					),
+				}}
+				onCloudConnect={handleCloudConnect}
+				onCloudDisconnect={handleCloudDisconnect}
+				onCloudGistIdChange={handleCloudGistIdChange}
+				onCloudPush={handleCloudPush}
+				onCloudPull={handleCloudPull}
+				initialView={managerInitialView}
+			/>
+		);
+	}
 
 	const canvasPanClass = isPanning
 		? "canvas-panning"
-		: isSpacePanning
+		: isCanvasPanReady
 			? "canvas-pan-ready"
 			: "";
-	const toolbarFrameClass = [
-		"fixed left-3 right-3 top-3 z-50 flex justify-center pointer-events-none print:hidden",
-		leftPanelOpen ? "lg:left-[392px] xl:left-[416px]" : "lg:left-14",
-		rightPanelOpen ? "lg:right-[424px] xl:right-[448px]" : "lg:right-14",
-	].join(" ");
-	const currentThemeName = themes[themeId].name;
+	const isDesktopWorkbenchViewport =
+		viewportWidth >= DESKTOP_PREVIEW_BREAKPOINT_PX;
+	const defaultLeftPanelWidth = getDefaultEditorPanelWidth("left", viewportWidth);
+	const defaultRightPanelWidth = getDefaultEditorPanelWidth(
+		"right",
+		viewportWidth,
+	);
+	const workbenchLeftInset =
+		leftPanelOpen && isDesktopWorkbenchViewport ? leftPanelWidth + 32 : 56;
+	const workbenchRightInset =
+		rightPanelOpen && isDesktopWorkbenchViewport ? rightPanelWidth + 32 : 56;
+	const canvasLeftInset =
+		leftPanelOpen && isDesktopWorkbenchViewport
+			? defaultLeftPanelWidth + 32
+			: 56;
+	const canvasRightInset =
+		rightPanelOpen && isDesktopWorkbenchViewport
+			? defaultRightPanelWidth + 32
+			: 56;
+	const toolbarFrameStyle = isDesktopWorkbenchViewport
+		? ({
+				left: workbenchLeftInset,
+				right: workbenchRightInset,
+			} satisfies CSSProperties)
+		: undefined;
+	const canvasInnerStyle = isDesktopWorkbenchViewport
+		? ({
+				minWidth: `calc(100vw + ${
+					(leftPanelOpen ? defaultLeftPanelWidth : 0) +
+					(rightPanelOpen ? defaultRightPanelWidth : 0)
+				}px)`,
+				paddingLeft: canvasLeftInset,
+				paddingRight: canvasRightInset,
+			} satisfies CSSProperties)
+		: undefined;
+	const bottomShortcutStyle =
+		rightPanelOpen && isDesktopWorkbenchViewport
+			? ({ right: rightPanelWidth + 20 } satisfies CSSProperties)
+			: undefined;
+	const toolbarFrameClass =
+		"fixed left-3 right-3 top-3 z-50 flex justify-center pointer-events-none print:hidden";
 	const previewCanvasHeightMm =
 		previewPageMode === "paged"
 			? previewPageCount * A4_HEIGHT_MM +
 				Math.max(0, previewPageCount - 1) * PREVIEW_PAGE_GAP_MM
 			: previewPageCount * A4_HEIGHT_MM;
-	const appearancePanel = appearancePanelOpen ? (
-		<div
-			className={
-				isMobilePreviewViewport
-					? "fixed left-3 top-16 z-[70] max-h-[calc(100vh-5rem)] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-slate-200/80 bg-white/95 p-2 shadow-xl shadow-slate-900/10 backdrop-blur"
-					: "absolute left-1/2 top-10 z-20 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-slate-200/80 bg-white/95 p-2 shadow-xl shadow-slate-900/10 backdrop-blur"
-			}
-			data-workbench-chrome="true"
-		>
-			<div className="mb-2 flex items-center justify-between px-2 py-1">
-				<span className="text-xs font-bold text-slate-700">外观设置</span>
-				<span className="text-[11px] text-slate-400">
-					{fontSizePt}pt · {pageMarginMm}mm
-				</span>
-			</div>
-			<div className="flex flex-wrap items-center gap-2">
-				<ThemePicker
-					current={themeId}
-					favoriteThemeIds={favoriteThemeIds}
-					onChange={handleThemeChange}
-					onToggleFavorite={handleToggleFavoriteTheme}
-				/>
-				<FontFamilyControl value={fontFamily} onChange={handleFontFamilyChange} />
-				<FontSizeControl value={fontSizePt} onChange={handleFontSizeChange} />
-				<PageMarginControl
-					value={pageMarginMm}
-					onChange={handlePageMarginChange}
-				/>
-			</div>
-		</div>
-	) : null;
+	const renderResumePreview = ({
+		withRefs = false,
+		interactive = true,
+	}: {
+		withRefs?: boolean;
+		interactive?: boolean;
+	} = {}) => (
+		<ResumePreview
+			ref={withRefs ? resumePreviewRef : undefined}
+			contentRef={withRefs ? resumePreviewInnerRef : undefined}
+			data={resumeData}
+			templateId={templateId}
+			accentColor={accentColor}
+			fontSizePt={fontSizePt}
+			sectionTitleFontSizePx={sectionTitleFontSizePx}
+			itemTitleFontSizePx={itemTitleFontSizePx}
+			fontFamily={fontFamily}
+			pageMarginMm={pageMarginMm}
+			lineHeight={lineHeight}
+			sectionSpacing={sectionSpacing}
+			paragraphSpacingPx={paragraphSpacingPx}
+			sectionIcons={sectionIcons}
+			sectionPreferences={sectionPreferences}
+			minPageCount={previewPageCount}
+			onSectionClick={interactive ? handlePreviewSectionClick : undefined}
+		/>
+	);
 
 	return (
-		<div className="relative min-h-screen bg-slate-100 font-sans text-slate-900 print:h-auto print:min-h-0 print:overflow-visible print:bg-white lg:h-screen lg:overflow-hidden">
-			<input
-				ref={importInputRef}
-				type="file"
-				accept=".json,application/json"
-				className="hidden print:hidden"
-				onChange={handleImportFile}
-			/>
-
-				<div className={toolbarFrameClass} data-workbench-chrome="true">
-					<div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-xl border border-slate-200/55 bg-white/72 px-1.5 py-1 shadow-sm shadow-slate-900/5 backdrop-blur">
-						<div className="relative">
-							<button
-								type="button"
-								onClick={() => setAppearancePanelOpen((open) => !open)}
-								className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100/80"
-								title="外观设置"
-								aria-expanded={appearancePanelOpen}
-							>
-								<SlidersHorizontal size={14} className="text-slate-400" />
-								<span>外观</span>
-								{!isMobilePreviewViewport && (
-									<span className="max-w-20 truncate text-slate-400">
-										{currentThemeName}
-									</span>
-								)}
-							</button>
-							{appearancePanel &&
-								(isMobilePreviewViewport
-									? createPortal(appearancePanel, document.body)
-									: appearancePanel)}
-							</div>
-							{!isMobilePreviewViewport && (
-								<PreviewZoomControl
-									value={previewZoom}
-									onChange={setPreviewZoom}
-								/>
-							)}
-							<PreviewPageModeControl
-								value={previewPageMode}
-								onChange={setPreviewPageMode}
-							/>
-							{!isMobilePreviewViewport && (
-								<span className="ml-1 inline-flex shrink-0 rounded-full border border-slate-200/60 bg-white/60 px-2.5 py-1 text-[11px] font-medium text-slate-400 opacity-80 backdrop-blur-sm">
-									预计 {previewPageCount} 页
-								</span>
-							)}
-					</div>
+		<div className="relative min-h-screen bg-slate-200/60 font-sans text-slate-900 print:h-auto print:min-h-0 print:overflow-visible print:bg-white lg:h-screen lg:overflow-hidden">
+			<div
+				className={toolbarFrameClass}
+				style={toolbarFrameStyle}
+				data-workbench-chrome="true"
+			>
+				<div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-visible rounded-xl border border-slate-200/55 bg-white/72 px-1.5 py-1 shadow-sm shadow-slate-900/5 backdrop-blur">
+					{!isMobilePreviewViewport && (
+						<PreviewZoomControl
+							value={previewZoom}
+							onChange={setPreviewZoom}
+						/>
+					)}
+					<PreviewPageModeControl
+						value={previewPageMode}
+						onChange={setPreviewPageMode}
+					/>
 				</div>
+			</div>
 
 			{leftPanelOpen ? (
 				<div
-					className="p-3 pt-20 print:hidden lg:pointer-events-none lg:fixed lg:inset-y-4 lg:left-4 lg:z-40 lg:w-[330px] lg:p-0 xl:w-[360px]"
+					className="p-3 pt-20 print:hidden lg:pointer-events-none lg:fixed lg:inset-y-4 lg:left-4 lg:z-40 lg:p-0"
+					style={
+						isDesktopWorkbenchViewport
+							? ({ width: leftPanelWidth } satisfies CSSProperties)
+							: undefined
+					}
 					data-workbench-chrome="true"
 				>
 					<aside className="pointer-events-auto flex overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-2xl shadow-slate-900/10 backdrop-blur lg:h-full">
@@ -1985,47 +2455,129 @@ function App() {
 									</div>
 								</div>
 
-								<div className="mt-3 grid grid-cols-5 gap-1.5">
-									<WorkbenchIconButton label="重置" onClick={handleReset}>
-										<RotateCcw size={16} />
-									</WorkbenchIconButton>
-									<WorkbenchIconButton
-										label="导入 JSON"
-										onClick={handleImportClick}
-									>
-										<Upload size={16} />
-									</WorkbenchIconButton>
-									<WorkbenchIconButton label="导出 JSON" onClick={handleExport}>
-										<Download size={16} />
-									</WorkbenchIconButton>
-									<WorkbenchIconButton
-										label={
-											imageExportStatus === "exporting"
-												? "图片导出中"
-												: "导出图片"
-										}
-										onClick={handleExportImage}
-										disabled={imageExportStatus === "exporting"}
-									>
-										<ImageDown size={16} />
-									</WorkbenchIconButton>
-									<WorkbenchIconButton
-										label="保存 PDF"
-										onClick={handlePrint}
-										variant="primary"
-									>
-										<Printer size={16} />
-									</WorkbenchIconButton>
+								<div className="relative mt-3">
+									<div className="grid grid-cols-[2.25rem_2.25rem_2.25rem_2.25rem_minmax(0,1fr)] gap-1.5">
+										<WorkbenchIconButton
+											label="撤销"
+											onClick={undo}
+											disabled={!canUndo}
+										>
+											<Undo2 size={16} />
+										</WorkbenchIconButton>
+										<WorkbenchIconButton
+											label="重做"
+											onClick={redo}
+											disabled={!canRedo}
+										>
+											<Redo2 size={16} />
+										</WorkbenchIconButton>
+										<WorkbenchIconButton
+											label={
+												copyTextStatus === "copied"
+													? "已复制"
+													: copyTextStatus === "error"
+														? "复制失败"
+														: "复制文本"
+											}
+											onClick={() => void handleCopyMarkdownText()}
+										>
+											<ClipboardCopy size={16} />
+										</WorkbenchIconButton>
+										<WorkbenchIconButton
+											label="导入 JSON"
+											onClick={handleImportClick}
+										>
+											<FileUp size={16} />
+										</WorkbenchIconButton>
+										<WorkbenchIconButton
+											label="导出"
+											onClick={() => {
+												setExportMenuOpen((open) => !open);
+											}}
+											variant="primary"
+										>
+											<span className="flex items-center gap-1.5 text-xs font-semibold">
+												<Download size={15} />
+												导出
+												<ChevronDown size={13} />
+											</span>
+										</WorkbenchIconButton>
+									</div>
+
+									{exportMenuOpen && (
+										<div className="absolute right-0 top-11 z-30 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10">
+											<button
+												type="button"
+												onClick={() => {
+													setExportMenuOpen(false);
+													handlePrint();
+												}}
+												className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+											>
+												<span className="flex items-center gap-2">
+													<Printer size={15} className="text-slate-400" />
+													PDF
+												</span>
+												<span className="text-[11px] text-slate-400">默认</span>
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													setExportMenuOpen(false);
+													void handleExportImage();
+												}}
+												disabled={imageExportStatus === "exporting"}
+												className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:text-slate-300"
+											>
+												<ImageDown size={15} className="text-slate-400" />
+												{imageExportStatus === "exporting" ? "图片导出中" : "图片"}
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													setExportMenuOpen(false);
+													handleExportJson();
+												}}
+												className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+											>
+												<FileJson size={15} className="text-slate-400" />
+												JSON
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													setExportMenuOpen(false);
+													handleExportMarkdown();
+												}}
+												className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+											>
+												<FileText size={15} className="text-slate-400" />
+												Markdown
+											</button>
+										</div>
+									)}
+									<input
+										ref={importInputRef}
+										type="file"
+										accept="application/json,.json"
+										className="hidden"
+										onChange={(event) => void handleImportFile(event)}
+									/>
 								</div>
 
-								{importError && (
-									<div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-500">
-										{importError}
+								{storageError && (
+									<div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+										本地保存失败：{storageError}
 									</div>
 								)}
 								{imageExportStatus === "error" && (
 									<div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-500">
 										图片导出失败
+									</div>
+								)}
+								{importError && (
+									<div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-500">
+										{importError}
 									</div>
 								)}
 							</div>
@@ -2043,21 +2595,55 @@ function App() {
 								<ResumeEditor
 									data={resumeData}
 									sectionIcons={sectionIcons}
+									sectionPreferences={sectionPreferences}
+									templateId={templateId}
+									favoriteTemplateIds={favoriteTemplateIds}
+									accentColor={accentColor}
+									fontSizePt={fontSizePt}
+									sectionTitleFontSizePx={sectionTitleFontSizePx}
+									itemTitleFontSizePx={itemTitleFontSizePx}
+									fontFamily={fontFamily}
+									pageMarginMm={pageMarginMm}
+									lineHeight={lineHeight}
+									sectionSpacing={sectionSpacing}
+									paragraphSpacingPx={paragraphSpacingPx}
 									panel="structure"
 									activeSection={resolvedActiveSection}
 									onActiveSectionChange={setActiveSection}
 									onChange={handleResumeDataChange}
 									onSectionIconsChange={handleSectionIconsChange}
-								/>
-								<ResumeDisplayPreferencesEditor
-									sectionOrder={resumeData.sectionOrder}
-									sectionTitles={resumeData.sectionTitles}
-									preferences={sectionPreferences}
-									onChange={handleSectionPreferencesChange}
+									onSectionPreferencesChange={handleSectionPreferencesChange}
+									onTemplateChange={handleTemplateChange}
+									onToggleFavoriteTemplate={handleToggleFavoriteTemplate}
+									onAccentColorChange={handleAccentColorChange}
+									onFontSizeChange={handleFontSizeChange}
+									onSectionTitleFontSizeChange={
+										handleSectionTitleFontSizeChange
+									}
+									onItemTitleFontSizeChange={handleItemTitleFontSizeChange}
+									onFontFamilyChange={handleFontFamilyChange}
+									onPageMarginChange={handlePageMarginChange}
+									onLineHeightChange={handleLineHeightChange}
+									onSectionSpacingChange={handleSectionSpacingChange}
+									onParagraphSpacingChange={handleParagraphSpacingChange}
 								/>
 							</div>
 						</div>
 					</aside>
+					<button
+						type="button"
+						onPointerDown={startEditorPanelResize("left")}
+						onPointerMove={handleEditorPanelResize}
+						onPointerUp={stopEditorPanelResize}
+						onPointerCancel={stopEditorPanelResize}
+						onLostPointerCapture={stopEditorPanelResize}
+						onKeyDown={handleEditorPanelResizeKeyDown("left")}
+						className="group pointer-events-auto absolute inset-y-3 -right-1 hidden w-2 cursor-col-resize touch-none lg:block"
+						title="拖动调整左侧编辑区宽度"
+						aria-label="调整左侧编辑区宽度"
+					>
+						<span className="absolute inset-y-3 left-1/2 w-px bg-blue-400 opacity-0 transition-opacity group-hover:opacity-70 group-focus-visible:opacity-70" />
+					</button>
 				</div>
 			) : (
 				<button
@@ -2076,54 +2662,49 @@ function App() {
 				ref={canvasScrollRef}
 				tabIndex={-1}
 				aria-label="简历预览画布"
-				className={`min-h-[70vh] overflow-auto bg-slate-100 outline-none print:block print:h-auto print:min-h-0 print:overflow-visible print:bg-white lg:h-screen scrollbar-none ${canvasPanClass}`}
+				className={`min-h-[70vh] overflow-auto bg-slate-200/60 outline-none print:block print:h-auto print:min-h-0 print:overflow-visible print:bg-white lg:h-screen scrollbar-none ${canvasPanClass}`}
 				onPointerDown={handleCanvasPointerDown}
 				onPointerMove={handleCanvasPointerMove}
 				onPointerUp={stopCanvasPan}
 				onPointerCancel={stopCanvasPan}
 				onLostPointerCapture={stopCanvasPan}
-			>
-				<div className="min-h-full p-4 pt-20 print:h-auto print:min-h-0 print:p-0 sm:p-5 sm:pt-20 lg:min-w-[calc(100vw+760px)] lg:px-[360px] lg:pb-5 lg:pt-20 xl:px-[400px]">
-					<div className="flex min-h-full justify-center pb-20 print:block print:min-h-0 print:pb-0">
-						<div className="mx-auto w-fit">
-							<div
-								className="resume-preview-scale-shell print:w-auto"
-								style={{
-									height: `${previewCanvasHeightMm * previewRenderZoom}mm`,
-									width: `${A4_WIDTH_MM * previewRenderZoom}mm`,
-								}}
-							>
+				onAuxClick={handleCanvasAuxClick}
+				>
+					<div
+						className="resume-canvas-inner min-h-full p-4 pt-20 print:h-auto print:min-h-0 print:p-0 sm:p-5 sm:pt-20 lg:pb-5 lg:pt-20"
+						style={canvasInnerStyle}
+					>
+						<div className="resume-print-source" aria-hidden="true" inert>
+							{renderResumePreview({ withRefs: true, interactive: false })}
+						</div>
+						<div className="resume-screen-preview flex min-h-full justify-center pb-20 print:hidden">
+							<div className="mx-auto w-fit">
 								<div
-									className="resume-preview-scale relative w-[210mm] print:w-full print:min-h-0 print:bg-white print:shadow-none"
+									className="resume-preview-scale-shell"
 									style={{
-										minHeight: `${previewCanvasHeightMm}mm`,
-										transform: `scale(${previewRenderZoom})`,
+										height: `${previewCanvasHeightMm * previewRenderZoom}mm`,
+										width: `${A4_WIDTH_MM * previewRenderZoom}mm`,
+								}}
+								>
+									<div
+										className="resume-preview-scale relative w-[210mm]"
+										style={{
+											minHeight: `${previewCanvasHeightMm}mm`,
+											transform: `scale(${previewRenderZoom})`,
 										transformOrigin: "top left",
 									}}
-								>
-									{previewPageMode === "continuous" ? (
-										<div className="relative bg-white shadow-2xl print:shadow-none">
-											<ResumePreview
-												ref={resumePreviewRef}
-												contentRef={resumePreviewInnerRef}
-												data={resumeData}
-												themeId={themeId}
-												fontSizePt={fontSizePt}
-												fontFamily={fontFamily}
-												pageMarginMm={pageMarginMm}
-												sectionIcons={sectionIcons}
-												sectionPreferences={sectionPreferences}
-												minPageCount={previewPageCount}
-												onSectionClick={handlePreviewSectionClick}
-											/>
-											{Array.from(
-												{ length: previewPageCount - 1 },
+									>
+										{previewPageMode === "continuous" ? (
+											<div className="relative bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5">
+												{renderResumePreview()}
+												{Array.from(
+													{ length: previewPageCount - 1 },
 												(_, index) => (
 													<div
 														key={index}
 														className="pointer-events-none absolute left-0 right-0 z-10 border-t border-dashed border-blue-300/35 print:hidden"
 														style={{
-															top: `${pageMarginMm + (index + 1) * printablePageHeightMm}mm`,
+															top: `${previewPageMarginMm + (index + 1) * printablePageHeightMm}mm`,
 														}}
 													>
 														<span className="absolute right-3 -top-3 rounded-full border border-blue-100/70 bg-white/70 px-2 py-0.5 text-[10px] font-medium text-blue-400/75 opacity-80 shadow-sm backdrop-blur-sm">
@@ -2132,33 +2713,17 @@ function App() {
 													</div>
 												),
 											)}
-										</div>
-									) : (
-										<>
-											<div className="resume-print-source">
-												<ResumePreview
-													ref={resumePreviewRef}
-													contentRef={resumePreviewInnerRef}
-													data={resumeData}
-													themeId={themeId}
-													fontSizePt={fontSizePt}
-													fontFamily={fontFamily}
-													pageMarginMm={pageMarginMm}
-													sectionIcons={sectionIcons}
-													sectionPreferences={sectionPreferences}
-													minPageCount={previewPageCount}
-													onSectionClick={handlePreviewSectionClick}
-												/>
 											</div>
+										) : (
 											<div
-												className="resume-paged-visual flex flex-col print:hidden"
+												className="resume-paged-visual flex flex-col"
 												style={{ gap: `${PREVIEW_PAGE_GAP_MM}mm` }}
 											>
 												{previewPageLayouts.map(
 													(pageLayout, index) => (
 														<div
 															key={index}
-															className="relative h-[297mm] w-[210mm] overflow-hidden bg-white shadow-2xl"
+															className="relative h-[297mm] w-[210mm] overflow-hidden bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5"
 														>
 															<div
 																className="absolute left-0 top-0 w-[210mm]"
@@ -2166,37 +2731,26 @@ function App() {
 																	transform: `translateY(-${pageLayout.startMm}mm)`,
 																}}
 															>
-																<ResumePreview
-																	data={resumeData}
-																	themeId={themeId}
-																	fontSizePt={fontSizePt}
-																	fontFamily={fontFamily}
-																	pageMarginMm={pageMarginMm}
-																	sectionIcons={sectionIcons}
-																	sectionPreferences={sectionPreferences}
-																	minPageCount={previewPageCount}
-																	onSectionClick={handlePreviewSectionClick}
-																/>
+																{renderResumePreview()}
 															</div>
 															{index > 0 && (
 																<div
 																	className="pointer-events-none absolute left-0 right-0 top-0 z-10 bg-white"
-																	style={{ height: `${pageMarginMm}mm` }}
+																	style={{ height: `${previewPageMarginMm}mm` }}
 																/>
 															)}
 															<div
 																className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 bg-white"
 																style={{
 																	height: `${
-																		pageMarginMm + pageLayout.bottomBlankMm
+																		previewPageMarginMm + pageLayout.bottomBlankMm
 																	}mm`,
 																}}
 															/>
 														</div>
-													),
-												)}
-											</div>
-										</>
+												),
+											)}
+										</div>
 									)}
 								</div>
 							</div>
@@ -2207,7 +2761,12 @@ function App() {
 
 			{rightPanelOpen ? (
 				<div
-					className="p-3 pt-0 print:hidden lg:pointer-events-none lg:fixed lg:inset-y-4 lg:right-4 lg:z-40 lg:w-[370px] lg:p-0 xl:w-[400px]"
+					className="p-3 pt-0 print:hidden lg:pointer-events-none lg:fixed lg:inset-y-4 lg:right-4 lg:z-40 lg:p-0"
+					style={
+						isDesktopWorkbenchViewport
+							? ({ width: rightPanelWidth } satisfies CSSProperties)
+							: undefined
+					}
 					data-workbench-chrome="true"
 				>
 					<aside className="pointer-events-auto relative overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 shadow-2xl shadow-slate-900/10 backdrop-blur lg:h-full">
@@ -2223,13 +2782,53 @@ function App() {
 						<ResumeEditor
 							data={resumeData}
 							sectionIcons={sectionIcons}
+							sectionPreferences={sectionPreferences}
+							templateId={templateId}
+							favoriteTemplateIds={favoriteTemplateIds}
+							accentColor={accentColor}
+							fontSizePt={fontSizePt}
+							sectionTitleFontSizePx={sectionTitleFontSizePx}
+							itemTitleFontSizePx={itemTitleFontSizePx}
+							fontFamily={fontFamily}
+							pageMarginMm={pageMarginMm}
+							lineHeight={lineHeight}
+							sectionSpacing={sectionSpacing}
+							paragraphSpacingPx={paragraphSpacingPx}
 							panel="details"
 							activeSection={resolvedActiveSection}
 							onActiveSectionChange={setActiveSection}
 							onChange={handleResumeDataChange}
 							onSectionIconsChange={handleSectionIconsChange}
+							onSectionPreferencesChange={handleSectionPreferencesChange}
+							onTemplateChange={handleTemplateChange}
+							onToggleFavoriteTemplate={handleToggleFavoriteTemplate}
+							onAccentColorChange={handleAccentColorChange}
+							onFontSizeChange={handleFontSizeChange}
+							onSectionTitleFontSizeChange={
+								handleSectionTitleFontSizeChange
+							}
+							onItemTitleFontSizeChange={handleItemTitleFontSizeChange}
+							onFontFamilyChange={handleFontFamilyChange}
+							onPageMarginChange={handlePageMarginChange}
+							onLineHeightChange={handleLineHeightChange}
+							onSectionSpacingChange={handleSectionSpacingChange}
+							onParagraphSpacingChange={handleParagraphSpacingChange}
 						/>
 					</aside>
+					<button
+						type="button"
+						onPointerDown={startEditorPanelResize("right")}
+						onPointerMove={handleEditorPanelResize}
+						onPointerUp={stopEditorPanelResize}
+						onPointerCancel={stopEditorPanelResize}
+						onLostPointerCapture={stopEditorPanelResize}
+						onKeyDown={handleEditorPanelResizeKeyDown("right")}
+						className="group pointer-events-auto absolute inset-y-3 -left-1 hidden w-2 cursor-col-resize touch-none lg:block"
+						title="拖动调整右侧编辑区宽度"
+						aria-label="调整右侧编辑区宽度"
+					>
+						<span className="absolute inset-y-3 left-1/2 w-px bg-blue-400 opacity-0 transition-opacity group-hover:opacity-70 group-focus-visible:opacity-70" />
+					</button>
 				</div>
 			) : (
 				<button
@@ -2247,12 +2846,15 @@ function App() {
 			{historyModalOpen && (
 				<ResumeHistoryModal
 					documentHistory={documentHistory}
-					currentData={resumeData}
-					currentVersion={activeDocument.version}
+					currentDocument={activeDocument}
 					onChangeHistory={updateDocumentHistory}
-					onRestore={(data, version) => {
-						handleResumeDataChange(data);
-						handleUpdateResumeMeta(activeDocument.id, { version });
+					onRestore={(document, version) => {
+						updateActiveDocument((current) => ({
+							...current,
+							data: document.data,
+							appearance: document.appearance,
+							version,
+						}));
 						setHistoryModalOpen(false);
 					}}
 					onVersionChange={(version) => {
@@ -2265,15 +2867,14 @@ function App() {
 			<div
 				className={`fixed bottom-5 right-5 z-50 flex items-center gap-1.5 rounded-full border border-slate-200/50 bg-white/50 px-2 py-1 text-[10px] text-slate-400 shadow-sm backdrop-blur transition hover:opacity-95 print:hidden ${
 					canvasShortcutsActive ? "opacity-75" : "opacity-35"
-				} ${
-					rightPanelOpen ? "lg:right-[420px] xl:right-[450px]" : ""
 				}`}
+				style={bottomShortcutStyle}
 				data-workbench-chrome="true"
 			>
 				<Hand size={12} />
 				<span>
 					<kbd className="rounded border border-current/20 px-1 font-mono text-[9px]">
-						Space
+						鼠标中键
 					</kbd>{" "}
 					抓手
 				</span>

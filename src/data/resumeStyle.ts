@@ -1,16 +1,60 @@
-export const DEFAULT_RESUME_FONT_SIZE_PT = 10.5;
-export const DEFAULT_RESUME_PAGE_MARGIN_MM = 12;
+export const DEFAULT_RESUME_FONT_SIZE_PT = 16;
+export const DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX = 20;
+export const DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX = 16;
+export const DEFAULT_RESUME_PAGE_MARGIN_MM = 32;
+export const DEFAULT_RESUME_PARAGRAPH_SPACING_PX = 12;
 export const DEFAULT_RESUME_FONT_FAMILY = "system";
+export const DEFAULT_RESUME_ACCENT_COLOR = "#2563eb";
+export const DEFAULT_RESUME_LINE_HEIGHT = "template";
+export const DEFAULT_RESUME_SECTION_SPACING = 21;
+const CSS_PX_PER_MM = 96 / 25.4;
+export const RESUME_ACCENT_COLOR_PRESETS = [
+	"#2563eb",
+	"#0891b2",
+	"#0f766e",
+	"#16a34a",
+	"#ca8a04",
+	"#ea580c",
+	"#dc2626",
+	"#be185d",
+	"#7c3aed",
+	"#334155",
+];
+
+const RESUME_ACCENT_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+export function normalizeResumeAccentColor(
+	value: unknown,
+	fallback = DEFAULT_RESUME_ACCENT_COLOR,
+): string {
+	return typeof value === "string" && RESUME_ACCENT_COLOR_PATTERN.test(value)
+		? value.toLowerCase()
+		: fallback;
+}
+
+export function getResumeAccentCssVariables(
+	value: unknown,
+): Record<string, string> {
+	const color = normalizeResumeAccentColor(value);
+
+	return {
+		"--resume-accent": color,
+		"--resume-accent-hover": `color-mix(in srgb, ${color} 82%, black)`,
+		"--resume-accent-soft": `color-mix(in srgb, ${color} 9%, white)`,
+		"--resume-accent-soft-border": `color-mix(in srgb, ${color} 24%, white)`,
+		"--resume-accent-banner": `color-mix(in srgb, ${color} 32%, #111827)`,
+		"--resume-accent-banner-text": `color-mix(in srgb, ${color} 42%, white)`,
+	};
+}
 
 export type SectionDatePosition = "right" | "below";
 export type ProjectLinksPosition = "title" | "below";
 export type ProjectTagPosition = "title" | "below";
-export type SkillContentStyle = "theme" | "text" | "chips";
-export type OtherListStyle = "bullets" | "plain";
-export type SectionEntryDisplayStyle = "list" | "detail";
+export type ProjectTagStyle = "badge" | "text";
 export type ResumePhotoPosition = "left" | "right";
 export type ResumePhotoSizeRatio = 0.85 | 1 | 1.15;
 export type ResumeLinkStyle = "text" | "highlighted" | "blue";
+export type EntryRolePosition = "middle" | "title" | "bottom";
 
 export interface ResumeSectionPreferences {
 	personal: {
@@ -20,33 +64,24 @@ export interface ResumeSectionPreferences {
 		linkStyle: ResumeLinkStyle;
 		showLinkLabels: boolean;
 	};
-	skills: {
-		showLabels: boolean;
-		contentStyle: SkillContentStyle;
-	};
 	experience: {
 		showDates: boolean;
 		datePosition: SectionDatePosition;
 		showRole: boolean;
+		rolePosition: EntryRolePosition;
 	};
 	projects: {
 		showDates: boolean;
 		datePosition: SectionDatePosition;
+		showRole: boolean;
+		rolePosition: EntryRolePosition;
 		showTags: boolean;
 		tagPosition: ProjectTagPosition;
+		tagStyle: ProjectTagStyle;
 		linksPosition: ProjectLinksPosition;
 	};
 	education: {
 		showDates: boolean;
-	};
-	awards: {
-		displayStyle: SectionEntryDisplayStyle;
-	};
-	campus: {
-		displayStyle: SectionEntryDisplayStyle;
-	};
-	other: {
-		listStyle: OtherListStyle;
 	};
 }
 
@@ -58,73 +93,134 @@ export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
 		linkStyle: "text",
 		showLinkLabels: false,
 	},
-	skills: {
-		showLabels: true,
-		contentStyle: "theme",
-	},
 	experience: {
 		showDates: true,
 		datePosition: "right",
 		showRole: true,
+		rolePosition: "middle",
 	},
 	projects: {
 		showDates: true,
 		datePosition: "right",
+		showRole: true,
+		rolePosition: "middle",
 		showTags: true,
 		tagPosition: "below",
+		tagStyle: "badge",
 		linksPosition: "below",
 	},
 	education: {
 		showDates: true,
 	},
-	awards: {
-		displayStyle: "list",
-	},
-	campus: {
-		displayStyle: "list",
-	},
-	other: {
-		listStyle: "bullets",
-	},
 };
 
 export const RESUME_FONT_SIZE_OPTIONS = [
-	8.5,
-	9,
-	9.5,
-	10,
-	10.5,
-	11,
-	11.5,
 	12,
-	12.5,
 	13,
+	14,
+	15,
+	16,
+	17,
+	18,
+	19,
+	20,
 ] as const;
 
 export type ResumeFontSizePt = (typeof RESUME_FONT_SIZE_OPTIONS)[number];
 
-export const RESUME_PAGE_MARGIN_OPTIONS = [8, 10, 12, 14, 16] as const;
+export const RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS = [
+	16,
+	17,
+	18,
+	19,
+	20,
+	21,
+	22,
+	23,
+	24,
+] as const;
+
+export type ResumeSectionTitleFontSizePx =
+	(typeof RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS)[number];
+
+export const RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS = [
+	14,
+	15,
+	16,
+	17,
+	18,
+	19,
+	20,
+] as const;
+
+export type ResumeItemTitleFontSizePx =
+	(typeof RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS)[number];
+
+export const RESUME_PAGE_MARGIN_OPTIONS = [
+	16,
+	20,
+	24,
+	28,
+	32,
+	36,
+	40,
+	48,
+	56,
+	64,
+] as const;
 
 export type ResumePageMarginMm = (typeof RESUME_PAGE_MARGIN_OPTIONS)[number];
+
+export const RESUME_LINE_HEIGHT_OPTIONS = [1.35, 1.45, 1.55, 1.65] as const;
+
+export type ResumeLineHeight =
+	| typeof DEFAULT_RESUME_LINE_HEIGHT
+	| (typeof RESUME_LINE_HEIGHT_OPTIONS)[number];
+
+export const RESUME_SECTION_SPACING_OPTIONS = [
+	8,
+	10,
+	12,
+	14,
+	16,
+	18,
+	20,
+	21,
+	22,
+	24,
+	28,
+	32,
+	36,
+	40,
+] as const;
+
+export type ResumeSectionSpacing = number;
+
+export const RESUME_PARAGRAPH_SPACING_OPTIONS = [
+	4,
+	6,
+	8,
+	10,
+	12,
+	14,
+	16,
+	18,
+	20,
+	24,
+] as const;
+
+export type ResumeParagraphSpacingPx =
+	(typeof RESUME_PARAGRAPH_SPACING_OPTIONS)[number];
 
 export type ResumeFontFamily =
 	| "system"
 	| "songti"
 	| "yahei"
-	| "kaiti"
-	| "heiti"
-	| "fangsong"
 	| "pingfang"
-	| "hiragino"
 	| "noto-sans"
 	| "noto-serif"
-	| "source-han"
-	| "liti"
-	| "youyuan"
-	| "lishu"
 	| "arial"
-	| "times"
-	| "georgia";
+	| "times";
 
 export const RESUME_FONT_FAMILY_OPTIONS: {
 	value: ResumeFontFamily;
@@ -132,22 +228,13 @@ export const RESUME_FONT_FAMILY_OPTIONS: {
 	cssValue: string;
 }[] = [
 	{ value: "system", label: "系统默认", cssValue: "" },
-	{ value: "songti", label: "宋体", cssValue: "SimSun, STSong, Songti SC, serif" },
-	{ value: "yahei", label: "微软雅黑", cssValue: '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif' },
-	{ value: "kaiti", label: "楷体", cssValue: "KaiTi, STKaiti, Kaiti SC, serif" },
-	{ value: "heiti", label: "黑体", cssValue: "SimHei, STHeiti, Heiti SC, sans-serif" },
-	{ value: "fangsong", label: "仿宋", cssValue: "FangSong, STFangsong, STFangsong, serif" },
 	{ value: "pingfang", label: "苹方", cssValue: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif' },
-	{ value: "hiragino", label: "冬青黑体", cssValue: '"Hiragino Sans GB", "Microsoft YaHei", "PingFang SC", sans-serif' },
+	{ value: "yahei", label: "微软雅黑", cssValue: '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif' },
+	{ value: "songti", label: "宋体", cssValue: "SimSun, STSong, Songti SC, serif" },
 	{ value: "noto-sans", label: "思源黑体", cssValue: '"Noto Sans SC", "Source Han Sans SC", sans-serif' },
 	{ value: "noto-serif", label: "思源宋体", cssValue: '"Noto Serif SC", "Source Han Serif SC", serif' },
-	{ value: "source-han", label: "source-han-sans", cssValue: '"Source Han Sans SC", "Noto Sans SC", sans-serif' },
-	{ value: "liti", label: "隶书", cssValue: "LiSu, STLibian, Libian SC, serif" },
-	{ value: "youyuan", label: "幼圆", cssValue: "YouYuan, STXihei, sans-serif" },
-	{ value: "lishu", label: "隶变", cssValue: '"STLiti", "LiSu", serif' },
 	{ value: "arial", label: "Arial", cssValue: "Arial, Helvetica, sans-serif" },
 	{ value: "times", label: "Times New Roman", cssValue: '"Times New Roman", Times, serif' },
-	{ value: "georgia", label: "Georgia", cssValue: "Georgia, serif" },
 ];
 
 export function isResumeFontFamily(
@@ -170,19 +257,58 @@ export function getResumeFontFamilyCss(value: ResumeFontFamily): string {
 	return option?.cssValue ?? "";
 }
 
+const normalizeNumericOption = <T extends number>(
+	value: unknown,
+	options: readonly T[],
+	fallback: T,
+): T => {
+	const numericValue =
+		typeof value === "string" || typeof value === "number"
+			? Number(value)
+			: fallback;
+	const roundedValue = Math.round(numericValue);
+	const min = options[0];
+	const max = options[options.length - 1];
+	const clampedValue = Math.min(Math.max(roundedValue, min), max);
+
+	return options.includes(clampedValue as T)
+		? (clampedValue as T)
+		: fallback;
+};
+
+export const resumePageMarginPxToMm = (value: ResumePageMarginMm) =>
+	value / CSS_PX_PER_MM;
+
 export function isResumeFontSizePt(value: number): value is ResumeFontSizePt {
 	return RESUME_FONT_SIZE_OPTIONS.some((option) => option === value);
 }
 
 export function normalizeResumeFontSize(value: unknown): ResumeFontSizePt {
-	const numericValue =
-		typeof value === "string" || typeof value === "number"
-			? Number(value)
-			: DEFAULT_RESUME_FONT_SIZE_PT;
+	return normalizeNumericOption(
+		value,
+		RESUME_FONT_SIZE_OPTIONS,
+		DEFAULT_RESUME_FONT_SIZE_PT,
+	);
+}
 
-	return isResumeFontSizePt(numericValue)
-		? numericValue
-		: DEFAULT_RESUME_FONT_SIZE_PT;
+export function normalizeResumeSectionTitleFontSize(
+	value: unknown,
+): ResumeSectionTitleFontSizePx {
+	return normalizeNumericOption(
+		value,
+		RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS,
+		DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
+	);
+}
+
+export function normalizeResumeItemTitleFontSize(
+	value: unknown,
+): ResumeItemTitleFontSizePx {
+	return normalizeNumericOption(
+		value,
+		RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS,
+		DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX,
+	);
 }
 
 export function isResumePageMarginMm(
@@ -194,14 +320,49 @@ export function isResumePageMarginMm(
 export function normalizeResumePageMargin(
 	value: unknown,
 ): ResumePageMarginMm {
+	return normalizeNumericOption(
+		value,
+		RESUME_PAGE_MARGIN_OPTIONS,
+		DEFAULT_RESUME_PAGE_MARGIN_MM,
+	);
+}
+
+export function normalizeResumeLineHeight(value: unknown): ResumeLineHeight {
+	if (value === DEFAULT_RESUME_LINE_HEIGHT) return DEFAULT_RESUME_LINE_HEIGHT;
 	const numericValue =
 		typeof value === "string" || typeof value === "number"
 			? Number(value)
-			: DEFAULT_RESUME_PAGE_MARGIN_MM;
+			: Number.NaN;
 
-	return isResumePageMarginMm(numericValue)
-		? numericValue
-		: DEFAULT_RESUME_PAGE_MARGIN_MM;
+	return RESUME_LINE_HEIGHT_OPTIONS.some((option) => option === numericValue)
+		? (numericValue as ResumeLineHeight)
+		: DEFAULT_RESUME_LINE_HEIGHT;
+}
+
+export function normalizeResumeSectionSpacing(
+	value: unknown,
+): ResumeSectionSpacing {
+	const numericValue =
+		typeof value === "string" || typeof value === "number"
+			? Number(value)
+			: DEFAULT_RESUME_SECTION_SPACING;
+	const min = RESUME_SECTION_SPACING_OPTIONS[0];
+	const max =
+		RESUME_SECTION_SPACING_OPTIONS[RESUME_SECTION_SPACING_OPTIONS.length - 1];
+
+	return Number.isFinite(numericValue)
+		? Math.min(Math.max(Math.round(numericValue), min), max)
+		: DEFAULT_RESUME_SECTION_SPACING;
+}
+
+export function normalizeResumeParagraphSpacing(
+	value: unknown,
+): ResumeParagraphSpacingPx {
+	return normalizeNumericOption(
+		value,
+		RESUME_PARAGRAPH_SPACING_OPTIONS,
+		DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+	);
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -231,27 +392,21 @@ export function normalizeProjectTagPosition(
 	return value === "title" || value === "below" ? value : fallback;
 }
 
-export function normalizeSkillContentStyle(
+export function normalizeEntryRolePosition(
 	value: unknown,
-	fallback: SkillContentStyle = "theme",
-): SkillContentStyle {
-	return value === "theme" || value === "text" || value === "chips"
+	fallback: EntryRolePosition = "middle",
+): EntryRolePosition {
+	if (value === "right") return "title";
+	return value === "middle" || value === "title" || value === "bottom"
 		? value
 		: fallback;
 }
 
-export function normalizeOtherListStyle(
+export function normalizeProjectTagStyle(
 	value: unknown,
-	fallback: OtherListStyle = "bullets",
-): OtherListStyle {
-	return value === "bullets" || value === "plain" ? value : fallback;
-}
-
-export function normalizeSectionEntryDisplayStyle(
-	value: unknown,
-	fallback: SectionEntryDisplayStyle = "list",
-): SectionEntryDisplayStyle {
-	return value === "list" || value === "detail" ? value : fallback;
+	fallback: ProjectTagStyle = "badge",
+): ProjectTagStyle {
+	return value === "badge" || value === "text" ? value : fallback;
 }
 
 export function normalizeResumePhotoPosition(
@@ -287,26 +442,12 @@ export function normalizeResumeLinkStyle(
 export function normalizeResumeSectionPreferences(
 	value: unknown,
 	fallback: ResumeSectionPreferences = DEFAULT_SECTION_PREFERENCES,
-	legacy?: {
-		projectLinksPosition?: unknown;
-		showProjectTags?: unknown;
-	},
 ): ResumeSectionPreferences {
 	const raw = isRecord(value) ? value : {};
 	const personal = isRecord(raw.personal) ? raw.personal : {};
-	const skills = isRecord(raw.skills) ? raw.skills : {};
 	const experience = isRecord(raw.experience) ? raw.experience : {};
 	const projects = isRecord(raw.projects) ? raw.projects : {};
 	const education = isRecord(raw.education) ? raw.education : {};
-	const awards = isRecord(raw.awards) ? raw.awards : {};
-	const campus = isRecord(raw.campus) ? raw.campus : {};
-	const other = isRecord(raw.other) ? raw.other : {};
-	const fallbackAwardsStyle =
-		fallback.awards?.displayStyle ??
-		DEFAULT_SECTION_PREFERENCES.awards.displayStyle;
-	const fallbackCampusStyle =
-		fallback.campus?.displayStyle ??
-		DEFAULT_SECTION_PREFERENCES.campus.displayStyle;
 	const fallbackPersonal =
 		fallback.personal ?? DEFAULT_SECTION_PREFERENCES.personal;
 
@@ -335,16 +476,6 @@ export function normalizeResumeSectionPreferences(
 					DEFAULT_SECTION_PREFERENCES.personal.showLinkLabels,
 			),
 		},
-		skills: {
-			showLabels: readBoolean(
-				skills.showLabels,
-				fallback.skills.showLabels,
-			),
-			contentStyle: normalizeSkillContentStyle(
-				skills.contentStyle,
-				fallback.skills.contentStyle,
-			),
-		},
 		experience: {
 			showDates: readBoolean(
 				experience.showDates,
@@ -355,6 +486,10 @@ export function normalizeResumeSectionPreferences(
 				fallback.experience.datePosition,
 			),
 			showRole: readBoolean(experience.showRole, fallback.experience.showRole),
+			rolePosition: normalizeEntryRolePosition(
+				experience.rolePosition,
+				fallback.experience.rolePosition,
+			),
 		},
 		projects: {
 			showDates: readBoolean(projects.showDates, fallback.projects.showDates),
@@ -362,39 +497,27 @@ export function normalizeResumeSectionPreferences(
 				projects.datePosition,
 				fallback.projects.datePosition,
 			),
-			showTags: readBoolean(
-				projects.showTags ?? legacy?.showProjectTags,
-				fallback.projects.showTags,
+			showRole: readBoolean(projects.showRole, fallback.projects.showRole),
+			rolePosition: normalizeEntryRolePosition(
+				projects.rolePosition,
+				fallback.projects.rolePosition,
 			),
+			showTags: readBoolean(projects.showTags, fallback.projects.showTags),
 			tagPosition: normalizeProjectTagPosition(
 				projects.tagPosition,
 				fallback.projects.tagPosition,
 			),
+			tagStyle: normalizeProjectTagStyle(
+				projects.tagStyle,
+				fallback.projects.tagStyle,
+			),
 			linksPosition: normalizeProjectLinksPosition(
-				projects.linksPosition ?? legacy?.projectLinksPosition,
+				projects.linksPosition,
 				fallback.projects.linksPosition,
 			),
 		},
 		education: {
 			showDates: readBoolean(education.showDates, fallback.education.showDates),
-		},
-		awards: {
-			displayStyle: normalizeSectionEntryDisplayStyle(
-				awards.displayStyle,
-				fallbackAwardsStyle,
-			),
-		},
-		campus: {
-			displayStyle: normalizeSectionEntryDisplayStyle(
-				campus.displayStyle,
-				fallbackCampusStyle,
-			),
-		},
-		other: {
-			listStyle: normalizeOtherListStyle(
-				other.listStyle,
-				fallback.other.listStyle,
-			),
 		},
 	};
 }

@@ -1,22 +1,23 @@
-import { Check, Palette, Star } from "lucide-react";
+import { Check, LayoutTemplate, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { themeIds, themes } from "../data/themes";
-import type { ThemeId } from "../types/theme";
+import { templateIds } from "../data/templateConfigs";
+import { resumeTemplates } from "../templates/registry";
+import type { TemplateId } from "../types/template";
 
-interface ThemePickerProps {
-	current: ThemeId;
-	favoriteThemeIds: ThemeId[];
-	onChange: (id: ThemeId) => void;
-	onToggleFavorite: (id: ThemeId) => void;
+interface TemplatePickerProps {
+	current: TemplateId;
+	favoriteTemplateIds: TemplateId[];
+	onChange: (id: TemplateId) => void;
+	onToggleFavorite: (id: TemplateId) => void;
 }
 
-const ThemePicker = ({
+const TemplatePicker = ({
 	current,
-	favoriteThemeIds,
+	favoriteTemplateIds,
 	onChange,
 	onToggleFavorite,
-}: ThemePickerProps) => {
+}: TemplatePickerProps) => {
 	const [open, setOpen] = useState(false);
 
 	// ESC 关闭
@@ -29,14 +30,14 @@ const ThemePicker = ({
 		return () => document.removeEventListener("keydown", handleKey);
 	}, [open]);
 
-	const currentTheme = themes[current];
-	const orderedThemeIds = useMemo(() => {
-		const favoriteSet = new Set(favoriteThemeIds);
+	const currentTemplate = resumeTemplates[current].config;
+	const orderedTemplateIds = useMemo(() => {
+		const favoriteSet = new Set(favoriteTemplateIds);
 		return [
-			...favoriteThemeIds,
-			...themeIds.filter((id) => !favoriteSet.has(id)),
+			...favoriteTemplateIds,
+			...templateIds.filter((id) => !favoriteSet.has(id)),
 		];
-	}, [favoriteThemeIds]);
+	}, [favoriteTemplateIds]);
 
 	return (
 		<>
@@ -45,10 +46,10 @@ const ThemePicker = ({
 					type="button"
 					onClick={() => setOpen((v) => !v)}
 					className="flex h-8 w-fit justify-self-start items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100/80"
-					title="切换简历主题"
+					title="切换简历布局"
 				>
-				<Palette size={14} className="text-slate-400" />
-				<span className="hidden sm:inline">{currentTheme.name}</span>
+				<LayoutTemplate size={14} className="text-slate-400" />
+				<span className="hidden sm:inline">{currentTemplate.name}</span>
 			</button>
 
 			{open &&
@@ -64,22 +65,22 @@ const ThemePicker = ({
 						>
 							<div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
 								<div className="flex items-center gap-2">
-									<Palette size={15} className="text-slate-400" />
+									<LayoutTemplate size={15} className="text-slate-400" />
 									<span className="text-sm font-bold text-slate-800">
-										选择主题
+										选择布局
 									</span>
 								</div>
 								<span className="text-xs text-slate-400">
-									{orderedThemeIds.length} 个
+									{orderedTemplateIds.length} 个
 								</span>
 							</div>
 
 							<div className="min-h-0 flex-1 overflow-y-auto p-3 custom-scrollbar">
 								<div className="grid gap-2 sm:grid-cols-2">
-									{orderedThemeIds.map((id) => {
-										const theme = themes[id];
+									{orderedTemplateIds.map((id) => {
+										const template = resumeTemplates[id].config;
 										const isActive = id === current;
-										const isFavorite = favoriteThemeIds.includes(id);
+										const isFavorite = favoriteTemplateIds.includes(id);
 										return (
 											<div
 												key={id}
@@ -97,24 +98,12 @@ const ThemePicker = ({
 													}}
 													className="flex min-w-0 flex-1 items-center gap-3 text-left"
 												>
-													<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-slate-200/70 shadow-sm">
-														<div
-															className="absolute inset-x-0 top-0 h-1/2"
-															style={{
-																backgroundColor: theme.previewColors[0],
-															}}
-														/>
-														<div
-															className="absolute inset-x-0 bottom-0 h-1/2"
-															style={{
-																backgroundColor: theme.previewColors[1],
-															}}
-														/>
+													<div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 bg-slate-50 text-slate-400 shadow-sm">
+														<LayoutTemplate size={17} />
 														{isActive && (
-															<div className="absolute inset-0 flex items-center justify-center bg-black/20">
+															<div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white ring-2 ring-white">
 																<Check
-																	size={14}
-																	className="text-white drop-shadow"
+																	size={10}
 																/>
 															</div>
 														)}
@@ -123,7 +112,7 @@ const ThemePicker = ({
 													<div className="min-w-0 flex-1">
 														<div className="flex items-center gap-2">
 															<span className="truncate text-sm font-semibold text-slate-800">
-																{theme.name}
+																{template.name}
 															</span>
 															{isActive && (
 																<span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
@@ -132,7 +121,7 @@ const ThemePicker = ({
 															)}
 														</div>
 														<p className="mt-0.5 truncate text-[11px] leading-snug text-slate-400">
-															{theme.nameEn} · {theme.description}
+															{template.nameEn} · {template.description}
 														</p>
 													</div>
 												</button>
@@ -145,8 +134,8 @@ const ThemePicker = ({
 															? "text-amber-500 hover:bg-amber-50"
 															: "text-slate-300 hover:bg-slate-100 hover:text-slate-500"
 													}`}
-													title={isFavorite ? "取消收藏主题" : "收藏主题"}
-													aria-label={isFavorite ? "取消收藏主题" : "收藏主题"}
+												title={isFavorite ? "取消收藏布局" : "收藏布局"}
+												aria-label={isFavorite ? "取消收藏布局" : "收藏布局"}
 												>
 													<Star
 														size={15}
@@ -166,4 +155,4 @@ const ThemePicker = ({
 	);
 };
 
-export default ThemePicker;
+export default TemplatePicker;

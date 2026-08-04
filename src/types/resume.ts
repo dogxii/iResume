@@ -31,6 +31,7 @@ export interface Experience {
 export interface Project {
 	id: number;
 	name: string;
+	role: string;
 	date: string;
 	tags: string;
 	link: string;
@@ -55,6 +56,14 @@ export interface SectionEntry {
 	details: string;
 }
 
+export type CustomSectionKey = `custom-${number}`;
+
+export interface CustomSection {
+	id: CustomSectionKey;
+	title: string;
+	content: string;
+}
+
 // 各区块自定义标题
 export interface SectionTitles {
 	skills: string;
@@ -64,10 +73,11 @@ export interface SectionTitles {
 	awards: string;
 	campus: string;
 	other: string;
+	[key: CustomSectionKey]: string;
 }
 
 // 区块 key 联合类型（用于自定义排序）
-export type SectionKey =
+export type StandardSectionKey =
 	| "skills"
 	| "experience"
 	| "projects"
@@ -76,11 +86,17 @@ export type SectionKey =
 	| "campus"
 	| "other";
 
+export type SectionKey = StandardSectionKey | CustomSectionKey;
+
+export type ResumeEditableSectionKey = "personal" | SectionKey;
+
 // 控制各区块标题图标是否显示
-export type SectionIconVisibility = Record<SectionKey, boolean>;
+export type SectionIconVisibility = Record<StandardSectionKey, boolean> &
+	Partial<Record<CustomSectionKey, boolean>>;
 
 // 控制各区块是否显示在简历预览中
-export type SectionVisibility = Record<SectionKey, boolean>;
+export type SectionVisibility = Record<StandardSectionKey, boolean> &
+	Partial<Record<CustomSectionKey, boolean>>;
 
 // 简历数据
 export interface ResumeData {
@@ -97,4 +113,5 @@ export interface ResumeData {
 	campus: SectionEntry[];
 	// 每行一条，支持 **粗体** 和 [文字](url) 语法
 	other: string;
+	customSections: CustomSection[];
 }

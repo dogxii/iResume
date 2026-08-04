@@ -1,11 +1,22 @@
-import type { ResumeData, SectionKey } from "../types/resume";
+import { STANDARD_SECTION_KEYS, normalizeResumeData } from "./resumeData";
+import {
+	normalizeResumeAppearance,
+	type ResumeAppearance,
+	type ResumeDocument,
+} from "./resumeLibrary";
+import type { CustomSection, ResumeData, StandardSectionKey } from "../types/resume";
+
+export interface HistorySnapshotDocument {
+	data: ResumeData;
+	appearance: ResumeAppearance;
+}
 
 export interface HistorySnapshot {
 	id: string;
 	label: string;
 	version: string;
 	createdAt: string;
-	data: ResumeData;
+	document: HistorySnapshotDocument;
 }
 
 export interface DocumentHistory {
@@ -113,7 +124,7 @@ export const computeNextVersion = (
 
 export function addSnapshot(
 	history: DocumentHistory,
-	data: ResumeData,
+	document: ResumeDocument,
 	label: string,
 	version: string,
 ): DocumentHistory {
@@ -122,7 +133,10 @@ export function addSnapshot(
 		label,
 		version,
 		createdAt: new Date().toISOString(),
-		data,
+		document: structuredClone({
+			data: document.data,
+			appearance: document.appearance,
+		}),
 	};
 
 	const snapshots = [snapshot, ...history.snapshots].slice(
@@ -175,53 +189,51 @@ export function normalizeDocumentHistory(value: unknown): DocumentHistory {
 			(item): item is Record<string, unknown> =>
 				typeof item === "object" && item !== null && !Array.isArray(item),
 		)
-		.map((item) => ({
-			id:
-				typeof item.id === "string" && item.id.trim()
-					? item.id
-					: createSnapshotId(),
-			label:
-				typeof item.label === "string" && item.label.trim()
-					? item.label.trim()
-					: DEFAULT_SNAPSHOT_LABEL,
-			version:
-				typeof item.version === "string" && item.version.trim()
-					? item.version.trim()
-					: DEFAULT_VERSION,
-			createdAt:
-				typeof item.createdAt === "string" &&
-				Number.isFinite(new Date(item.createdAt).getTime())
-					? item.createdAt
-					: new Date().toISOString(),
-			data:
-				typeof item.data === "object" && item.data !== null
-					? (item.data as ResumeData)
-					: (undefined as unknown as ResumeData),
-		}))
-		.filter((item) => item.data !== undefined)
+		.filter(
+			(item) =>
+				typeof item.document === "object" && item.document !== null,
+		)
+		.map((item) => {
+			const document = item.document as Record<string, unknown>;
+			return {
+				id:
+					typeof item.id === "string" && item.id.trim()
+						? item.id
+						: createSnapshotId(),
+				label:
+					typeof item.label === "string" && item.label.trim()
+						? item.label.trim()
+						: DEFAULT_SNAPSHOT_LABEL,
+				version:
+					typeof item.version === "string" && item.version.trim()
+						? item.version.trim()
+						: DEFAULT_VERSION,
+				createdAt:
+					typeof item.createdAt === "string" &&
+					Number.isFinite(new Date(item.createdAt).getTime())
+						? item.createdAt
+						: new Date().toISOString(),
+				document: {
+					data: normalizeResumeData(document.data),
+					appearance: normalizeResumeAppearance(document.appearance),
+				},
+			};
+		})
 		.slice(0, MAX_HISTORY_SNAPSHOTS);
 
 	return { snapshots };
 }
 
-const SECTION_KEYS: SectionKey[] = [
-	"skills",
-	"experience",
-	"projects",
-	"education",
-	"awards",
-	"campus",
-	"other",
-];
+const SECTION_KEYS = STANDARD_SECTION_KEYS;
 
-const SECTION_LABELS: Record<SectionKey, string> = {
+const SECTION_LABELS: Record<StandardSectionKey, string> = {
 	skills: "专业技能",
 	experience: "工作经历",
 	projects: "项目经历",
 	education: "教育背景",
 	awards: "获奖经历",
 	campus: "校园经历",
-	other: "其他信息",
+	other: "自我评价",
 };
 
 const compactText = (value: string, maxLength = 72): string => {
@@ -384,6 +396,80 @@ const diffItemCollection = <T extends { id: number }>(
 	}
 };
 
+const getCustomSectionTitle = (data: ResumeData, section: CustomSection) =>
+	data.sectionTitles[section.id]?.trim() ||
+	section.title.trim() ||
+	"自定义区块";
+
+const diffCustomSections = (
+	changes: SnapshotChange[],
+	before: ResumeData,
+	after: ResumeData,
+) => {
+	const beforeById = new Map(
+		before.customSections.map((section) => [section.id, section]),
+	);
+	const afterById = new Map(
+		after.customSections.map((section) => [section.id, section]),
+	);
+
+	for (const section of before.customSections) {
+		if (afterById.has(section.id)) continue;
+		changes.push({
+			kind: "removed",
+			scope: "自定义区块",
+			title: `删除${quoted(getCustomSectionTitle(before, section), "自定义区块")}`,
+		});
+	}
+
+	for (const section of after.customSections) {
+		const beforeSection = beforeById.get(section.id);
+		if (!beforeSection) {
+			changes.push({
+				kind: "added",
+				scope: "自定义区块",
+				title: `新增${quoted(getCustomSectionTitle(after, section), "自定义区块")}`,
+			});
+			continue;
+		}
+
+		const beforeTitle = getCustomSectionTitle(before, beforeSection);
+		const afterTitle = getCustomSectionTitle(after, section);
+		if (beforeTitle !== afterTitle) {
+			changes.push({
+				kind: "changed",
+				scope: "自定义区块",
+				title: "重命名自定义区块",
+				before: beforeTitle,
+				after: afterTitle,
+			});
+		}
+
+		if (textValue(beforeSection.content) !== textValue(section.content)) {
+			changes.push({
+				kind: "changed",
+				scope: "自定义区块",
+				title: `更新${quoted(afterTitle, "自定义区块")}`,
+				before: compactText(beforeSection.content),
+				after: compactText(section.content),
+			});
+		}
+
+		const beforeVisible = before.sectionVisibility[section.id] !== false;
+		const afterVisible = after.sectionVisibility[section.id] !== false;
+		if (beforeVisible !== afterVisible) {
+			changes.push({
+				kind: "changed",
+				scope: "自定义区块",
+				title: `${afterVisible ? "显示" : "隐藏"}${quoted(
+					afterTitle,
+					"自定义区块",
+				)}`,
+			});
+		}
+	}
+};
+
 const diffResumeData = (before: ResumeData, after: ResumeData): SnapshotChange[] => {
 	const changes: SnapshotChange[] = [];
 
@@ -420,6 +506,8 @@ const diffResumeData = (before: ResumeData, after: ResumeData): SnapshotChange[]
 			detail: visibilityChanges.join("、"),
 		});
 	}
+
+	diffCustomSections(changes, before, after);
 
 	if (before.sectionOrder.join(",") !== after.sectionOrder.join(",")) {
 		changes.push({
@@ -518,10 +606,85 @@ const diffResumeData = (before: ResumeData, after: ResumeData): SnapshotChange[]
 	pushTextChange(
 		changes,
 		SECTION_LABELS.other,
-		"更新其他信息",
+		"更新自我评价",
 		textValue(before.other),
 		textValue(after.other),
 	);
+
+	return changes;
+};
+
+const diffResumeAppearance = (
+	before: ResumeAppearance,
+	after: ResumeAppearance,
+): SnapshotChange[] => {
+	const changes: SnapshotChange[] = [];
+	const fields: {
+		label: string;
+		before: string | number;
+		after: string | number;
+	}[] = [
+		{ label: "布局", before: before.templateId, after: after.templateId },
+		{ label: "主题色", before: before.accentColor, after: after.accentColor },
+		{ label: "字体", before: before.fontFamily, after: after.fontFamily },
+		{ label: "字号", before: before.fontSizePt, after: after.fontSizePt },
+		{
+			label: "模块标题字号",
+			before: before.sectionTitleFontSizePx,
+			after: after.sectionTitleFontSizePx,
+		},
+		{
+			label: "一级标题字号",
+			before: before.itemTitleFontSizePx,
+			after: after.itemTitleFontSizePx,
+		},
+		{ label: "行高", before: before.lineHeight, after: after.lineHeight },
+		{
+			label: "模块间距",
+			before: before.sectionSpacing,
+			after: after.sectionSpacing,
+		},
+		{
+			label: "段落间距",
+			before: before.paragraphSpacingPx,
+			after: after.paragraphSpacingPx,
+		},
+		{
+			label: "页边距",
+			before: before.pageMarginMm,
+			after: after.pageMarginMm,
+		},
+	];
+
+	for (const field of fields) {
+		if (field.before === field.after) continue;
+		changes.push({
+			kind: "changed",
+			scope: "外观",
+			title: `调整${field.label}`,
+			before: String(field.before),
+			after: String(field.after),
+		});
+	}
+
+	if (JSON.stringify(before.sectionIcons) !== JSON.stringify(after.sectionIcons)) {
+		changes.push({
+			kind: "changed",
+			scope: "外观",
+			title: "调整区块图标",
+		});
+	}
+
+	if (
+		JSON.stringify(before.sectionPreferences) !==
+		JSON.stringify(after.sectionPreferences)
+	) {
+		changes.push({
+			kind: "changed",
+			scope: "外观",
+			title: "调整显示偏好",
+		});
+	}
 
 	return changes;
 };
@@ -531,7 +694,16 @@ export function createSnapshotDiff(
 	previousSnapshot?: HistorySnapshot,
 ): SnapshotDiff {
 	const changes = previousSnapshot
-		? diffResumeData(previousSnapshot.data, snapshot.data)
+		? [
+				...diffResumeData(
+					previousSnapshot.document.data,
+					snapshot.document.data,
+				),
+				...diffResumeAppearance(
+					previousSnapshot.document.appearance,
+					snapshot.document.appearance,
+				),
+			]
 		: [];
 
 	return {
