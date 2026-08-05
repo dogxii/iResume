@@ -87,6 +87,10 @@ React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React
   <img src="https://s2.loli.net/2022/12/29/5xk8paK4wGDnAhW.jpg" alt="Alipay" width="160" />
 </div>
 
+## 🙏 感谢
+
+规整单栏主题来自于 [@Viki](https://viki.moe) 大佬设计的 figma 简历。
+
 ## 🪪 License
 
 [MIT](LICENSE) © 2026 Dogxi
