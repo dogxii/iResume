@@ -39,7 +39,7 @@ import type {
 import type { ContentDensity, TemplateId } from "../types/template";
 import { renderMarkdownBlocks } from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
-import { normalizeSafeUrl } from "../utils/url";
+import { formatUrlForDisplay, normalizeSafeUrl } from "../utils/url";
 import { resolvePreviewStyle } from "../templates/resolvePreviewStyle";
 import { getResumeSectionIcon } from "./resumeSectionIcons";
 
@@ -1112,43 +1112,72 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		};
 
 		const renderProjectLinks = (
-			demoHref: string | undefined,
-			sourceHref: string | undefined,
+			project: Project,
 			className = "flex gap-3 text-xs",
 		) => {
-			if (!demoHref && !sourceHref) return null;
+			const linksDisplay = sectionPreferences.projects.linksDisplay;
+			const showUnderline = sectionPreferences.projects.showLinkUnderline;
+			const showIcons = sectionPreferences.projects.showLinkIcons;
+			const links = [
+				{
+					key: "demo",
+					label: "Demo",
+					raw: project.link,
+					href: normalizeSafeUrl(project.link),
+					icon: <ExternalLink size={10} />,
+				},
+				{
+					key: "source",
+					label: "Code",
+					raw: project.source,
+					href: normalizeSafeUrl(project.source),
+					icon: <Github size={10} />,
+				},
+			].filter(
+				(item): item is {
+					key: string;
+					label: string;
+					raw: string;
+					href: string;
+					icon: React.ReactElement;
+				} => Boolean(item.href),
+			);
+
+			if (links.length === 0) return null;
+
+			const linkClassName = `inline-flex min-w-0 items-center ${projectLinkToneClass} ${
+				showUnderline
+					? "border-b border-slate-300 leading-[1.2] hover:border-slate-500"
+					: "hover:opacity-75"
+			} ${showIcons ? "gap-1" : ""}`;
 
 			return (
 				<div className={className}>
-					{demoHref && (
+					{links.map((link) => (
 						<a
-							href={demoHref}
+							key={link.key}
+							href={link.href}
 							target="_blank"
 							rel="noreferrer"
-							className={`flex items-center gap-1 ${projectLinkToneClass} hover:underline`}
+							className={linkClassName}
 						>
-							{!isAtsTemplate && <ExternalLink size={10} />}
-							Demo
+							{showIcons && <span className="shrink-0">{link.icon}</span>}
+							<span
+								className={`min-w-0 ${
+									linksDisplay === "label" ? "" : "break-all"
+								}`}
+							>
+								{linksDisplay === "label"
+									? link.label
+									: formatUrlForDisplay(link.raw, link.href)}
+							</span>
 						</a>
-					)}
-					{sourceHref && (
-						<a
-							href={sourceHref}
-							target="_blank"
-							rel="noreferrer"
-							className={`flex items-center gap-1 ${projectLinkToneClass} hover:underline`}
-						>
-							{!isAtsTemplate && <Github size={10} />}
-							Code
-						</a>
-					)}
+					))}
 				</div>
 			);
 		};
 
 		const renderProject = (proj: Project) => {
-			const demoHref = normalizeSafeUrl(proj.link);
-			const sourceHref = normalizeSafeUrl(proj.source);
 			const boxed = projectStyle === "boxed";
 			const compact = projectStyle === "compact";
 			const timeline = projectStyle === "timeline";
@@ -1178,11 +1207,11 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					: null;
 			const linksOnTitle =
 				sectionPreferences.projects.linksPosition === "title"
-					? renderProjectLinks(demoHref, sourceHref, "flex gap-3 text-xs")
+					? renderProjectLinks(proj, "flex min-w-0 flex-wrap gap-3 text-xs")
 					: null;
 			const linksBelow =
 				sectionPreferences.projects.linksPosition === "below"
-					? renderProjectLinks(demoHref, sourceHref)
+					? renderProjectLinks(proj)
 					: null;
 			const content = (
 				<>

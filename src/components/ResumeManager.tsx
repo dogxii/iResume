@@ -33,6 +33,7 @@ import {
 	useState,
 	type CSSProperties,
 	type ChangeEvent,
+	type DragEvent as ReactDragEvent,
 	type FormEvent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type PointerEvent as ReactPointerEvent,
@@ -567,14 +568,52 @@ const CreateResumeModal = ({
 	const [tagText, setTagText] = useState("");
 	const [jsonFile, setJsonFile] = useState<File | null>(null);
 	const [jsonError, setJsonError] = useState<string | null>(null);
+	const [jsonDragging, setJsonDragging] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
+
+	const acceptJsonFile = (file: File | null) => {
+		setJsonError(null);
+		if (!file) {
+			setJsonFile(null);
+			return;
+		}
+
+		if (!file.name.toLowerCase().endsWith(".json")) {
+			setJsonFile(null);
+			setJsonError("请拖入 .json 文件");
+			return;
+		}
+
+		setJsonFile(file);
+		if (!nameEdited) setName("");
+	};
 
 	const handleJsonFileChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0] ?? null;
 		event.target.value = "";
-		setJsonError(null);
-		setJsonFile(file);
-		if (file && !nameEdited) setName("");
+		acceptJsonFile(file);
+	};
+
+	const handleJsonDragOver = (event: ReactDragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		event.dataTransfer.dropEffect = "copy";
+		setJsonDragging(true);
+	};
+
+	const handleJsonDragLeave = (event: ReactDragEvent<HTMLDivElement>) => {
+		if (
+			event.relatedTarget instanceof Node &&
+			event.currentTarget.contains(event.relatedTarget)
+		) {
+			return;
+		}
+		setJsonDragging(false);
+	};
+
+	const handleJsonDrop = (event: ReactDragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		setJsonDragging(false);
+		acceptJsonFile(event.dataTransfer.files?.[0] ?? null);
 	};
 
 	const submit = async (event?: FormEvent<HTMLFormElement>) => {
@@ -665,7 +704,17 @@ const CreateResumeModal = ({
 					className="hidden"
 					onChange={handleJsonFileChange}
 				/>
-				<div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+				<div
+					onDragEnter={handleJsonDragOver}
+					onDragOver={handleJsonDragOver}
+					onDragLeave={handleJsonDragLeave}
+					onDrop={handleJsonDrop}
+					className={`mt-4 rounded-lg border border-dashed p-3 transition ${
+						jsonDragging
+							? "border-blue-300 bg-blue-50/80"
+							: "border-slate-200 bg-slate-50/60"
+					}`}
+				>
 					<div className="flex items-center justify-between gap-3">
 						<div className="min-w-0">
 							<span className="text-xs font-medium text-slate-500">
@@ -676,7 +725,7 @@ const CreateResumeModal = ({
 									jsonFile ? "text-slate-700" : "text-slate-300"
 								}`}
 							>
-								{jsonFile ? jsonFile.name : "可选"}
+								{jsonFile ? jsonFile.name : "拖入 JSON 或选择文件"}
 							</p>
 						</div>
 						<div className="flex shrink-0 gap-2">

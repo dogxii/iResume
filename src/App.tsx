@@ -1834,7 +1834,9 @@ function App() {
 		tags: string[];
 		file: File;
 	}): Promise<string | null> => {
-		if (!input.file.name.endsWith(".json")) return "请选择 .json 文件";
+		if (!input.file.name.toLowerCase().endsWith(".json")) {
+			return "请选择 .json 文件";
+		}
 
 		try {
 			const text = await readFileAsText(input.file);

@@ -19,7 +19,7 @@ import type {
 } from "../types/resume";
 import { parseInline, parseMarkdownBlocks } from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
-import { normalizeSafeUrl } from "../utils/url";
+import { formatUrlForDisplay, normalizeSafeUrl } from "../utils/url";
 import { getResumeSectionIcon } from "./resumeSectionIcons";
 
 interface StructuredResumeLayoutProps {
@@ -485,12 +485,53 @@ const StructuredResumeLayout = forwardRef<
 		project: Project,
 		align: "left" | "right" = "right",
 	) => {
+		const linksDisplay = sectionPreferences.projects.linksDisplay;
+		const showUnderline = sectionPreferences.projects.showLinkUnderline;
+		const showIcons = sectionPreferences.projects.showLinkIcons;
 		const links = [
-			{ label: "项目", href: normalizeSafeUrl(project.link) },
-			{ label: "源码", href: normalizeSafeUrl(project.source) },
-		].filter((item): item is { label: string; href: string } => Boolean(item.href));
+			{
+				key: "demo",
+				label: "项目",
+				raw: project.link,
+				href: normalizeSafeUrl(project.link),
+				icon: (
+					<ExternalLink
+						aria-hidden="true"
+						strokeWidth={1.7}
+						className="h-[0.82em] w-[0.82em] shrink-0 opacity-55"
+					/>
+				),
+			},
+			{
+				key: "source",
+				label: "源码",
+				raw: project.source,
+				href: normalizeSafeUrl(project.source),
+				icon: (
+					<ExternalLink
+						aria-hidden="true"
+						strokeWidth={1.7}
+						className="h-[0.82em] w-[0.82em] shrink-0 opacity-55"
+					/>
+				),
+			},
+		].filter(
+			(item): item is {
+				key: string;
+				label: string;
+				raw: string;
+				href: string;
+				icon: React.ReactElement;
+			} => Boolean(item.href),
+		);
 
 		if (links.length === 0) return null;
+
+		const linkClassName = `inline-flex min-w-0 items-center leading-[1.2] hover:text-neutral-800 ${
+			showUnderline
+				? "border-b border-neutral-200 hover:border-neutral-400"
+				: ""
+		} ${showIcons ? "gap-[0.18em]" : ""}`;
 
 		return (
 			<span
@@ -500,18 +541,22 @@ const StructuredResumeLayout = forwardRef<
 			>
 				{links.map((link) => (
 					<a
-						key={link.label}
+						key={link.key}
 						href={link.href}
 						target="_blank"
 						rel="noreferrer"
-						className="inline-flex items-center gap-[0.18em] border-b border-neutral-200 leading-[1.2] hover:text-neutral-800"
+						className={linkClassName}
 					>
-						{link.label}
-						<ExternalLink
-							aria-hidden="true"
-							strokeWidth={1.7}
-							className="h-[0.82em] w-[0.82em] opacity-55"
-						/>
+						{showIcons && link.icon}
+						<span
+							className={`min-w-0 ${
+								linksDisplay === "label" ? "" : "break-all"
+							}`}
+						>
+							{linksDisplay === "label"
+								? link.label
+								: formatUrlForDisplay(link.raw, link.href)}
+						</span>
 					</a>
 				))}
 			</span>

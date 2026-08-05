@@ -52,6 +52,7 @@ export function getResumeAccentCssVariables(
 
 export type SectionDatePosition = "right" | "below";
 export type ProjectLinksPosition = "title" | "below";
+export type ProjectLinksDisplay = "label" | "url";
 export type ProjectTagPosition = "title" | "below";
 export type ProjectTagStyle = "badge" | "text";
 export type ResumePhotoPosition = "left" | "right";
@@ -82,6 +83,9 @@ export interface ResumeSectionPreferences {
 		tagPosition: ProjectTagPosition;
 		tagStyle: ProjectTagStyle;
 		linksPosition: ProjectLinksPosition;
+		linksDisplay: ProjectLinksDisplay;
+		showLinkUnderline: boolean;
+		showLinkIcons: boolean;
 	};
 	education: {
 		showDates: boolean;
@@ -111,6 +115,9 @@ export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
 		tagPosition: "below",
 		tagStyle: "badge",
 		linksPosition: "below",
+		linksDisplay: "label",
+		showLinkUnderline: false,
+		showLinkIcons: true,
 	},
 	education: {
 		showDates: true,
@@ -388,6 +395,13 @@ export function normalizeProjectLinksPosition(
 	return value === "title" || value === "below" ? value : fallback;
 }
 
+export function normalizeProjectLinksDisplay(
+	value: unknown,
+	fallback: ProjectLinksDisplay = "label",
+): ProjectLinksDisplay {
+	return value === "label" || value === "url" ? value : fallback;
+}
+
 export function normalizeProjectTagPosition(
 	value: unknown,
 	fallback: ProjectTagPosition = "below",
@@ -453,6 +467,8 @@ export function normalizeResumeSectionPreferences(
 	const education = isRecord(raw.education) ? raw.education : {};
 	const fallbackPersonal =
 		fallback.personal ?? DEFAULT_SECTION_PREFERENCES.personal;
+	const fallbackProjects =
+		fallback.projects ?? DEFAULT_SECTION_PREFERENCES.projects;
 
 	return {
 		personal: {
@@ -495,28 +511,40 @@ export function normalizeResumeSectionPreferences(
 			),
 		},
 		projects: {
-			showDates: readBoolean(projects.showDates, fallback.projects.showDates),
+			showDates: readBoolean(projects.showDates, fallbackProjects.showDates),
 			datePosition: normalizeSectionDatePosition(
 				projects.datePosition,
-				fallback.projects.datePosition,
+				fallbackProjects.datePosition,
 			),
-			showRole: readBoolean(projects.showRole, fallback.projects.showRole),
+			showRole: readBoolean(projects.showRole, fallbackProjects.showRole),
 			rolePosition: normalizeEntryRolePosition(
 				projects.rolePosition,
-				fallback.projects.rolePosition,
+				fallbackProjects.rolePosition,
 			),
-			showTags: readBoolean(projects.showTags, fallback.projects.showTags),
+			showTags: readBoolean(projects.showTags, fallbackProjects.showTags),
 			tagPosition: normalizeProjectTagPosition(
 				projects.tagPosition,
-				fallback.projects.tagPosition,
+				fallbackProjects.tagPosition,
 			),
 			tagStyle: normalizeProjectTagStyle(
 				projects.tagStyle,
-				fallback.projects.tagStyle,
+				fallbackProjects.tagStyle,
 			),
 			linksPosition: normalizeProjectLinksPosition(
 				projects.linksPosition,
-				fallback.projects.linksPosition,
+				fallbackProjects.linksPosition,
+			),
+			linksDisplay: normalizeProjectLinksDisplay(
+				projects.linksDisplay,
+				fallbackProjects.linksDisplay,
+			),
+			showLinkUnderline: readBoolean(
+				projects.showLinkUnderline,
+				fallbackProjects.showLinkUnderline,
+			),
+			showLinkIcons: readBoolean(
+				projects.showLinkIcons,
+				fallbackProjects.showLinkIcons,
 			),
 		},
 		education: {

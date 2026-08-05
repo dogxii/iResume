@@ -16,3 +16,18 @@ export function normalizeSafeUrl(value: string): string | undefined {
 		return undefined;
 	}
 }
+
+export function formatUrlForDisplay(value: string, href?: string): string {
+	const trimmed = value.trim() || href?.trim() || "";
+	if (!trimmed) return "";
+	const candidate = protocolPattern.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+	try {
+		const url = new URL(candidate);
+		if (!safeProtocols.has(url.protocol)) return trimmed;
+		const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
+		return `${url.host}${pathname}${url.search}${url.hash}`;
+	} catch {
+		return trimmed.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+	}
+}
