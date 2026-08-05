@@ -673,13 +673,17 @@ const StructuredResumeLayout = forwardRef<
 				return (
 					<div
 						key={item.id}
-						className="print-edu-item grid grid-cols-[max-content_minmax(0,0.95fr)_minmax(0,1.55fr)_minmax(0,0.72fr)] gap-x-[1.1em] px-[0.48em] leading-[1.42] text-neutral-900"
+						className="print-edu-item grid grid-cols-[max-content_repeat(3,minmax(0,1fr))] gap-x-[1.25em] px-[0.48em] leading-[1.42] text-neutral-900"
 					>
 						<span className="whitespace-nowrap">
 							{sectionPreferences.education.showDates ? item.date : ""}
 						</span>
-						<span className="resume-item-title min-w-0">{item.school}</span>
-						<span className="min-w-0">{degree.major}</span>
+						<span className="resume-item-title min-w-0 justify-self-center text-center">
+							{item.school}
+						</span>
+						<span className="min-w-0 justify-self-center text-center">
+							{degree.major}
+						</span>
 						<span className="min-w-0 text-right">{degree.degree}</span>
 					</div>
 				);
