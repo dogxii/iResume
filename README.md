@@ -72,10 +72,6 @@ npm run preview
 
 React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React
 
-## 📈 项目 Star 历史
-
-[![Star History Chart](https://api.star-history.com/svg?repos=dogxii/iresume&type=Date)](https://www.star-history.com/#dogxii/iresume&Date)
-
 ## 💰 赞赏项目
 
 如果觉得这个项目对你有帮助，欢迎请我喝咖啡 ☕️
