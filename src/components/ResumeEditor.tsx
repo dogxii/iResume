@@ -60,6 +60,7 @@ import {
 } from '../data/resumeData'
 import { formatSkillsAsMarkdown } from '../data/resumeSkills'
 import type {
+  EntryRoleColor,
   EntryRolePosition,
   ProjectLinksDisplay,
   ProjectLinksPosition,
@@ -77,6 +78,7 @@ import type {
   ResumeSectionPreferences,
   ResumeSectionSpacing,
   ResumeSectionTitleFontSizePx,
+  ResumeSkillLayout,
   SectionDatePosition,
 } from '../data/resumeStyle'
 import {
@@ -405,6 +407,16 @@ const rolePositionOptions: SegmentedOption<EntryRolePosition>[] = [
   { value: 'middle', label: '中间' },
   { value: 'title', label: '标题右侧' },
   { value: 'bottom', label: '底部' },
+]
+
+const roleColorOptions: SegmentedOption<EntryRoleColor>[] = [
+  { value: 'default', label: '黑色' },
+  { value: 'accent', label: '主题色' },
+]
+
+const skillLayoutOptions: SegmentedOption<ResumeSkillLayout>[] = [
+  { value: 'list', label: '列表' },
+  { value: 'rows', label: '分类行' },
 ]
 
 const SegmentedControl = <T extends string | number>({
@@ -1874,7 +1886,15 @@ const ResumeEditor = ({
   const renderSectionPreferenceControls = (key: StandardSectionKey) => {
     switch (key) {
       case 'skills':
-        return null
+        return (
+          <SegmentedControl
+            label='布局'
+            value={sectionPreferences.skills.layout}
+            options={skillLayoutOptions}
+            onChange={(layout) => updateSectionPreferences('skills', { layout })}
+            icon={<Wrench size={12} />}
+          />
+        )
       case 'experience':
         return (
           <>
@@ -1908,6 +1928,15 @@ const ResumeEditor = ({
               options={rolePositionOptions}
               onChange={(rolePosition) =>
                 updateSectionPreferences('experience', { rolePosition })
+              }
+              disabled={!sectionPreferences.experience.showRole}
+            />
+            <SegmentedControl
+              label='职位颜色'
+              value={sectionPreferences.experience.roleColor}
+              options={roleColorOptions}
+              onChange={(roleColor) =>
+                updateSectionPreferences('experience', { roleColor })
               }
               disabled={!sectionPreferences.experience.showRole}
             />
@@ -1947,6 +1976,15 @@ const ResumeEditor = ({
               options={rolePositionOptions}
               onChange={(rolePosition) =>
                 updateSectionPreferences('projects', { rolePosition })
+              }
+              disabled={!sectionPreferences.projects.showRole}
+            />
+            <SegmentedControl
+              label='职责颜色'
+              value={sectionPreferences.projects.roleColor}
+              options={roleColorOptions}
+              onChange={(roleColor) =>
+                updateSectionPreferences('projects', { roleColor })
               }
               disabled={!sectionPreferences.projects.showRole}
             />
@@ -2053,7 +2091,7 @@ const ResumeEditor = ({
         value={getSkillsText()}
         onChange={(event) => updateSkillsText(event.target.value)}
         placeholder={
-          '- 熟悉 HTML、CSS、JavaScript / TypeScript\n- 熟练使用 React、Vue、Vite 等前端技术栈\n- 了解性能优化、工程化和自动化部署'
+          '- 核心语言：熟悉 JavaScript / TypeScript，理解浏览器运行机制\n- React 开发：熟悉 React Hooks、组件拆分与状态管理\n- 工程化：熟悉 Vite、ESLint、Git 与自动化部署'
         }
       />
       {data.skills.length === 0 && (

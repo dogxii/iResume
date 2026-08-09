@@ -1,7 +1,11 @@
 import { Diamond, ExternalLink } from "lucide-react";
 import React, { forwardRef } from "react";
 import { isCustomSectionKey } from "../data/resumeData";
-import { formatSkillsAsMarkdown, hasSkillContent } from "../data/resumeSkills";
+import {
+	formatSkillsAsMarkdown,
+	getSkillDisplayRows,
+	hasSkillContent,
+} from "../data/resumeSkills";
 import { DEFAULT_RESUME_PAGE_MARGIN_MM } from "../data/resumeStyle";
 import type {
 	ResumeSectionPreferences,
@@ -236,6 +240,14 @@ const StructuredResumeLayout = forwardRef<
 		}
 	};
 	const visibleOrder = data.sectionOrder.filter(isSectionVisible);
+	const experienceRoleToneClass =
+		sectionPreferences.experience.roleColor === "accent"
+			? "resume-accent-text"
+			: "text-neutral-900";
+	const projectRoleToneClass =
+		sectionPreferences.projects.roleColor === "accent"
+			? "resume-accent-text"
+			: "text-neutral-900";
 
 	const shouldIgnoreSectionClick = (
 		event: React.MouseEvent<HTMLElement>,
@@ -417,11 +429,36 @@ const StructuredResumeLayout = forwardRef<
 
 	const renderSkills = (isLast: boolean) => {
 		const visibleSkills = data.skills.filter(hasSkillContent);
+		const skillsText = formatSkillsAsMarkdown(visibleSkills);
+		const skillRows = getSkillDisplayRows(visibleSkills);
+		const skillLayout = sectionPreferences.skills.layout;
+
+		const renderSkillContent = () => {
+			if (skillLayout === "rows" && skillRows.length > 0) {
+				return (
+					<div className="space-y-[0.62em] leading-[1.48] text-neutral-800">
+						{skillRows.map((row, index) => (
+							<div
+								key={`${index}-${row.label}-${row.content.slice(0, 20)}`}
+								className="grid grid-cols-[7.4em_minmax(0,1fr)] items-start gap-x-[1.45em]"
+							>
+								<div className="font-semibold text-neutral-950">
+									{parseInline(row.label)}
+									</div>
+									<div className="min-w-0">{parseInline(row.content)}</div>
+								</div>
+							))}
+						</div>
+					);
+				}
+
+			return <StructuredMarkdownBlocks text={skillsText} />;
+		};
 
 		return (
 			<section key="skills" {...getSectionProps("skills", isLast)}>
 				{renderSectionHeader("skills")}
-				<StructuredMarkdownBlocks text={formatSkillsAsMarkdown(visibleSkills)} />
+				{renderSkillContent()}
 			</section>
 		);
 	};
@@ -455,19 +492,19 @@ const StructuredResumeLayout = forwardRef<
 							<span className="min-w-0 justify-self-center text-center">
 								<span className="resume-item-title">{item.company}</span>
 								{roleOnTitle && (
-									<span className="ml-[0.55em] text-neutral-700">
+									<span className={`ml-[0.55em] ${experienceRoleToneClass}`}>
 										{role}
 									</span>
 								)}
 							</span>
 							{roleInMiddle && (
-								<span className="justify-self-end whitespace-nowrap text-neutral-900">
+								<span className={`justify-self-end whitespace-nowrap ${experienceRoleToneClass}`}>
 									{role}
 								</span>
 							)}
 						</div>
 						{roleAtBottom && (
-							<div className="mt-[0.18em] px-[0.48em] leading-[1.35] text-neutral-900">
+							<div className={`mt-[0.18em] px-[0.48em] leading-[1.35] ${experienceRoleToneClass}`}>
 								{role}
 							</div>
 						)}
@@ -627,7 +664,7 @@ const StructuredResumeLayout = forwardRef<
 							<span className="min-w-0 justify-self-center text-center">
 								<span className="resume-item-title">{project.name}</span>
 								{roleOnTitle && (
-									<span className="ml-[0.55em] text-neutral-700">
+									<span className={`ml-[0.55em] ${projectRoleToneClass}`}>
 										{role}
 									</span>
 								)}
@@ -636,7 +673,7 @@ const StructuredResumeLayout = forwardRef<
 								)}
 							</span>
 							{hasRightRole && (
-								<span className="justify-self-end whitespace-nowrap text-neutral-900">
+								<span className={`justify-self-end whitespace-nowrap ${projectRoleToneClass}`}>
 									{role}
 								</span>
 							)}
@@ -647,7 +684,7 @@ const StructuredResumeLayout = forwardRef<
 						{belowMeta && (
 							<div className="mt-[0.18em] flex min-w-0 flex-wrap items-center gap-x-[0.85em] gap-y-[0.18em] px-[0.48em] leading-[1.35] text-neutral-700">
 								{roleAtBottom && (
-									<span className="text-neutral-900">
+									<span className={projectRoleToneClass}>
 										{role}
 									</span>
 								)}

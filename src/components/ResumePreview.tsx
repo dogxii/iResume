@@ -22,7 +22,11 @@ import {
 	type ResumeSectionSpacing,
 	type ResumeSectionTitleFontSizePx,
 } from "../data/resumeStyle";
-import { formatSkillsAsMarkdown, hasSkillContent } from "../data/resumeSkills";
+import {
+	formatSkillsAsMarkdown,
+	getSkillDisplayRows,
+	hasSkillContent,
+} from "../data/resumeSkills";
 import { isCustomSectionKey } from "../data/resumeData";
 import { templateConfigs } from "../data/templateConfigs";
 import type {
@@ -37,7 +41,10 @@ import type {
 	StandardSectionKey,
 } from "../types/resume";
 import type { ContentDensity, TemplateId } from "../types/template";
-import { renderMarkdownBlocks } from "../utils/markdown";
+import {
+	parseInline,
+	renderMarkdownBlocks,
+} from "../utils/markdown";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { formatUrlForDisplay, normalizeSafeUrl } from "../utils/url";
 import { resolvePreviewStyle } from "../templates/resolvePreviewStyle";
@@ -221,7 +228,10 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const showLinkLabels = sectionPreferences.personal.showLinkLabels;
 		const styledLinks = personalLinkStyle !== "text";
 		const fontClass = template.fontStyle === "serif" ? "font-serif" : "font-sans";
-		const roleToneClass = c.body;
+		const experienceRoleToneClass =
+			sectionPreferences.experience.roleColor === "accent" ? c.primary : c.heading;
+		const projectRoleToneClass =
+			sectionPreferences.projects.roleColor === "accent" ? c.primary : c.heading;
 		const projectLinkToneClass = isAtsTemplate
 			? "text-gray-500 hover:text-gray-700"
 			: isMinimalTemplate
@@ -931,16 +941,42 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 		const renderSkills = (isLast: boolean) => {
 			const visibleSkills = data.skills.filter(hasSkillContent);
 			const skillsText = formatSkillsAsMarkdown(visibleSkills);
+			const skillLayout = sectionPreferences.skills.layout;
+			const skillRows = getSkillDisplayRows(visibleSkills);
+			const listClassName = `resume-markdown-list list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body} last:mb-0`;
+			const paragraphClassName = `resume-paragraph-block text-sm ${c.body} last:mb-0`;
+
+			const renderSkillContent = () => {
+				if (skillLayout === "rows" && skillRows.length > 0) {
+					return (
+						<div className={`space-y-2 text-sm ${c.body}`}>
+							{skillRows.map((row, index) => (
+								<div
+									key={`${index}-${row.label}-${row.content.slice(0, 20)}`}
+									className="grid grid-cols-[7.4em_minmax(0,1fr)] items-start gap-x-5"
+								>
+									<div className={`font-bold ${c.heading}`}>
+										{parseInline(row.label)}
+									</div>
+									<div className="min-w-0 leading-relaxed">
+										{parseInline(row.content)}
+									</div>
+								</div>
+							))}
+						</div>
+					);
+				}
+
+				return renderMarkdownBlocks(skillsText, {
+					listClassName,
+					paragraphClassName,
+				});
+			};
 
 			return (
 				<section key="skills" {...getSectionProps("skills", isLast)}>
 					{renderSectionHeader("skills")}
-					<div className="text-sm">
-						{renderMarkdownBlocks(skillsText, {
-							listClassName: `resume-markdown-list list-disc list-outside ml-4 ${spacing.list} text-sm ${c.body} last:mb-0`,
-							paragraphClassName: `resume-paragraph-block text-sm ${c.body} last:mb-0`,
-						})}
-					</div>
+					<div className="text-sm">{renderSkillContent()}</div>
 				</section>
 			);
 		};
@@ -978,14 +1014,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									{exp.company}
 								</h3>
 								{roleOnTitle && (
-									<span className={`text-sm font-medium ${roleToneClass}`}>
+									<span className={`text-sm font-medium ${experienceRoleToneClass}`}>
 										{role}
 									</span>
 								)}
 							</div>
 							{roleInMiddle && (
 								<span
-									className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
+									className={`justify-self-center text-center text-sm font-medium ${experienceRoleToneClass}`}
 								>
 									{role}
 								</span>
@@ -1002,7 +1038,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							<div className={`mt-1 text-xs ${c.muted}`}>{date}</div>
 						)}
 						{roleAtBottom && (
-							<div className={`mt-1 text-sm font-medium ${roleToneClass}`}>
+							<div className={`mt-1 text-sm font-medium ${experienceRoleToneClass}`}>
 								{role}
 							</div>
 						)}
@@ -1024,14 +1060,14 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 								{exp.company}
 							</h3>
 							{roleOnTitle && (
-								<span className={`text-sm font-medium ${roleToneClass}`}>
+								<span className={`text-sm font-medium ${experienceRoleToneClass}`}>
 									{role}
 								</span>
 							)}
 						</div>
 						{roleInMiddle && (
 							<span
-								className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
+								className={`justify-self-center text-center text-sm font-medium ${experienceRoleToneClass}`}
 							>
 								{role}
 							</span>
@@ -1045,7 +1081,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 					{(roleAtBottom || dateBelow) && (
 						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
 							{roleAtBottom && (
-								<span className={`font-medium ${roleToneClass}`}>{role}</span>
+								<span className={`font-medium ${experienceRoleToneClass}`}>{role}</span>
 							)}
 							{roleAtBottom && dateBelow && (
 								<span className={`${c.muted} opacity-40`}>·</span>
@@ -1228,7 +1264,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 									{proj.name}
 								</h3>
 								{roleOnTitle && (
-									<span className={`text-sm font-medium ${roleToneClass}`}>
+									<span className={`text-sm font-medium ${projectRoleToneClass}`}>
 										{role}
 									</span>
 								)}
@@ -1237,7 +1273,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 							</div>
 							{roleInMiddle && (
 								<span
-									className={`justify-self-center text-center text-sm font-medium ${roleToneClass}`}
+									className={`justify-self-center text-center text-sm font-medium ${projectRoleToneClass}`}
 								>
 									{role}
 								</span>
@@ -1251,7 +1287,7 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 						{(roleAtBottom || dateBelow || tagBelow || linksBelow) && (
 							<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 								{roleAtBottom && (
-									<span className={`text-sm font-medium ${roleToneClass}`}>
+									<span className={`text-sm font-medium ${projectRoleToneClass}`}>
 										{role}
 									</span>
 								)}

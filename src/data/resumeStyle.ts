@@ -59,6 +59,8 @@ export type ResumePhotoPosition = "left" | "right";
 export type ResumePhotoSizeRatio = 0.85 | 1 | 1.15;
 export type ResumeLinkStyle = "text" | "highlighted" | "blue";
 export type EntryRolePosition = "middle" | "title" | "bottom";
+export type EntryRoleColor = "default" | "accent";
+export type ResumeSkillLayout = "list" | "rows";
 
 export interface ResumeSectionPreferences {
 	personal: {
@@ -68,17 +70,22 @@ export interface ResumeSectionPreferences {
 		linkStyle: ResumeLinkStyle;
 		showLinkLabels: boolean;
 	};
+	skills: {
+		layout: ResumeSkillLayout;
+	};
 	experience: {
 		showDates: boolean;
 		datePosition: SectionDatePosition;
 		showRole: boolean;
 		rolePosition: EntryRolePosition;
+		roleColor: EntryRoleColor;
 	};
 	projects: {
 		showDates: boolean;
 		datePosition: SectionDatePosition;
 		showRole: boolean;
 		rolePosition: EntryRolePosition;
+		roleColor: EntryRoleColor;
 		showTags: boolean;
 		tagPosition: ProjectTagPosition;
 		tagStyle: ProjectTagStyle;
@@ -100,17 +107,22 @@ export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
 		linkStyle: "text",
 		showLinkLabels: false,
 	},
+	skills: {
+		layout: "list",
+	},
 	experience: {
 		showDates: true,
 		datePosition: "right",
 		showRole: true,
 		rolePosition: "middle",
+		roleColor: "default",
 	},
 	projects: {
 		showDates: true,
 		datePosition: "right",
 		showRole: true,
 		rolePosition: "middle",
+		roleColor: "default",
 		showTags: true,
 		tagPosition: "below",
 		tagStyle: "badge",
@@ -419,6 +431,20 @@ export function normalizeEntryRolePosition(
 		: fallback;
 }
 
+export function normalizeEntryRoleColor(
+	value: unknown,
+	fallback: EntryRoleColor = "default",
+): EntryRoleColor {
+	return value === "default" || value === "accent" ? value : fallback;
+}
+
+export function normalizeResumeSkillLayout(
+	value: unknown,
+	fallback: ResumeSkillLayout = "list",
+): ResumeSkillLayout {
+	return value === "list" || value === "rows" ? value : fallback;
+}
+
 export function normalizeProjectTagStyle(
 	value: unknown,
 	fallback: ProjectTagStyle = "badge",
@@ -462,11 +488,14 @@ export function normalizeResumeSectionPreferences(
 ): ResumeSectionPreferences {
 	const raw = isRecord(value) ? value : {};
 	const personal = isRecord(raw.personal) ? raw.personal : {};
+	const skills = isRecord(raw.skills) ? raw.skills : {};
 	const experience = isRecord(raw.experience) ? raw.experience : {};
 	const projects = isRecord(raw.projects) ? raw.projects : {};
 	const education = isRecord(raw.education) ? raw.education : {};
 	const fallbackPersonal =
 		fallback.personal ?? DEFAULT_SECTION_PREFERENCES.personal;
+	const fallbackSkills =
+		fallback.skills ?? DEFAULT_SECTION_PREFERENCES.skills;
 	const fallbackProjects =
 		fallback.projects ?? DEFAULT_SECTION_PREFERENCES.projects;
 
@@ -495,6 +524,12 @@ export function normalizeResumeSectionPreferences(
 					DEFAULT_SECTION_PREFERENCES.personal.showLinkLabels,
 			),
 		},
+		skills: {
+			layout: normalizeResumeSkillLayout(
+				skills.layout,
+				fallbackSkills.layout,
+			),
+		},
 		experience: {
 			showDates: readBoolean(
 				experience.showDates,
@@ -509,6 +544,10 @@ export function normalizeResumeSectionPreferences(
 				experience.rolePosition,
 				fallback.experience.rolePosition,
 			),
+			roleColor: normalizeEntryRoleColor(
+				experience.roleColor,
+				fallback.experience.roleColor,
+			),
 		},
 		projects: {
 			showDates: readBoolean(projects.showDates, fallbackProjects.showDates),
@@ -520,6 +559,10 @@ export function normalizeResumeSectionPreferences(
 			rolePosition: normalizeEntryRolePosition(
 				projects.rolePosition,
 				fallbackProjects.rolePosition,
+			),
+			roleColor: normalizeEntryRoleColor(
+				projects.roleColor,
+				fallbackProjects.roleColor,
 			),
 			showTags: readBoolean(projects.showTags, fallbackProjects.showTags),
 			tagPosition: normalizeProjectTagPosition(
