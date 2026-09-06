@@ -1,0 +1,44 @@
+{
+	"name": "iresume-cli",
+	"version": "2.0.0",
+	"description": "Export iResume JSON resumes to PDF, PNG, Markdown, and normalized JSON.",
+	"keywords": [
+		"resume",
+		"cv",
+		"iresume",
+		"pdf",
+		"cli"
+	],
+	"author": "Dogxi",
+	"license": "MIT",
+	"type": "module",
+	"engines": {
+		"node": ">=20"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/dogxii/iresume.git",
+		"directory": "packages/cli"
+	},
+	"bugs": {
+		"url": "https://github.com/dogxii/iresume/issues"
+	},
+	"homepage": "https://github.com/dogxii/iresume#readme",
+	"bin": {
+		"iresume": "./bin/iresume"
+	},
+	"files": [
+		"bin/",
+		"dist/",
+		"scripts/"
+	],
+	"scripts": {
+		"build": "npm run build:api && npm run build:renderer",
+		"build:api": "vite build --config ../../vite.cli.config.ts",
+		"build:renderer": "vite build --config ../../vite.export.config.ts",
+		"prepack": "npm run build"
+	},
+	"dependencies": {
+		"playwright": "^1.62.1"
+	}
+}

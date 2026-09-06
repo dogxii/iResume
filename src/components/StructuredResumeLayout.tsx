@@ -21,7 +21,8 @@ import type {
 	SectionKey,
 	StandardSectionKey,
 } from "../types/resume";
-import { parseInline, parseMarkdownBlocks } from "../utils/markdown";
+import { parseInline } from "../utils/markdown";
+import { parseMarkdownBlocks } from "../utils/markdownBlocks";
 import { normalizeResumePhotoSrc } from "../utils/resumePhoto";
 import { formatUrlForDisplay, normalizeSafeUrl } from "../utils/url";
 import { getResumeSectionIcon } from "./resumeSectionIcons";

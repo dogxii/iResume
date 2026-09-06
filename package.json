@@ -1,6 +1,6 @@
 {
-	"name": "i-resume",
-	"private": false,
+	"name": "iresume-workspace",
+	"private": true,
 	"version": "2.0.0",
 	"type": "module",
 	"description": "一个基于 React + TypeScript + Tailwind CSS 的在线简历生成器",
@@ -23,24 +23,23 @@
 		"url": "https://github.com/dogxii/iresume/issues"
 	},
 	"homepage": "https://github.com/dogxii/iresume#readme",
+	"workspaces": [
+		"packages/*"
+	],
 	"scripts": {
 		"dev": "vite",
-		"build": "tsc -b && vite build",
+		"build": "tsc -b && npm run build:app && npm run build:cli",
+		"build:app": "vite build",
+		"build:cli": "npm run build --workspace iresume-cli",
 		"lint": "eslint .",
 		"test": "vitest run",
 		"preview": "vite preview"
 	},
-	"dependencies": {
+	"devDependencies": {
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
 		"@dnd-kit/utilities": "^3.2.2",
 		"@tailwindcss/vite": "^4.1.17",
-		"html-to-image": "^1.11.13",
-		"lucide-react": "^0.556.0",
-		"react": "^19.2.0",
-		"react-dom": "^19.2.0"
-	},
-	"devDependencies": {
 		"@eslint/js": "^9.39.1",
 		"@types/node": "^24.10.1",
 		"@types/react": "^19.2.5",
@@ -52,7 +51,11 @@
 		"eslint-plugin-react-refresh": "^0.4.24",
 		"fake-indexeddb": "^6.2.5",
 		"globals": "^16.5.0",
+		"html-to-image": "^1.11.13",
+		"lucide-react": "^0.556.0",
 		"postcss": "^8.5.6",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
 		"tailwindcss": "^4.1.17",
 		"typescript": "~5.9.3",
 		"typescript-eslint": "^8.46.4",

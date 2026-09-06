@@ -7,7 +7,7 @@ import type {
 } from "../types/resume";
 import { isCustomSectionKey } from "./resumeData";
 import { formatSkillsAsMarkdown } from "./resumeSkills";
-import { parseMarkdownBlocks } from "../utils/markdown";
+import { parseMarkdownBlocks } from "../utils/markdownBlocks";
 
 const joinMeta = (...parts: string[]) =>
 	parts

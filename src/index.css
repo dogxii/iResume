@@ -77,6 +77,20 @@ body.resume-canvas-pan-ready {
 		width: 210mm;
 		pointer-events: none;
 	}
+
+	.iresume-export-page {
+		width: 210mm;
+		min-height: 297mm;
+		background: white;
+	}
+}
+
+.iresume-export-error {
+	max-width: 680px;
+	margin: 48px auto;
+	padding: 24px;
+	color: #0f172a;
+	font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* =====================================================
