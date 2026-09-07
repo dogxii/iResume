@@ -29,6 +29,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && npm run build:app && npm run build:cli",
+		"build:web": "tsc -b && vite build",
 		"build:app": "vite build",
 		"build:cli": "npm run build --workspace iresume-cli",
 		"lint": "eslint .",
