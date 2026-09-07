@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSkillDisplayRows } from "./resumeSkills";
+import { getSkillDisplayRows, getSkillsEditorText } from "./resumeSkills";
 
 describe("resume skill display rows", () => {
 	it("parses category rows from markdown list lines", () => {
@@ -28,5 +28,13 @@ describe("resume skill display rows", () => {
 				},
 			]),
 		).toEqual([]);
+	});
+
+	it("preserves whitespace at the end of free-form editor input", () => {
+		const content = "- 熟悉 TypeScript \n\n";
+
+		expect(
+			getSkillsEditorText([{ id: 1, label: "", content }]),
+		).toBe(content);
 	});
 });

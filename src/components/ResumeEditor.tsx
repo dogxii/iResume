@@ -58,7 +58,7 @@ import {
   OPTIONAL_STANDARD_SECTION_KEYS,
   STANDARD_SECTION_KEYS,
 } from '../data/resumeData'
-import { formatSkillsAsMarkdown } from '../data/resumeSkills'
+import { getSkillsEditorText } from '../data/resumeSkills'
 import type {
   EntryRoleColor,
   EntryRolePosition,
@@ -980,7 +980,7 @@ const ResumeEditor = ({
     onChange({ ...data, personal: { ...data.personal, [key]: value } })
   }
 
-  const getSkillsText = () => formatSkillsAsMarkdown(data.skills)
+  const getSkillsText = () => getSkillsEditorText(data.skills)
 
   const updateSkillsText = (content: string) => {
     const existingSkill = data.skills[0]

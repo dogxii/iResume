@@ -77,3 +77,13 @@ export const formatSkillsAsMarkdown = (
 		})
 		.filter(Boolean)
 		.join("\n");
+
+// Keep free-form editor input lossless. Formatting is only appropriate for
+// rendering, because it deliberately removes whitespace that can be meaningful
+// while a user is typing.
+export const getSkillsEditorText = (skills: SkillItem[]) => {
+	const [skill] = skills;
+	if (skills.length === 1 && skill?.label === "") return skill.content;
+
+	return formatSkillsAsMarkdown(skills);
+};
