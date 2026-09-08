@@ -11,13 +11,14 @@ describe('resume section icon appearance', () => {
       sectionIconNames: {
         skills: 'rocket',
         experience: 'not-an-icon',
+        projects: 'lucide:Github',
       },
       sectionIconSizePx: 19,
     })
 
     expect(appearance.sectionIconNames.skills).toBe('rocket')
     expect(appearance.sectionIconNames.experience).toBe('briefcase')
-    expect(appearance.sectionIconNames.projects).toBe('folder')
+    expect(appearance.sectionIconNames.projects).toBe('lucide:Github')
     expect(appearance.sectionIconSizePx).toBe(13)
   })
 

@@ -113,7 +113,14 @@ export const SECTION_ICON_NAMES = [
   'star',
 ] as const
 
-export type SectionIconName = (typeof SECTION_ICON_NAMES)[number]
+export const LUCIDE_ICON_NAME_PREFIX = 'lucide:' as const
+
+export type PresetSectionIconName = (typeof SECTION_ICON_NAMES)[number]
+
+// 常用图标使用预设名称；从图标库选择的其他 Lucide 图标以 lucide: 前缀保存。
+export type SectionIconName =
+  | PresetSectionIconName
+  | `${typeof LUCIDE_ICON_NAME_PREFIX}${string}`
 
 // 控制各区块标题所使用的 Lucide 图标
 export type SectionIconSelection = Record<StandardSectionKey, SectionIconName> &

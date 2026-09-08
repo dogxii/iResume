@@ -21,7 +21,6 @@ import {
   ArrowUp,
   BriefcaseBusiness,
   Calendar,
-  ChevronDown,
   Eye,
   EyeOff,
   FileText,
@@ -42,7 +41,9 @@ import {
 } from 'lucide-react'
 import {
   type ChangeEvent,
+  lazy,
   type ReactNode,
+  Suspense,
   useEffect,
   useId,
   useLayoutEffect,
@@ -129,13 +130,17 @@ import {
 import FontFamilyControl from './FontFamilyControl'
 import {
   getResumeSectionIcon,
-  getSectionIconComponent,
+  getSectionIconLabel,
   getSectionIconName,
-  sectionIconOptions,
+  SectionIconGlyph,
 } from './resumeSectionIcons'
 import TemplatePicker from './TemplatePicker'
 import ToggleSwitch from './ToggleSwitch'
 import { useAdaptiveMenuPlacement } from './useAdaptiveMenuPlacement'
+
+const SectionIconLibraryDialog = lazy(
+  () => import('./SectionIconLibraryDialog')
+)
 
 export type ResumeEditorPanel = 'structure' | 'details'
 
@@ -566,66 +571,38 @@ const SectionIconPicker = ({
   value: SectionIconName
   onChange: (value: SectionIconName) => void
 }) => {
-  const [open, setOpen] = useState(false)
-  const selected =
-    sectionIconOptions.find((option) => option.value === value) ??
-    sectionIconOptions[0]
-  const SelectedIcon = getSectionIconComponent(selected.value)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   return (
-    <div className='rounded-md border border-slate-100 bg-white/60 p-2.5'>
-      <div className='flex items-center justify-between gap-3'>
-        <span className='text-xs text-slate-500'>区块图标</span>
-        <button
-          type='button'
-          onClick={() => setOpen((current) => !current)}
-          className='flex h-8 min-w-28 items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900'
-          aria-expanded={open}
-          aria-label='选择区块图标'
-        >
-          <span className='flex items-center gap-1.5'>
-            <SelectedIcon size={15} aria-hidden='true' />
-            {selected.label}
-          </span>
-          <ChevronDown
-            size={14}
-            className={`text-slate-400 transition-transform ${
-              open ? 'rotate-180' : ''
-            }`}
-            aria-hidden='true'
-          />
-        </button>
+    <>
+      <div className='rounded-md border border-slate-100 bg-white/60 p-2.5'>
+        <div className='flex items-center justify-between gap-3'>
+          <span className='text-xs text-slate-500'>区块图标</span>
+          <button
+            type='button'
+            onClick={() => setLibraryOpen(true)}
+            className='flex h-8 min-w-28 items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900'
+            aria-haspopup='dialog'
+            aria-label='打开区块图标库'
+          >
+            <span className='flex items-center gap-1.5'>
+              <SectionIconGlyph name={value} size={15} />
+              {getSectionIconLabel(value)}
+            </span>
+            <span className='text-[10px] font-normal text-slate-400'>选择</span>
+          </button>
+        </div>
       </div>
-      {open && (
-        <fieldset className='mt-2 grid grid-cols-4 gap-1 border-0 border-t border-slate-100 p-0 pt-2'>
-          <legend className='sr-only'>Lucide 区块图标库</legend>
-          {sectionIconOptions.map((option) => {
-            const Icon = getSectionIconComponent(option.value)
-            const active = option.value === value
-            return (
-              <button
-                key={option.value}
-                type='button'
-                onClick={() => {
-                  onChange(option.value)
-                  setOpen(false)
-                }}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md border text-[10px] transition ${
-                  active
-                    ? 'border-blue-200 bg-blue-50 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-                aria-pressed={active}
-                title={`选择${option.label}图标`}
-              >
-                <Icon size={17} aria-hidden='true' />
-                {option.label}
-              </button>
-            )
-          })}
-        </fieldset>
+      {libraryOpen && (
+        <Suspense fallback={null}>
+          <SectionIconLibraryDialog
+            selected={value}
+            onSelect={onChange}
+            onClose={() => setLibraryOpen(false)}
+          />
+        </Suspense>
       )}
-    </div>
+    </>
   )
 }
 

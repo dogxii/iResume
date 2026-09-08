@@ -352,9 +352,12 @@ export const getDefaultSectionIconNames = (): SectionIconSelection => ({
   ...defaultSectionIconNames,
 })
 
+const dynamicLucideIconNamePattern = /^lucide:[A-Za-z0-9]+$/
+
 export const isSectionIconName = (value: unknown): value is SectionIconName =>
   typeof value === 'string' &&
-  SECTION_ICON_NAMES.includes(value as SectionIconName)
+  (SECTION_ICON_NAMES.includes(value as (typeof SECTION_ICON_NAMES)[number]) ||
+    dynamicLucideIconNamePattern.test(value))
 
 export function normalizeSectionIconNames(
   value: unknown,
