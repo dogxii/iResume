@@ -19,10 +19,6 @@
 
 https://resume.dogxi.me
 
-![iResume 预览](./docs/screenshot.webp)
-
-(截图为经典布局，支持 11 种布局与自定义主题色)
-
 ## 📚 简介
 
 iResume 是一款本地优先的在线简历生成器。它把简历库、结构化编辑、实时预览、外观微调、分页检查和导出能力放在一个轻量工作台里，适合快速维护多份投递版本。
@@ -62,22 +58,6 @@ npm run build
 npm run preview
 ```
 
-## 命令行导出
-
-iResume 提供独立的 `iresume-cli`，可供 AI 或自动化流程从 JSON 导出简历，不需要保留本仓库目录：
-
-```bash
-npm i -g iresume-cli
-iresume validate ./resume.json
-iresume export ./resume.json --out ./preview --format pdf,png,markdown,json
-```
-
-`export` 会生成 `resume.pdf`、`resume.png` 和 `report.json`。如果首次导出提示缺少 Chromium，可运行：
-
-```bash
-npx playwright install chromium
-```
-
 ## 🧭 使用提示
 
 - 导出 PDF 时建议关闭浏览器页眉页脚，并开启背景图形
@@ -86,7 +66,7 @@ npx playwright install chromium
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React
+React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React · Biome
 
 ## 💰 赞赏项目
 

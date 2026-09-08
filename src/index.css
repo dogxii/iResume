@@ -2,255 +2,257 @@
 
 /* 下拉面板动画 */
 @keyframes fadeSlideIn {
-	from {
-		opacity: 0;
-		transform: translateY(-4px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 自定义滚动条样式 */
 .custom-scrollbar {
-	scrollbar-width: thin;
-	scrollbar-color: rgb(148 163 184 / 28%) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 28%) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-	width: 5px;
+  width: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-	background: transparent;
+  background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-	background: rgb(148 163 184 / 0%);
-	border-radius: 999px;
+  background: rgb(148 163 184 / 0%);
+  border-radius: 999px;
 }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: rgb(148 163 184 / 35%);
+  background: rgb(148 163 184 / 35%);
 }
 
 .scrollbar-none {
-	scrollbar-width: none;
-	-ms-overflow-style: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .scrollbar-none::-webkit-scrollbar {
-	display: none;
+  display: none;
 }
 
 html.resume-canvas-pan-ready,
 body.resume-canvas-pan-ready {
-	overflow: hidden;
+  overflow: hidden;
 }
 
 .canvas-pan-ready,
 .canvas-pan-ready * {
-	cursor: grab !important;
+  cursor: grab !important;
 }
 
 .canvas-panning,
 .canvas-panning * {
-	cursor: grabbing !important;
-	user-select: none !important;
+  cursor: grabbing !important;
+  user-select: none !important;
 }
 
 @media screen and (max-width: 767px) {
-	input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
-			[type="file"]
-		),
-	textarea,
-	select {
-		font-size: 16px !important;
-		line-height: 1.5;
-	}
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="file"]
+  ),
+  textarea,
+  select {
+    font-size: 16px !important;
+    line-height: 1.5;
+  }
 }
 
 @media screen {
-	.resume-print-source {
-		position: fixed;
-		top: 0;
-		left: -10000px;
-		width: 210mm;
-		pointer-events: none;
-	}
+  .resume-print-source {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    width: 210mm;
+    pointer-events: none;
+  }
 
-	.iresume-export-page {
-		width: 210mm;
-		min-height: 297mm;
-		background: white;
-	}
+  .iresume-export-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+  }
 }
 
 .iresume-export-error {
-	max-width: 680px;
-	margin: 48px auto;
-	padding: 24px;
-	color: #0f172a;
-	font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 680px;
+  margin: 48px auto;
+  padding: 24px;
+  color: #0f172a;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 /* =====================================================
    打印 / 保存 PDF 样式
    ===================================================== */
 @media print {
-	/* ── 页面尺寸 ──────────────────────────────────
+  /* ── 页面尺寸 ──────────────────────────────────
 	   纸张不使用浏览器页边距。简历根容器负责正文留白，
 	   这样 banner 主题可以真正铺满页面左右。             */
-	@page {
-		size: A4;
-		margin: 0;
-	}
+  @page {
+    size: A4;
+    margin: 0;
+  }
 
-	/* ── 全局基底 ─────────────────────────────────── */
-	*,
-	*::before,
-	*::after {
-		-webkit-print-color-adjust: exact !important;
-		print-color-adjust: exact !important;
-	}
+  /* ── 全局基底 ─────────────────────────────────── */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 
-	html,
-	body {
-		background: white !important;
-		margin: 0 !important;
-		padding: 0 !important;
-		width: 100% !important;
-		height: auto !important;
-	}
+  html,
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
 
-	/* ── 隐藏非简历元素 ──────────────────────────── */
-	.print\:hidden {
-		display: none !important;
-	}
+  /* ── 隐藏非简历元素 ──────────────────────────── */
+  .print\:hidden {
+    display: none !important;
+  }
 
-	/* ── 让所有包裹容器"透明化" ──────────────────────
+  /* ── 让所有包裹容器"透明化" ──────────────────────
 	   打印时把 App 层、main 层、预览外壳全部压平，
 	   不让任何固定宽高的盒子影响分页。                 */
 
-	/* 桌面端外壳（hidden md:block） */
-	.print\:block {
-		display: block !important;
-	}
+  /* 桌面端外壳（hidden md:block） */
+  .print\:block {
+    display: block !important;
+  }
 
-	/* main 布局容器 */
-	.print\:h-auto {
-		height: auto !important;
-	}
-	.print\:max-w-none {
-		max-width: none !important;
-	}
+  /* main 布局容器 */
+  .print\:h-auto {
+    height: auto !important;
+  }
+  .print\:max-w-none {
+    max-width: none !important;
+  }
 
-	/* 右侧灰色预览区域：去掉背景色、内边距、overflow */
-	.print\:p-0 {
-		padding: 0 !important;
-	}
-	.print\:pb-0 {
-		padding-bottom: 0 !important;
-	}
-	.print\:bg-white {
-		background: white !important;
-	}
-	.print\:overflow-visible {
-		overflow: visible !important;
-	}
+  /* 右侧灰色预览区域：去掉背景色、内边距、overflow */
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  .print\:pb-0 {
+    padding-bottom: 0 !important;
+  }
+  .print\:bg-white {
+    background: white !important;
+  }
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
 
-	/* A4 纸张容器：去掉固定宽高和阴影，让内容自由流动 */
-	.resume-canvas-inner {
-		min-width: 0 !important;
-		padding: 0 !important;
-	}
+  /* A4 纸张容器：去掉固定宽高和阴影，让内容自由流动 */
+  .resume-canvas-inner {
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
 
-	.resume-screen-preview {
-		display: none !important;
-	}
+  .resume-screen-preview {
+    display: none !important;
+  }
 
-	.resume-preview-scale-shell {
-		width: auto !important;
-		height: auto !important;
-	}
+  .resume-preview-scale-shell {
+    width: auto !important;
+    height: auto !important;
+  }
 
-	.resume-preview-scale {
-		transform: none !important;
-		width: auto !important;
-		min-height: 0 !important;
-	}
+  .resume-preview-scale {
+    transform: none !important;
+    width: auto !important;
+    min-height: 0 !important;
+  }
 
-	.resume-paged-visual {
-		display: none !important;
-	}
+  .resume-paged-visual {
+    display: none !important;
+  }
 
-	.resume-print-source {
-		position: static !important;
-		top: auto !important;
-		left: auto !important;
-		display: block !important;
-		width: 210mm !important;
-		max-width: 210mm !important;
-		margin: 0 !important;
-		pointer-events: auto !important;
-	}
+  .resume-print-source {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    display: block !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+  }
 
-	.print\:shadow-none {
-		box-shadow: none !important;
-	}
-	.print\:w-full {
-		width: 100% !important;
-		max-width: none !important;
-	}
-	.print\:min-h-0 {
-		min-height: 0 !important;
-	}
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  .print\:w-full {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .print\:min-h-0 {
+    min-height: 0 !important;
+  }
 
-	/* ── ResumePreview 根元素 ──────────────────────
+  /* ── ResumePreview 根元素 ──────────────────────
 	   @page 保持 0 边距，根元素在每个分页片段复制 padding，
 	   让正文每页都有留白，同时允许 banner 抵消留白铺满宽度。 */
-	.resume-print-root {
-		box-sizing: border-box !important;
-		padding: var(--resume-page-margin) !important;
-		min-height: 0 !important;
-		width: 210mm !important;
-		max-width: 210mm !important;
-		background: white !important;
-		box-shadow: none !important;
-		-webkit-box-decoration-break: clone;
-		box-decoration-break: clone;
-	}
+  .resume-print-root {
+    box-sizing: border-box !important;
+    padding: var(--resume-page-margin) !important;
+    min-height: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    background: white !important;
+    box-shadow: none !important;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
 
-	.resume-banner-header {
-		margin-top: calc(var(--resume-page-margin) * -1) !important;
-		margin-right: calc(var(--resume-page-margin) * -1) !important;
-		margin-left: calc(var(--resume-page-margin) * -1) !important;
-		overflow: visible !important;
-	}
+  .resume-banner-header {
+    margin-top: calc(var(--resume-page-margin) * -1) !important;
+    margin-right: calc(var(--resume-page-margin) * -1) !important;
+    margin-left: calc(var(--resume-page-margin) * -1) !important;
+    overflow: visible !important;
+  }
 
-	.resume-banner-inner {
-		box-sizing: border-box !important;
-		padding-right: var(--resume-page-margin) !important;
-		padding-left: var(--resume-page-margin) !important;
-	}
+  .resume-banner-inner {
+    box-sizing: border-box !important;
+    padding-right: var(--resume-page-margin) !important;
+    padding-left: var(--resume-page-margin) !important;
+  }
 
-	/* ── 分页策略 ──────────────────────────────────
+  /* ── 分页策略 ──────────────────────────────────
 	   预览和打印保持一致：内容自然流动，
 	   页面在固定 A4 边界处断开。
 	   不使用 break-inside / break-after 保护，
 	   确保预览所见即打印所得。                            */
 
-	.print-timeline-item {
-		margin-left: 0.375rem;
-		overflow: visible !important;
-	}
+  .print-timeline-item {
+    margin-left: 0.375rem;
+    overflow: visible !important;
+  }
 
-	.print-timeline-dot {
-		left: -0.3125rem !important;
-	}
+  .print-timeline-dot {
+    left: -0.3125rem !important;
+  }
 
-	.print-card-item {
-		overflow: visible !important;
-	}
+  .print-card-item {
+    overflow: visible !important;
+  }
 }
 
 /* =====================================================
@@ -260,104 +262,104 @@ body.resume-canvas-pan-ready {
    不使用 break-all，避免影响中文文本的正常排版。
    ===================================================== */
 .resume-content {
-	--resume-page-margin: 32px;
-	--resume-base-font-size: 16px;
-	--resume-section-title-font-size: 20px;
-	--resume-item-title-font-size: 16px;
-	--resume-paragraph-spacing: 12px;
-	--resume-line-height: 1.5;
-	--resume-accent: #2563eb;
-	--resume-accent-hover: #1d4ed8;
-	--resume-accent-soft: #eff6ff;
-	--resume-accent-soft-border: #bfdbfe;
-	--resume-accent-banner: #1e293b;
-	--resume-accent-banner-text: #fbbf24;
-	overflow-wrap: break-word;
-	word-break: break-word;
-	font-size: var(--resume-base-font-size);
-	line-height: var(--resume-line-height);
+  --resume-page-margin: 32px;
+  --resume-base-font-size: 16px;
+  --resume-section-title-font-size: 20px;
+  --resume-item-title-font-size: 16px;
+  --resume-paragraph-spacing: 12px;
+  --resume-line-height: 1.5;
+  --resume-accent: #2563eb;
+  --resume-accent-hover: #1d4ed8;
+  --resume-accent-soft: #eff6ff;
+  --resume-accent-soft-border: #bfdbfe;
+  --resume-accent-banner: #1e293b;
+  --resume-accent-banner-text: #fbbf24;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-size: var(--resume-base-font-size);
+  line-height: var(--resume-line-height);
 }
 
 .resume-accent-text {
-	color: var(--resume-accent);
+  color: var(--resume-accent);
 }
 
 .resume-accent-hover:hover {
-	color: var(--resume-accent-hover);
+  color: var(--resume-accent-hover);
 }
 
 .resume-accent-soft-bg {
-	background-color: var(--resume-accent-soft);
+  background-color: var(--resume-accent-soft);
 }
 
 .resume-accent-border {
-	border-color: var(--resume-accent);
+  border-color: var(--resume-accent);
 }
 
 .resume-accent-soft-border {
-	border-color: var(--resume-accent-soft-border);
+  border-color: var(--resume-accent-soft-border);
 }
 
 .resume-accent-banner-bg {
-	background-color: var(--resume-accent-banner);
+  background-color: var(--resume-accent-banner);
 }
 
 .resume-accent-banner-text {
-	color: var(--resume-accent-banner-text);
+  color: var(--resume-accent-banner-text);
 }
 
 .resume-banner-header {
-	margin-top: calc(var(--resume-page-margin) * -1);
-	margin-right: calc(var(--resume-page-margin) * -1);
-	margin-left: calc(var(--resume-page-margin) * -1);
+  margin-top: calc(var(--resume-page-margin) * -1);
+  margin-right: calc(var(--resume-page-margin) * -1);
+  margin-left: calc(var(--resume-page-margin) * -1);
 }
 
 .resume-banner-inner {
-	padding: calc(var(--resume-page-margin) * 0.65) var(--resume-page-margin)
-		calc(var(--resume-page-margin) * 0.6);
+  padding: calc(var(--resume-page-margin) * 0.65) var(--resume-page-margin)
+    calc(var(--resume-page-margin) * 0.6);
 }
 
 @media screen {
-	.resume-editable-section {
-		border-radius: 2px;
-		cursor: pointer;
-		outline: 1px solid transparent;
-		outline-offset: 5px;
-		transition: outline-color 120ms ease;
-	}
+  .resume-editable-section {
+    border-radius: 2px;
+    cursor: pointer;
+    outline: 1px solid transparent;
+    outline-offset: 5px;
+    transition: outline-color 120ms ease;
+  }
 
-	.resume-editable-section:hover {
-		outline-color: rgb(59 130 246 / 18%);
-	}
+  .resume-editable-section:hover {
+    outline-color: rgb(59 130 246 / 18%);
+  }
 }
 
 .resume-content .text-xs {
-	font-size: calc(var(--resume-base-font-size) * 0.82);
+  font-size: calc(var(--resume-base-font-size) * 0.82);
 }
 
 .resume-content .text-sm,
 .resume-content .text-base {
-	font-size: var(--resume-base-font-size);
+  font-size: var(--resume-base-font-size);
 }
 
 .resume-content .text-lg {
-	font-size: calc(var(--resume-base-font-size) * 1.1);
+  font-size: calc(var(--resume-base-font-size) * 1.1);
 }
 
 .resume-content .text-3xl {
-	font-size: calc(var(--resume-base-font-size) * 1.75);
+  font-size: calc(var(--resume-base-font-size) * 1.75);
 }
 
 .resume-content .text-\[11px\] {
-	font-size: calc(var(--resume-base-font-size) * 0.75);
+  font-size: calc(var(--resume-base-font-size) * 0.75);
 }
 
 .resume-content .resume-section-title {
-	font-size: var(--resume-section-title-font-size) !important;
+  font-size: var(--resume-section-title-font-size) !important;
 }
 
 .resume-content .resume-item-title {
-	font-size: var(--resume-item-title-font-size) !important;
+  font-size: var(--resume-item-title-font-size) !important;
 }
 
 .resume-content .resume-paragraph-block,
@@ -366,19 +368,19 @@ body.resume-canvas-pan-ready {
 .resume-content .print-item-header,
 .resume-content .print-edu-item,
 .resume-content .print-skill-row {
-	line-height: var(--resume-line-height) !important;
+  line-height: var(--resume-line-height) !important;
 }
 
 .resume-content .resume-paragraph-block,
 .resume-content .resume-markdown-list {
-	margin-bottom: var(--resume-paragraph-spacing) !important;
+  margin-bottom: var(--resume-paragraph-spacing) !important;
 }
 
 .resume-content .resume-paragraph-block:last-child,
 .resume-content .resume-markdown-list:last-child {
-	margin-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .resume-content .resume-markdown-list > li + li {
-	margin-top: calc(var(--resume-paragraph-spacing) * 0.36);
+  margin-top: calc(var(--resume-paragraph-spacing) * 0.36);
 }

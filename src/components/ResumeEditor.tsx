@@ -227,7 +227,7 @@ const readFileAsCompressedPhoto = (file: File) =>
         const scale = Math.min(
           1,
           RESUME_PHOTO_MAX_EDGE_PX / sourceWidth,
-          RESUME_PHOTO_MAX_EDGE_PX / sourceHeight,
+          RESUME_PHOTO_MAX_EDGE_PX / sourceHeight
         )
         const width = Math.max(1, Math.round(sourceWidth * scale))
         const height = Math.max(1, Math.round(sourceHeight * scale))
@@ -467,10 +467,10 @@ const SegmentedControl = <T extends string | number>({
 const getAdjacentNumberOption = <T extends number>(
   options: readonly T[],
   value: T,
-  direction: 'smaller' | 'larger',
+  direction: 'smaller' | 'larger'
 ) => {
   const sortedOptions = [...options].sort((a, b) => a - b)
-  const currentIndex = sortedOptions.findIndex((option) => option === value)
+  const currentIndex = sortedOptions.indexOf(value)
   const index =
     currentIndex >= 0
       ? currentIndex
@@ -629,15 +629,27 @@ const ToggleControl = ({
   checked: boolean
   onChange: (checked: boolean) => void
   icon?: ReactNode
-}) => (
-  <label className='flex w-full items-center justify-between gap-2'>
-    <span className='flex items-center gap-1.5 text-xs text-slate-500'>
-      {icon && <span className='text-slate-300'>{icon}</span>}
-      {label}
-    </span>
-    <ToggleSwitch checked={checked} label={label} onChange={onChange} />
-  </label>
-)
+}) => {
+  const inputId = useId()
+
+  return (
+    <label
+      htmlFor={inputId}
+      className='flex w-full items-center justify-between gap-2'
+    >
+      <span className='flex items-center gap-1.5 text-xs text-slate-500'>
+        {icon && <span className='text-slate-300'>{icon}</span>}
+        {label}
+      </span>
+      <ToggleSwitch
+        id={inputId}
+        checked={checked}
+        label={label}
+        onChange={onChange}
+      />
+    </label>
+  )
+}
 
 const panelBlockClass = 'border-b border-slate-200 p-4 last:border-b-0'
 type SectionEntryTextKey = keyof Omit<SectionEntry, 'id'>
@@ -801,7 +813,7 @@ const PhotoField = ({
   const usesEmbeddedPhoto = isEmbeddedResumePhotoUrl(trimmedValue)
 
   const handlePhotoFileChange = async (
-    event: ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0]
     event.currentTarget.value = ''
@@ -812,7 +824,7 @@ const PhotoField = ({
       onChange(await readFileAsCompressedPhoto(file))
     } catch (uploadError) {
       setError(
-        uploadError instanceof Error ? uploadError.message : '照片导入失败',
+        uploadError instanceof Error ? uploadError.message : '照片导入失败'
       )
     }
   }
@@ -937,7 +949,7 @@ const ResumeEditor = ({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   )
 
   const reorderArray = <T,>(arr: T[], from: number, to: number): T[] => {
@@ -965,7 +977,7 @@ const ResumeEditor = ({
       field: keyof Pick<
         ResumeData,
         'skills' | 'experience' | 'projects' | 'education' | 'awards' | 'campus'
-      >,
+      >
     ) =>
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -1018,7 +1030,7 @@ const ResumeEditor = ({
 
     if (isCustomSectionKey(key)) {
       nextData.customSections = data.customSections.map((section) =>
-        section.id === key ? { ...section, title: value } : section,
+        section.id === key ? { ...section, title: value } : section
       )
     }
 
@@ -1029,7 +1041,7 @@ const ResumeEditor = ({
     onChange({
       ...data,
       customSections: data.customSections.map((section) =>
-        section.id === key ? { ...section, content: value } : section,
+        section.id === key ? { ...section, content: value } : section
       ),
     })
   }
@@ -1045,8 +1057,8 @@ const ResumeEditor = ({
     onSectionIconsChange(
       data.sectionOrder.reduce(
         (result, key) => ({ ...result, [key]: visible }),
-        { ...sectionIcons },
-      ),
+        { ...sectionIcons }
+      )
     )
   }
 
@@ -1106,7 +1118,7 @@ const ResumeEditor = ({
       nextData = {
         ...nextData,
         customSections: data.customSections.filter(
-          (section) => section.id !== key,
+          (section) => section.id !== key
         ),
         sectionTitles: nextTitles,
         sectionVisibility: nextVisibility,
@@ -1121,7 +1133,7 @@ const ResumeEditor = ({
   }
 
   const updatePersonalPreferences = (
-    patch: Partial<ResumeSectionPreferences['personal']>,
+    patch: Partial<ResumeSectionPreferences['personal']>
   ) => {
     onSectionPreferencesChange({
       ...sectionPreferences,
@@ -1134,7 +1146,7 @@ const ResumeEditor = ({
 
   const updateSectionPreferences = <K extends keyof ResumeSectionPreferences>(
     key: K,
-    patch: Partial<ResumeSectionPreferences[K]>,
+    patch: Partial<ResumeSectionPreferences[K]>
   ) => {
     onSectionPreferencesChange({
       ...sectionPreferences,
@@ -1146,7 +1158,7 @@ const ResumeEditor = ({
   }
 
   const allSectionIconsVisible = data.sectionOrder.every(
-    (key) => sectionIcons[key] !== false,
+    (key) => sectionIcons[key] !== false
   )
 
   useEffect(() => {
@@ -1172,7 +1184,7 @@ const ResumeEditor = ({
     onChange({
       ...data,
       education: data.education.map((education) =>
-        education.id === id ? { ...education, [key]: value } : education,
+        education.id === id ? { ...education, [key]: value } : education
       ),
     })
   }
@@ -1203,19 +1215,19 @@ const ResumeEditor = ({
     section: 'awards' | 'campus',
     id: number,
     key: SectionEntryTextKey,
-    value: string,
+    value: string
   ) => {
     onChange({
       ...data,
       [section]: data[section].map((item) =>
-        item.id === id ? { ...item, [key]: value } : item,
+        item.id === id ? { ...item, [key]: value } : item
       ),
     })
   }
 
   const addSectionEntry = (
     section: 'awards' | 'campus',
-    template: Omit<SectionEntry, 'id'>,
+    template: Omit<SectionEntry, 'id'>
   ) => {
     onChange({
       ...data,
@@ -1234,19 +1246,19 @@ const ResumeEditor = ({
     section: 'experience' | 'projects',
     id: number,
     key: keyof T,
-    value: string,
+    value: string
   ) => {
     onChange({
       ...data,
       [section]: data[section].map((item) =>
-        item.id === id ? { ...item, [key]: value } : item,
+        item.id === id ? { ...item, [key]: value } : item
       ),
     })
   }
 
   const addItem = <T extends Experience | Project>(
     section: 'experience' | 'projects',
-    template: Omit<T, 'id'>,
+    template: Omit<T, 'id'>
   ) => {
     onChange({
       ...data,
@@ -1264,7 +1276,7 @@ const ResumeEditor = ({
   const moveItem = <T extends { id: number }>(
     arr: T[],
     index: number,
-    direction: 'up' | 'down',
+    direction: 'up' | 'down'
   ): T[] => {
     const next = [...arr]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
@@ -1294,7 +1306,7 @@ const ResumeEditor = ({
   const moveSectionEntry = (
     section: 'awards' | 'campus',
     index: number,
-    direction: 'up' | 'down',
+    direction: 'up' | 'down'
   ) => {
     onChange({
       ...data,
@@ -1342,7 +1354,7 @@ const ResumeEditor = ({
     switch (key) {
       case 'skills':
         return data.skills.some(
-          (skill) => skill.content.trim() || skill.label.trim(),
+          (skill) => skill.content.trim() || skill.label.trim()
         )
           ? '已填写'
           : '空'
@@ -1682,7 +1694,7 @@ const ResumeEditor = ({
 
   const renderAddSectionMenu = () => {
     const addableStandardSections = STANDARD_SECTION_KEYS.filter(
-      (key) => !data.sectionOrder.includes(key),
+      (key) => !data.sectionOrder.includes(key)
     )
 
     return (
@@ -1891,7 +1903,9 @@ const ResumeEditor = ({
             label='布局'
             value={sectionPreferences.skills.layout}
             options={skillLayoutOptions}
-            onChange={(layout) => updateSectionPreferences('skills', { layout })}
+            onChange={(layout) =>
+              updateSectionPreferences('skills', { layout })
+            }
             icon={<Wrench size={12} />}
           />
         )
@@ -2158,7 +2172,7 @@ const ResumeEditor = ({
                             'experience',
                             experience.id,
                             'company',
-                            value,
+                            value
                           )
                         }
                       />
@@ -2171,7 +2185,7 @@ const ResumeEditor = ({
                               'experience',
                               experience.id,
                               'role',
-                              value,
+                              value
                             )
                           }
                         />
@@ -2183,7 +2197,7 @@ const ResumeEditor = ({
                               'experience',
                               experience.id,
                               'date',
-                              value,
+                              value
                             )
                           }
                         />
@@ -2197,7 +2211,7 @@ const ResumeEditor = ({
                             'experience',
                             experience.id,
                             'details',
-                            value,
+                            value
                           )
                         }
                         placeholder={'- 主导核心模块重构\n普通补充说明'}
@@ -2290,7 +2304,7 @@ const ResumeEditor = ({
                             'projects',
                             project.id,
                             'name',
-                            value,
+                            value
                           )
                         }
                       />
@@ -2302,7 +2316,7 @@ const ResumeEditor = ({
                             'projects',
                             project.id,
                             'role',
-                            value,
+                            value
                           )
                         }
                         placeholder='例：前端负责人'
@@ -2316,7 +2330,7 @@ const ResumeEditor = ({
                               'projects',
                               project.id,
                               'tags',
-                              value,
+                              value
                             )
                           }
                         />
@@ -2328,7 +2342,7 @@ const ResumeEditor = ({
                               'projects',
                               project.id,
                               'date',
-                              value,
+                              value
                             )
                           }
                           placeholder='例：2024.03'
@@ -2343,7 +2357,7 @@ const ResumeEditor = ({
                               'projects',
                               project.id,
                               'link',
-                              value,
+                              value
                             )
                           }
                           placeholder='不带 https://'
@@ -2356,7 +2370,7 @@ const ResumeEditor = ({
                               'projects',
                               project.id,
                               'source',
-                              value,
+                              value
                             )
                           }
                           placeholder='不带 https://'
@@ -2371,7 +2385,7 @@ const ResumeEditor = ({
                             'projects',
                             project.id,
                             'description',
-                            value,
+                            value
                           )
                         }
                         placeholder={'- 完成核心功能设计与落地\n普通补充说明'}
@@ -2564,7 +2578,7 @@ const ResumeEditor = ({
                                 section,
                                 item.id,
                                 'subtitle',
-                                value,
+                                value
                               )
                             }
                             placeholder={subtitlePlaceholder}
@@ -2577,7 +2591,7 @@ const ResumeEditor = ({
                                 section,
                                 item.id,
                                 'date',
-                                value,
+                                value
                               )
                             }
                             placeholder='例：2024.06'
@@ -2592,7 +2606,7 @@ const ResumeEditor = ({
                               section,
                               item.id,
                               'details',
-                              value,
+                              value
                             )
                           }
                           placeholder={'- 负责组织协调与项目交付\n普通补充说明'}
