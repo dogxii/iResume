@@ -1,10 +1,16 @@
-import type { ResumeData, SectionIconVisibility } from '../types/resume'
+import type {
+  ResumeData,
+  SectionIconSelection,
+  SectionIconVisibility,
+} from '../types/resume'
 import type { TemplateId } from '../types/template'
 import { initialResumeState } from './initialData'
 import {
   createSectionIconVisibility,
+  getDefaultSectionIconNames,
   isRecord,
   normalizeResumeData,
+  normalizeSectionIconNames,
   normalizeSectionIconVisibility,
 } from './resumeData'
 import {
@@ -15,6 +21,7 @@ import {
   DEFAULT_RESUME_LINE_HEIGHT,
   DEFAULT_RESUME_PAGE_MARGIN_MM,
   DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+  DEFAULT_RESUME_SECTION_ICON_SIZE_PX,
   DEFAULT_RESUME_SECTION_SPACING,
   DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
   DEFAULT_SECTION_PREFERENCES,
@@ -25,6 +32,7 @@ import {
   normalizeResumeLineHeight,
   normalizeResumePageMargin,
   normalizeResumeParagraphSpacing,
+  normalizeResumeSectionIconSize,
   normalizeResumeSectionPreferences,
   normalizeResumeSectionSpacing,
   normalizeResumeSectionTitleFontSize,
@@ -34,6 +42,7 @@ import {
   type ResumeLineHeight,
   type ResumePageMarginMm,
   type ResumeParagraphSpacingPx,
+  type ResumeSectionIconSize,
   type ResumeSectionPreferences,
   type ResumeSectionSpacing,
   type ResumeSectionTitleFontSizePx,
@@ -56,6 +65,8 @@ export interface ResumeAppearance {
   sectionSpacing: ResumeSectionSpacing
   paragraphSpacingPx: ResumeParagraphSpacingPx
   sectionIcons: SectionIconVisibility
+  sectionIconNames: SectionIconSelection
+  sectionIconSizePx: ResumeSectionIconSize
   sectionPreferences: ResumeSectionPreferences
 }
 
@@ -132,6 +143,8 @@ export function normalizeResumeAppearance(
   const accentFallback = fallback?.accentColor ?? DEFAULT_RESUME_ACCENT_COLOR
   const fallbackIcons =
     fallback?.sectionIcons ?? getDefaultSectionIconVisibility()
+  const fallbackIconNames =
+    fallback?.sectionIconNames ?? getDefaultSectionIconNames()
 
   return {
     templateId,
@@ -174,6 +187,15 @@ export function normalizeResumeAppearance(
       raw.sectionIcons,
       fallbackIcons
     ),
+    sectionIconNames: normalizeSectionIconNames(
+      raw.sectionIconNames,
+      fallbackIconNames
+    ),
+    sectionIconSizePx: normalizeResumeSectionIconSize(
+      raw.sectionIconSizePx ??
+        fallback?.sectionIconSizePx ??
+        DEFAULT_RESUME_SECTION_ICON_SIZE_PX
+    ),
     sectionPreferences: normalizeResumeSectionPreferences(
       raw.sectionPreferences,
       fallback?.sectionPreferences ?? DEFAULT_SECTION_PREFERENCES
@@ -199,6 +221,8 @@ export function createResumeDocument(
     sectionSpacing: DEFAULT_RESUME_SECTION_SPACING,
     paragraphSpacingPx: DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
     sectionIcons: createSectionIconVisibility(false),
+    sectionIconNames: getDefaultSectionIconNames(),
+    sectionIconSizePx: DEFAULT_RESUME_SECTION_ICON_SIZE_PX,
     sectionPreferences: DEFAULT_SECTION_PREFERENCES,
   })
   const personalName = data.personal.name.trim()

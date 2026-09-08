@@ -203,6 +203,8 @@ const ResumeThumbnail = ({
           sectionSpacing={document.appearance.sectionSpacing}
           paragraphSpacingPx={document.appearance.paragraphSpacingPx}
           sectionIcons={document.appearance.sectionIcons}
+          sectionIconNames={document.appearance.sectionIconNames}
+          sectionIconSizePx={document.appearance.sectionIconSizePx}
           sectionPreferences={document.appearance.sectionPreferences}
           minPageCount={1}
         />
@@ -274,6 +276,8 @@ const FullResumePreview = ({
             sectionSpacing={document.appearance.sectionSpacing}
             paragraphSpacingPx={document.appearance.paragraphSpacingPx}
             sectionIcons={document.appearance.sectionIcons}
+            sectionIconNames={document.appearance.sectionIconNames}
+            sectionIconSizePx={document.appearance.sectionIconSizePx}
             sectionPreferences={document.appearance.sectionPreferences}
             minPageCount={1}
           />

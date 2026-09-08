@@ -24,6 +24,7 @@ import {
   type ResumeLinkStyle,
   type ResumePageMarginMm,
   type ResumeParagraphSpacingPx,
+  type ResumeSectionIconSize,
   type ResumeSectionPreferences,
   type ResumeSectionSpacing,
   type ResumeSectionTitleFontSizePx,
@@ -37,6 +38,7 @@ import type {
   ResumeData,
   ResumeEditableSectionKey,
   SectionEntry,
+  SectionIconSelection,
   SectionIconVisibility,
   SectionKey,
   StandardSectionKey,
@@ -60,6 +62,8 @@ export interface ResumePreviewProps {
   sectionSpacing?: ResumeSectionSpacing
   paragraphSpacingPx?: ResumeParagraphSpacingPx
   sectionIcons?: SectionIconVisibility
+  sectionIconNames?: SectionIconSelection
+  sectionIconSizePx?: ResumeSectionIconSize
   sectionPreferences?: ResumeSectionPreferences
   minPageCount?: number
   contentRef?: React.Ref<HTMLDivElement>
@@ -177,6 +181,8 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
       sectionSpacing,
       paragraphSpacingPx,
       sectionIcons,
+      sectionIconNames,
+      sectionIconSizePx,
       sectionPreferences: sectionPreferencesInput,
       minPageCount = 1,
       contentRef,
@@ -372,7 +378,9 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
 
       return (
         <span className='inline-flex items-center gap-1.5'>
-          <span className={c.muted}>{getResumeSectionIcon(key)}</span>
+          <span className={c.muted}>
+            {getResumeSectionIcon(key, sectionIconNames, sectionIconSizePx)}
+          </span>
           {title}
         </span>
       )

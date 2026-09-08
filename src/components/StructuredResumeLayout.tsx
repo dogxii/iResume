@@ -8,6 +8,7 @@ import {
   hasSkillContent,
 } from '../data/resumeSkills'
 import type {
+  ResumeSectionIconSize,
   ResumeSectionPreferences,
   ResumeSectionSpacing,
 } from '../data/resumeStyle'
@@ -18,6 +19,7 @@ import type {
   ResumeData,
   ResumeEditableSectionKey,
   SectionEntry,
+  SectionIconSelection,
   SectionIconVisibility,
   SectionKey,
   StandardSectionKey,
@@ -31,6 +33,8 @@ import { getResumeSectionIcon } from './resumeSectionIcons'
 interface StructuredResumeLayoutProps {
   data: ResumeData
   sectionIcons?: SectionIconVisibility
+  sectionIconNames?: SectionIconSelection
+  sectionIconSizePx?: ResumeSectionIconSize
   sectionPreferences: ResumeSectionPreferences
   contentRef?: React.Ref<HTMLDivElement>
   onSectionClick?: (section: ResumeEditableSectionKey) => void
@@ -130,6 +134,8 @@ const StructuredResumeLayout = forwardRef<
   {
     data,
     sectionIcons,
+    sectionIconNames,
+    sectionIconSizePx,
     sectionPreferences,
     contentRef,
     onSectionClick,
@@ -318,7 +324,9 @@ const StructuredResumeLayout = forwardRef<
 
     return (
       <span className='inline-flex items-center gap-[0.32em]'>
-        <span className='text-neutral-400'>{getResumeSectionIcon(key)}</span>
+        <span className='text-neutral-400'>
+          {getResumeSectionIcon(key, sectionIconNames, sectionIconSizePx)}
+        </span>
         {title}
       </span>
     )

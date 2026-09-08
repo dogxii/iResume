@@ -19,14 +19,12 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   ArrowDown,
   ArrowUp,
-  Award,
   BriefcaseBusiness,
   Calendar,
+  ChevronDown,
   Eye,
   EyeOff,
   FileText,
-  FolderGit2,
-  GraduationCap,
   GripVertical,
   Image as ImageIcon,
   ImagePlus,
@@ -36,7 +34,6 @@ import {
   MoveHorizontal,
   Plus,
   RotateCcw,
-  School,
   Tags,
   Trash2,
   Upload,
@@ -75,6 +72,7 @@ import type {
   ResumeParagraphSpacingPx,
   ResumePhotoPosition,
   ResumePhotoSizeRatio,
+  ResumeSectionIconSize,
   ResumeSectionPreferences,
   ResumeSectionSpacing,
   ResumeSectionTitleFontSizePx,
@@ -88,6 +86,7 @@ import {
   DEFAULT_RESUME_LINE_HEIGHT,
   DEFAULT_RESUME_PAGE_MARGIN_MM,
   DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+  DEFAULT_RESUME_SECTION_ICON_SIZE_PX,
   DEFAULT_RESUME_SECTION_SPACING,
   DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
   MAX_RESUME_LINE_HEIGHT,
@@ -100,6 +99,7 @@ import {
   RESUME_LINE_HEIGHT_STEP,
   RESUME_PAGE_MARGIN_OPTIONS,
   RESUME_PARAGRAPH_SPACING_OPTIONS,
+  RESUME_SECTION_ICON_SIZE_OPTIONS,
   RESUME_SECTION_SPACING_OPTIONS,
   RESUME_SECTION_TITLE_FONT_SIZE_OPTIONS,
 } from '../data/resumeStyle'
@@ -111,6 +111,8 @@ import type {
   ResumeData,
   ResumeEditableSectionKey,
   SectionEntry,
+  SectionIconName,
+  SectionIconSelection,
   SectionIconVisibility,
   SectionKey,
   SectionVisibility,
@@ -125,6 +127,12 @@ import {
   resumePhotoFileTypePattern,
 } from '../utils/resumePhoto'
 import FontFamilyControl from './FontFamilyControl'
+import {
+  getResumeSectionIcon,
+  getSectionIconComponent,
+  getSectionIconName,
+  sectionIconOptions,
+} from './resumeSectionIcons'
 import TemplatePicker from './TemplatePicker'
 import ToggleSwitch from './ToggleSwitch'
 import { useAdaptiveMenuPlacement } from './useAdaptiveMenuPlacement'
@@ -294,6 +302,8 @@ const InputGroup = ({
 interface ResumeEditorProps {
   data: ResumeData
   sectionIcons: SectionIconVisibility
+  sectionIconNames: SectionIconSelection
+  sectionIconSizePx: ResumeSectionIconSize
   sectionPreferences: ResumeSectionPreferences
   templateId: TemplateId
   favoriteTemplateIds: TemplateId[]
@@ -311,6 +321,8 @@ interface ResumeEditorProps {
   onActiveSectionChange: (section: ResumeEditableSectionKey) => void
   onChange: (data: ResumeData) => void
   onSectionIconsChange: (sectionIcons: SectionIconVisibility) => void
+  onSectionIconNamesChange: (sectionIconNames: SectionIconSelection) => void
+  onSectionIconSizeChange: (size: ResumeSectionIconSize) => void
   onSectionPreferencesChange: (preferences: ResumeSectionPreferences) => void
   onTemplateChange: (id: TemplateId) => void
   onToggleFavoriteTemplate: (id: TemplateId) => void
@@ -341,16 +353,6 @@ const sectionFallbackNames: Record<StandardSectionKey, string> = {
   awards: '获奖经历',
   campus: '校园经历',
   other: '自我评价',
-}
-
-const sectionIconNodes: Record<StandardSectionKey, ReactNode> = {
-  skills: <Wrench size={15} />,
-  experience: <BriefcaseBusiness size={15} />,
-  projects: <FolderGit2 size={15} />,
-  education: <GraduationCap size={15} />,
-  awards: <Award size={15} />,
-  campus: <School size={15} />,
-  other: <FileText size={15} />,
 }
 
 const personalIconNode = <UserRound size={15} />
@@ -553,6 +555,76 @@ const NumberStepperControl = <T extends number>({
           <RotateCcw size={13} />
         </button>
       </div>
+    </div>
+  )
+}
+
+const SectionIconPicker = ({
+  value,
+  onChange,
+}: {
+  value: SectionIconName
+  onChange: (value: SectionIconName) => void
+}) => {
+  const [open, setOpen] = useState(false)
+  const selected =
+    sectionIconOptions.find((option) => option.value === value) ??
+    sectionIconOptions[0]
+  const SelectedIcon = getSectionIconComponent(selected.value)
+
+  return (
+    <div className='rounded-md border border-slate-100 bg-white/60 p-2.5'>
+      <div className='flex items-center justify-between gap-3'>
+        <span className='text-xs text-slate-500'>区块图标</span>
+        <button
+          type='button'
+          onClick={() => setOpen((current) => !current)}
+          className='flex h-8 min-w-28 items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900'
+          aria-expanded={open}
+          aria-label='选择区块图标'
+        >
+          <span className='flex items-center gap-1.5'>
+            <SelectedIcon size={15} aria-hidden='true' />
+            {selected.label}
+          </span>
+          <ChevronDown
+            size={14}
+            className={`text-slate-400 transition-transform ${
+              open ? 'rotate-180' : ''
+            }`}
+            aria-hidden='true'
+          />
+        </button>
+      </div>
+      {open && (
+        <fieldset className='mt-2 grid grid-cols-4 gap-1 border-0 border-t border-slate-100 p-0 pt-2'>
+          <legend className='sr-only'>Lucide 区块图标库</legend>
+          {sectionIconOptions.map((option) => {
+            const Icon = getSectionIconComponent(option.value)
+            const active = option.value === value
+            return (
+              <button
+                key={option.value}
+                type='button'
+                onClick={() => {
+                  onChange(option.value)
+                  setOpen(false)
+                }}
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md border text-[10px] transition ${
+                  active
+                    ? 'border-blue-200 bg-blue-50 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800'
+                }`}
+                aria-pressed={active}
+                title={`选择${option.label}图标`}
+              >
+                <Icon size={17} aria-hidden='true' />
+                {option.label}
+              </button>
+            )
+          })}
+        </fieldset>
+      )}
     </div>
   )
 }
@@ -906,6 +978,8 @@ const PhotoField = ({
 const ResumeEditor = ({
   data,
   sectionIcons,
+  sectionIconNames,
+  sectionIconSizePx,
   sectionPreferences,
   templateId,
   favoriteTemplateIds,
@@ -923,6 +997,8 @@ const ResumeEditor = ({
   onActiveSectionChange,
   onChange,
   onSectionIconsChange,
+  onSectionIconNamesChange,
+  onSectionIconSizeChange,
   onSectionPreferencesChange,
   onTemplateChange,
   onToggleFavoriteTemplate,
@@ -1062,6 +1138,11 @@ const ResumeEditor = ({
     )
   }
 
+  const updateSectionIconName = (key: SectionKey, name: SectionIconName) => {
+    onSectionIconNamesChange({ ...sectionIconNames, [key]: name })
+    onSectionIconsChange({ ...sectionIcons, [key]: true })
+  }
+
   const addStandardSection = (key: StandardSectionKey) => {
     const nextOrder = data.sectionOrder.includes(key)
       ? data.sectionOrder
@@ -1087,6 +1168,7 @@ const ResumeEditor = ({
       sectionOrder: [...data.sectionOrder, id],
     })
     onSectionIconsChange({ ...sectionIcons, [id]: false })
+    onSectionIconNamesChange({ ...sectionIconNames, [id]: 'file-text' })
     onActiveSectionChange(id)
     setAddSectionMenuOpen(false)
   }
@@ -1109,12 +1191,14 @@ const ResumeEditor = ({
       sectionVisibility: nextVisibility,
     }
     const nextIcons: SectionIconVisibility = { ...sectionIcons, [key]: false }
+    const nextIconNames: SectionIconSelection = { ...sectionIconNames }
 
     if (isCustomSectionKey(key)) {
       const nextTitles = { ...data.sectionTitles }
       delete nextTitles[key]
       delete nextVisibility[key]
       delete nextIcons[key]
+      delete nextIconNames[key]
       nextData = {
         ...nextData,
         customSections: data.customSections.filter(
@@ -1127,6 +1211,7 @@ const ResumeEditor = ({
 
     onChange(nextData)
     onSectionIconsChange(nextIcons)
+    onSectionIconNamesChange(nextIconNames)
     if (activeSection === key) {
       onActiveSectionChange(nextOrder[0] ?? 'personal')
     }
@@ -1374,7 +1459,7 @@ const ResumeEditor = ({
   }
 
   const getSectionIconNode = (key: SectionKey) =>
-    isCustomSectionKey(key) ? customSectionIconNode : sectionIconNodes[key]
+    getResumeSectionIcon(key, sectionIconNames, 15)
 
   const getActiveSectionTitle = () =>
     activeSection === 'personal' ? '个人信息' : getSectionTitle(activeSection)
@@ -1676,6 +1761,14 @@ const ResumeEditor = ({
           onChange={updateAllSectionIcons}
           icon={<FileText size={12} />}
         />
+        <NumberStepperControl
+          label='图标大小'
+          value={sectionIconSizePx}
+          options={RESUME_SECTION_ICON_SIZE_OPTIONS}
+          defaultValue={DEFAULT_RESUME_SECTION_ICON_SIZE_PX}
+          onChange={onSectionIconSizeChange}
+          icon={<Maximize2 size={12} />}
+        />
       </div>
     </PanelBlock>
   )
@@ -1730,7 +1823,7 @@ const ResumeEditor = ({
                 >
                   <span className='flex min-w-0 items-center gap-2'>
                     <span className='text-slate-300'>
-                      {sectionIconNodes[key]}
+                      {getSectionIconNode(key)}
                     </span>
                     <span className='truncate'>{getSectionTitle(key)}</span>
                   </span>
@@ -1836,12 +1929,18 @@ const ResumeEditor = ({
   const renderSectionSettings = () => {
     if (activeSection === 'personal') return null
 
+    const iconName = getSectionIconName(activeSection, sectionIconNames)
+
     return (
       <PanelBlock title='区块设置'>
         <InputGroup
           label='标题'
           value={getSectionTitle(activeSection)}
           onChange={(value) => updateSectionTitle(activeSection, value)}
+        />
+        <SectionIconPicker
+          value={iconName}
+          onChange={(name) => updateSectionIconName(activeSection, name)}
         />
       </PanelBlock>
     )

@@ -675,7 +675,11 @@ const diffResumeAppearance = (
   }
 
   if (
-    JSON.stringify(before.sectionIcons) !== JSON.stringify(after.sectionIcons)
+    JSON.stringify(before.sectionIcons) !==
+      JSON.stringify(after.sectionIcons) ||
+    JSON.stringify(before.sectionIconNames) !==
+      JSON.stringify(after.sectionIconNames) ||
+    before.sectionIconSizePx !== after.sectionIconSizePx
   ) {
     changes.push({
       kind: 'changed',

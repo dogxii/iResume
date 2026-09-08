@@ -1,9 +1,15 @@
-import type { ResumeData, SectionIconVisibility } from '../types/resume'
+import type {
+  ResumeData,
+  SectionIconSelection,
+  SectionIconVisibility,
+} from '../types/resume'
 import type { TemplateId } from '../types/template'
 import {
   createSectionIconVisibility,
+  getDefaultSectionIconNames,
   isRecord,
   normalizeResumeData,
+  normalizeSectionIconNames,
   normalizeSectionIconVisibility,
 } from './resumeData'
 import {
@@ -12,6 +18,7 @@ import {
   DEFAULT_RESUME_LINE_HEIGHT,
   DEFAULT_RESUME_PAGE_MARGIN_MM,
   DEFAULT_RESUME_PARAGRAPH_SPACING_PX,
+  DEFAULT_RESUME_SECTION_ICON_SIZE_PX,
   DEFAULT_RESUME_SECTION_SPACING,
   DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX,
   normalizeResumeAccentColor,
@@ -21,6 +28,7 @@ import {
   normalizeResumeLineHeight,
   normalizeResumePageMargin,
   normalizeResumeParagraphSpacing,
+  normalizeResumeSectionIconSize,
   normalizeResumeSectionPreferences,
   normalizeResumeSectionSpacing,
   normalizeResumeSectionTitleFontSize,
@@ -30,6 +38,7 @@ import {
   type ResumeLineHeight,
   type ResumePageMarginMm,
   type ResumeParagraphSpacingPx,
+  type ResumeSectionIconSize,
   type ResumeSectionPreferences,
   type ResumeSectionSpacing,
   type ResumeSectionTitleFontSizePx,
@@ -37,7 +46,7 @@ import {
 import { DEFAULT_TEMPLATE_ID, isTemplateId } from './templateConfigs'
 
 export interface ResumeBackup {
-  version: 7
+  version: 8
   data: ResumeData
   appearance: {
     templateId: TemplateId
@@ -51,6 +60,8 @@ export interface ResumeBackup {
     sectionSpacing: ResumeSectionSpacing
     paragraphSpacingPx: ResumeParagraphSpacingPx
     sectionIcons: SectionIconVisibility
+    sectionIconNames: SectionIconSelection
+    sectionIconSizePx: ResumeSectionIconSize
     sectionPreferences: ResumeSectionPreferences
   }
 }
@@ -68,6 +79,8 @@ export interface ImportedResumeBackup {
   sectionSpacing?: ResumeSectionSpacing
   paragraphSpacingPx?: ResumeParagraphSpacingPx
   sectionIcons?: SectionIconVisibility
+  sectionIconNames?: SectionIconSelection
+  sectionIconSizePx?: ResumeSectionIconSize
   sectionPreferences?: ResumeSectionPreferences
 }
 
@@ -76,7 +89,7 @@ export function createResumeBackup(
   appearance: ResumeBackup['appearance']
 ): ResumeBackup {
   return {
-    version: 7,
+    version: 8,
     data,
     appearance: {
       ...appearance,
@@ -106,6 +119,10 @@ export function normalizeResumeBackup(raw: unknown): ImportedResumeBackup {
   const paragraphSpacingValue =
     appearance.paragraphSpacingPx ?? raw.paragraphSpacingPx
   const sectionIconsValue = appearance.sectionIcons ?? raw.sectionIcons
+  const sectionIconNamesValue =
+    appearance.sectionIconNames ?? raw.sectionIconNames
+  const sectionIconSizeValue =
+    appearance.sectionIconSizePx ?? raw.sectionIconSizePx
   const sectionPreferencesValue =
     appearance.sectionPreferences ?? raw.sectionPreferences
 
@@ -173,6 +190,19 @@ export function normalizeResumeBackup(raw: unknown): ImportedResumeBackup {
     result.sectionIcons = normalizeSectionIconVisibility(
       sectionIconsValue,
       createSectionIconVisibility(false)
+    )
+  }
+
+  if (sectionIconNamesValue !== undefined) {
+    result.sectionIconNames = normalizeSectionIconNames(
+      sectionIconNamesValue,
+      getDefaultSectionIconNames()
+    )
+  }
+
+  if (sectionIconSizeValue !== undefined) {
+    result.sectionIconSizePx = normalizeResumeSectionIconSize(
+      sectionIconSizeValue ?? DEFAULT_RESUME_SECTION_ICON_SIZE_PX
     )
   }
 

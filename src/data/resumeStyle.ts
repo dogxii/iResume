@@ -1,6 +1,7 @@
 export const DEFAULT_RESUME_FONT_SIZE_PT = 16
 export const DEFAULT_RESUME_SECTION_TITLE_FONT_SIZE_PX = 20
 export const DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX = 16
+export const DEFAULT_RESUME_SECTION_ICON_SIZE_PX = 13
 export const DEFAULT_RESUME_PAGE_MARGIN_MM = 32
 export const DEFAULT_RESUME_PARAGRAPH_SPACING_PX = 12
 export const DEFAULT_RESUME_FONT_FAMILY = 'system'
@@ -156,6 +157,13 @@ export const RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS = [
 export type ResumeItemTitleFontSizePx =
   (typeof RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS)[number]
 
+export const RESUME_SECTION_ICON_SIZE_OPTIONS = [
+  10, 11, 12, 13, 14, 15, 16, 17, 18, 20,
+] as const
+
+export type ResumeSectionIconSize =
+  (typeof RESUME_SECTION_ICON_SIZE_OPTIONS)[number]
+
 export const RESUME_PAGE_MARGIN_OPTIONS = [
   16, 20, 24, 28, 32, 36, 40, 48, 56, 64,
 ] as const
@@ -291,6 +299,16 @@ export function normalizeResumeItemTitleFontSize(
     value,
     RESUME_ITEM_TITLE_FONT_SIZE_OPTIONS,
     DEFAULT_RESUME_ITEM_TITLE_FONT_SIZE_PX
+  )
+}
+
+export function normalizeResumeSectionIconSize(
+  value: unknown
+): ResumeSectionIconSize {
+  return normalizeNumericOption(
+    value,
+    RESUME_SECTION_ICON_SIZE_OPTIONS,
+    DEFAULT_RESUME_SECTION_ICON_SIZE_PX
   )
 }
 

@@ -73,6 +73,7 @@ import {
   type ImportedResumeBackup,
   normalizeResumeBackup,
 } from './data/resumeBackup'
+import { getDefaultSectionIconNames } from './data/resumeData'
 import {
   addSnapshot,
   computeNextVersion,
@@ -99,6 +100,7 @@ import {
   type ResumeLineHeight,
   type ResumePageMarginMm,
   type ResumeParagraphSpacingPx,
+  type ResumeSectionIconSize,
   type ResumeSectionPreferences,
   type ResumeSectionSpacing,
   type ResumeSectionTitleFontSizePx,
@@ -117,6 +119,7 @@ import { useResumeWorkspace } from './store/useResumeWorkspace'
 import type {
   ResumeData,
   ResumeEditableSectionKey,
+  SectionIconSelection,
   SectionIconVisibility,
 } from './types/resume'
 import type { TemplateId } from './types/template'
@@ -220,6 +223,12 @@ const getImportedResumeAppearance = (
       paragraphSpacingPx:
         imported.paragraphSpacingPx ?? fallback?.paragraphSpacingPx,
       sectionIcons: imported.sectionIcons ?? getDefaultSectionIconVisibility(),
+      sectionIconNames:
+        imported.sectionIconNames ??
+        fallback?.sectionIconNames ??
+        getDefaultSectionIconNames(),
+      sectionIconSizePx:
+        imported.sectionIconSizePx ?? fallback?.sectionIconSizePx,
       sectionPreferences:
         imported.sectionPreferences ?? fallback?.sectionPreferences,
     },
@@ -682,6 +691,8 @@ function App() {
     sectionSpacing,
     paragraphSpacingPx,
     sectionIcons,
+    sectionIconNames,
+    sectionIconSizePx,
     sectionPreferences,
   } = activeDocument.appearance
   const isMobilePreviewViewport = viewportWidth < MOBILE_PREVIEW_BREAKPOINT_PX
@@ -1709,6 +1720,36 @@ function App() {
     )
   }
 
+  const handleSectionIconNamesChange = (
+    nextSectionIconNames: SectionIconSelection
+  ) => {
+    updateActiveDocument(
+      (document) => ({
+        ...document,
+        appearance: {
+          ...document.appearance,
+          sectionIconNames: nextSectionIconNames,
+        },
+      }),
+      'appearance-icons'
+    )
+  }
+
+  const handleSectionIconSizeChange = (
+    nextSectionIconSizePx: ResumeSectionIconSize
+  ) => {
+    updateActiveDocument(
+      (document) => ({
+        ...document,
+        appearance: {
+          ...document.appearance,
+          sectionIconSizePx: nextSectionIconSizePx,
+        },
+      }),
+      'appearance-icons'
+    )
+  }
+
   const handleCanvasPointerDown = (
     event: ReactPointerEvent<HTMLDivElement>
   ) => {
@@ -2360,6 +2401,8 @@ function App() {
       sectionSpacing={sectionSpacing}
       paragraphSpacingPx={paragraphSpacingPx}
       sectionIcons={sectionIcons}
+      sectionIconNames={sectionIconNames}
+      sectionIconSizePx={sectionIconSizePx}
       sectionPreferences={sectionPreferences}
       minPageCount={previewPageCount}
       onSectionClick={interactive ? handlePreviewSectionClick : undefined}
@@ -2574,6 +2617,8 @@ function App() {
                 <ResumeEditor
                   data={resumeData}
                   sectionIcons={sectionIcons}
+                  sectionIconNames={sectionIconNames}
+                  sectionIconSizePx={sectionIconSizePx}
                   sectionPreferences={sectionPreferences}
                   templateId={templateId}
                   favoriteTemplateIds={favoriteTemplateIds}
@@ -2591,6 +2636,8 @@ function App() {
                   onActiveSectionChange={setActiveSection}
                   onChange={handleResumeDataChange}
                   onSectionIconsChange={handleSectionIconsChange}
+                  onSectionIconNamesChange={handleSectionIconNamesChange}
+                  onSectionIconSizeChange={handleSectionIconSizeChange}
                   onSectionPreferencesChange={handleSectionPreferencesChange}
                   onTemplateChange={handleTemplateChange}
                   onToggleFavoriteTemplate={handleToggleFavoriteTemplate}
@@ -2759,6 +2806,8 @@ function App() {
             <ResumeEditor
               data={resumeData}
               sectionIcons={sectionIcons}
+              sectionIconNames={sectionIconNames}
+              sectionIconSizePx={sectionIconSizePx}
               sectionPreferences={sectionPreferences}
               templateId={templateId}
               favoriteTemplateIds={favoriteTemplateIds}
@@ -2776,6 +2825,8 @@ function App() {
               onActiveSectionChange={setActiveSection}
               onChange={handleResumeDataChange}
               onSectionIconsChange={handleSectionIconsChange}
+              onSectionIconNamesChange={handleSectionIconNamesChange}
+              onSectionIconSizeChange={handleSectionIconSizeChange}
               onSectionPreferencesChange={handleSectionPreferencesChange}
               onTemplateChange={handleTemplateChange}
               onToggleFavoriteTemplate={handleToggleFavoriteTemplate}

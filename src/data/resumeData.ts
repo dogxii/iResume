@@ -7,6 +7,8 @@ import type {
   Project,
   ResumeData,
   SectionEntry,
+  SectionIconName,
+  SectionIconSelection,
   SectionIconVisibility,
   SectionKey,
   SectionTitles,
@@ -14,6 +16,7 @@ import type {
   SkillItem,
   StandardSectionKey,
 } from '../types/resume'
+import { SECTION_ICON_NAMES } from '../types/resume'
 import { initialResumeState } from './initialData'
 
 export const STANDARD_SECTION_KEYS: StandardSectionKey[] = [
@@ -333,6 +336,46 @@ export function createSectionIconVisibility(
     (result, key) => ({ ...result, [key]: visible }),
     {} as SectionIconVisibility
   )
+}
+
+const defaultSectionIconNames: Record<StandardSectionKey, SectionIconName> = {
+  skills: 'code',
+  experience: 'briefcase',
+  projects: 'folder',
+  education: 'graduation-cap',
+  awards: 'award',
+  campus: 'school',
+  other: 'file-text',
+}
+
+export const getDefaultSectionIconNames = (): SectionIconSelection => ({
+  ...defaultSectionIconNames,
+})
+
+export const isSectionIconName = (value: unknown): value is SectionIconName =>
+  typeof value === 'string' &&
+  SECTION_ICON_NAMES.includes(value as SectionIconName)
+
+export function normalizeSectionIconNames(
+  value: unknown,
+  fallback: SectionIconSelection
+): SectionIconSelection {
+  const raw = isRecord(value) ? value : {}
+  const normalized = STANDARD_SECTION_KEYS.reduce(
+    (result, key) => ({
+      ...result,
+      [key]: isSectionIconName(raw[key]) ? raw[key] : fallback[key],
+    }),
+    {} as SectionIconSelection
+  )
+
+  for (const [key, rawValue] of Object.entries(raw)) {
+    if (isCustomSectionKey(key) && isSectionIconName(rawValue)) {
+      normalized[key] = rawValue
+    }
+  }
+
+  return normalized
 }
 
 export function normalizeSectionIconVisibility(

@@ -19,6 +19,8 @@ const StructuredResumeTemplate = forwardRef<HTMLDivElement, ResumePreviewProps>(
       sectionSpacing,
       paragraphSpacingPx,
       sectionIcons,
+      sectionIconNames,
+      sectionIconSizePx,
       sectionPreferences,
       minPageCount = 1,
       contentRef,
@@ -48,6 +50,8 @@ const StructuredResumeTemplate = forwardRef<HTMLDivElement, ResumePreviewProps>(
         ref={ref}
         data={data}
         sectionIcons={sectionIcons}
+        sectionIconNames={sectionIconNames}
+        sectionIconSizePx={sectionIconSizePx}
         sectionPreferences={normalizeResumeSectionPreferences(
           sectionPreferences
         )}

@@ -94,6 +94,31 @@ export type ResumeEditableSectionKey = 'personal' | SectionKey
 export type SectionIconVisibility = Record<StandardSectionKey, boolean> &
   Partial<Record<CustomSectionKey, boolean>>
 
+export const SECTION_ICON_NAMES = [
+  'code',
+  'briefcase',
+  'folder',
+  'graduation-cap',
+  'award',
+  'school',
+  'file-text',
+  'wrench',
+  'book-open',
+  'rocket',
+  'lightbulb',
+  'users',
+  'heart-handshake',
+  'trophy',
+  'medal',
+  'star',
+] as const
+
+export type SectionIconName = (typeof SECTION_ICON_NAMES)[number]
+
+// 控制各区块标题所使用的 Lucide 图标
+export type SectionIconSelection = Record<StandardSectionKey, SectionIconName> &
+  Partial<Record<CustomSectionKey, SectionIconName>>
+
 // 控制各区块是否显示在简历预览中
 export type SectionVisibility = Record<StandardSectionKey, boolean> &
   Partial<Record<CustomSectionKey, boolean>>

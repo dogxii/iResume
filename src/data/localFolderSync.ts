@@ -366,6 +366,8 @@ const normalizeResumeFile = (value: unknown, index: number) => {
           sectionSpacing: imported.sectionSpacing,
           paragraphSpacingPx: imported.paragraphSpacingPx,
           sectionIcons: imported.sectionIcons,
+          sectionIconNames: imported.sectionIconNames,
+          sectionIconSizePx: imported.sectionIconSizePx,
           sectionPreferences: imported.sectionPreferences,
         },
       },
@@ -392,6 +394,8 @@ const normalizeResumeFile = (value: unknown, index: number) => {
       sectionSpacing: imported.sectionSpacing,
       paragraphSpacingPx: imported.paragraphSpacingPx,
       sectionIcons: imported.sectionIcons,
+      sectionIconNames: imported.sectionIconNames,
+      sectionIconSizePx: imported.sectionIconSizePx,
       sectionPreferences: imported.sectionPreferences,
     },
   })
