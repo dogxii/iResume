@@ -30,7 +30,7 @@ iResume 是一款本地优先的在线简历生成器。它把简历库、结构
 - 简历工作台：侧栏式简历库，可搜索、放大查看并继续编辑多份简历
 - 模板中心：使用真实简历内容预览 11 种布局，并可从模板快速创建
 - 工作台：左右分区编辑，实时预览，支持缩放、拖动画布和点击区块定位编辑
-- 外观设置：内置多套布局，可自定义主题色、字号、页边距、标题图标和区块显示偏好
+- 外观设置：内置多套布局，可自定义主题色、字号、页边距、标题图标、图标大小和区块显示偏好
 - 导出投递：支持 PDF 打印优化、PNG 图片导出和分页预估
 - 数据安全：简历与版本快照保存在 IndexedDB，可通过 GitHub OAuth 加密同步
 
@@ -45,8 +45,8 @@ https://resume.dogxi.me
 ```bash
 git clone https://github.com/dogxii/iresume.git
 cd iresume
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 访问 [http://localhost:5173](http://localhost:5173)
@@ -54,8 +54,8 @@ npm run dev
 ## 构建
 
 ```bash
-npm run build
-npm run preview
+bun run build
+bun run preview
 ```
 
 ## 🧭 使用提示
@@ -66,7 +66,7 @@ npm run preview
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React · Biome
+React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React · Biome · Bun
 
 ## 💰 赞赏项目
 
