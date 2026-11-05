@@ -60,6 +60,7 @@ export type ResumePhotoPosition = 'left' | 'right'
 export type ResumePhotoSizeRatio = 0.85 | 1 | 1.15
 export type ResumeLinkStyle = 'text' | 'highlighted' | 'blue'
 export type EntryRolePosition = 'middle' | 'title' | 'bottom'
+export type AwardTitlePosition = 'middle' | 'bottom'
 export type EntryRoleColor = 'default' | 'accent'
 export type ResumeSkillLayout = 'list' | 'rows'
 
@@ -98,6 +99,9 @@ export interface ResumeSectionPreferences {
   education: {
     showDates: boolean
   }
+  awards: {
+    titlePosition: AwardTitlePosition
+  }
 }
 
 export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
@@ -134,6 +138,9 @@ export const DEFAULT_SECTION_PREFERENCES: ResumeSectionPreferences = {
   },
   education: {
     showDates: true,
+  },
+  awards: {
+    titlePosition: 'middle',
   },
 }
 
@@ -473,6 +480,8 @@ export function normalizeResumeSectionPreferences(
   const experience = isRecord(raw.experience) ? raw.experience : {}
   const projects = isRecord(raw.projects) ? raw.projects : {}
   const education = isRecord(raw.education) ? raw.education : {}
+  const awards = isRecord(raw.awards) ? raw.awards : {}
+  const fallbackAwards = fallback.awards ?? DEFAULT_SECTION_PREFERENCES.awards
   const fallbackPersonal =
     fallback.personal ?? DEFAULT_SECTION_PREFERENCES.personal
   const fallbackSkills = fallback.skills ?? DEFAULT_SECTION_PREFERENCES.skills
@@ -566,6 +575,12 @@ export function normalizeResumeSectionPreferences(
     },
     education: {
       showDates: readBoolean(education.showDates, fallback.education.showDates),
+    },
+    awards: {
+      titlePosition:
+        awards.titlePosition === 'middle' || awards.titlePosition === 'bottom'
+          ? awards.titlePosition
+          : fallbackAwards.titlePosition,
     },
   }
 }

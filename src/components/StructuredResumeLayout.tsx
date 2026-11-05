@@ -52,6 +52,7 @@ interface ContactRow {
 }
 
 const hasSectionEntryContent = (item: SectionEntry) =>
+  item.competitionName?.trim() ||
   item.title.trim() ||
   item.subtitle.trim() ||
   item.date.trim() ||
@@ -745,19 +746,52 @@ const StructuredResumeLayout = forwardRef<
     return (
       <section key={key} {...getSectionProps(key, isLast)}>
         {renderSectionHeader(key)}
-        {visibleItems.map((item) => (
-          <div key={item.id} className='mb-[0.78em] last:mb-0'>
-            <div className='print-item-header grid grid-cols-[max-content_minmax(0,2fr)_minmax(0,1.35fr)] gap-x-[1.2em] px-[0.48em] leading-[1.42] text-neutral-900'>
-              <span className='whitespace-nowrap'>{item.date}</span>
-              <span className='resume-item-title min-w-0'>{item.title}</span>
-              <span className='min-w-0 text-right'>{item.subtitle}</span>
+        {visibleItems.map((item) => {
+          const competitionName =
+            key === 'awards' ? item.competitionName?.trim() : ''
+          const titlePosition =
+            competitionName && item.title.trim()
+              ? sectionPreferences.awards.titlePosition
+              : 'bottom'
+          const headerColumns =
+            titlePosition === 'middle'
+              ? 'grid-cols-[max-content_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.35fr)]'
+              : 'grid-cols-[max-content_minmax(0,2fr)_minmax(0,1.35fr)]'
+
+          return (
+            <div key={item.id} className='mb-[0.78em] last:mb-0'>
+              <div
+                className={`print-item-header grid ${headerColumns} gap-x-[1.2em] px-[0.48em] leading-[1.42] text-neutral-900`}
+              >
+                <span className='whitespace-nowrap'>{item.date}</span>
+                <span className='resume-item-title min-w-0'>
+                  {competitionName && (
+                    <span
+                      className={
+                        titlePosition === 'bottom'
+                          ? 'block break-words'
+                          : 'break-words'
+                      }
+                    >
+                      {item.competitionName}
+                    </span>
+                  )}
+                  {titlePosition === 'bottom' && item.title}
+                </span>
+                {titlePosition === 'middle' && (
+                  <span className='resume-item-title min-w-0 break-words text-center'>
+                    {item.title}
+                  </span>
+                )}
+                <span className='min-w-0 text-right'>{item.subtitle}</span>
+              </div>
+              <StructuredMarkdownBlocks
+                text={item.details}
+                className='mt-[0.2em]'
+              />
             </div>
-            <StructuredMarkdownBlocks
-              text={item.details}
-              className='mt-[0.2em]'
-            />
-          </div>
-        ))}
+          )
+        })}
       </section>
     )
   }

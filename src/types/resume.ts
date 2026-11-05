@@ -52,6 +52,8 @@ export interface SectionEntry {
   id: number
   title: string
   subtitle: string
+  // 仅获奖经历使用；旧版数据可不包含此字段
+  competitionName?: string
   date: string
   details: string
 }

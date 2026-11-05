@@ -48,11 +48,14 @@ const renderProjects = (projects: Project[]) =>
     return content.length > 0 ? [...content, ''] : []
   })
 
-const renderSectionEntries = (items: SectionEntry[]) =>
+const renderSectionEntries = (items: SectionEntry[], isAward = false) =>
   items.flatMap((item) => {
     const content: string[] = []
     const title = item.title.trim()
     if (title) content.push(`### ${title}`)
+    if (isAward && item.competitionName?.trim()) {
+      content.push(item.competitionName.trim())
+    }
     const meta = joinMeta(item.subtitle, item.date)
     if (meta) content.push(meta)
     content.push(...renderDetailLines(item.details))
@@ -100,7 +103,7 @@ export function createResumeMarkdown(data: ResumeData): string {
         const line = joinMeta(item.school, item.degree, item.date)
         return line ? [`- ${line}`] : []
       }),
-    awards: () => renderSectionEntries(data.awards),
+    awards: () => renderSectionEntries(data.awards, true),
     campus: () => renderSectionEntries(data.campus),
     other: () => renderDetailLines(data.other),
   }

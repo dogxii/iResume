@@ -597,7 +597,7 @@ const diffResumeData = (
     before.awards,
     after.awards,
     (item) => textValue(item.title) || textValue(item.subtitle),
-    sectionEntryFields
+    [...sectionEntryFields, { key: 'competitionName', label: '比赛名称' }]
   )
 
   diffItemCollection(
