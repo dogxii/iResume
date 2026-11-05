@@ -256,7 +256,8 @@ function normalizeProjects(value: unknown): Project[] {
 
 function normalizeSectionEntries(
   value: unknown,
-  fallback: SectionEntry[]
+  fallback: SectionEntry[],
+  includeCompetitionName = false
 ): SectionEntry[] {
   if (!Array.isArray(value)) {
     return fallback.map((item) => ({ ...item }))
@@ -269,6 +270,9 @@ function normalizeSectionEntries(
       id: readId(raw.id, index + 1, usedIds),
       title: readString(raw.title),
       subtitle: readString(raw.subtitle),
+      ...(includeCompetitionName
+        ? { competitionName: readString(raw.competitionName) }
+        : {}),
       date: readString(raw.date),
       details: readString(raw.details),
     }
@@ -315,7 +319,11 @@ export function normalizeResumeData(raw: unknown): ResumeData {
     experience: normalizeExperience(data.experience),
     projects: normalizeProjects(data.projects),
     education: normalizeEducation(data.education),
-    awards: normalizeSectionEntries(data.awards, initialResumeState.awards),
+    awards: normalizeSectionEntries(
+      data.awards,
+      initialResumeState.awards,
+      true
+    ),
     campus: normalizeSectionEntries(data.campus, initialResumeState.campus),
     other: readString(data.other, initialResumeState.other),
     customSections,

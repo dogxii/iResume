@@ -58,6 +58,7 @@ import {
 } from '../data/resumeData'
 import { getSkillsEditorText } from '../data/resumeSkills'
 import type {
+  AwardTitlePosition,
   EntryRoleColor,
   EntryRolePosition,
   ProjectLinksDisplay,
@@ -413,6 +414,11 @@ const linkStyleOptions: SegmentedOption<ResumeLinkStyle>[] = [
 const rolePositionOptions: SegmentedOption<EntryRolePosition>[] = [
   { value: 'middle', label: '中间' },
   { value: 'title', label: '标题右侧' },
+  { value: 'bottom', label: '底部' },
+]
+
+const awardPositionOptions: SegmentedOption<AwardTitlePosition>[] = [
+  { value: 'middle', label: '中间' },
   { value: 'bottom', label: '底部' },
 ]
 
@@ -2154,6 +2160,16 @@ const ResumeEditor = ({
           />
         )
       case 'awards':
+        return (
+          <SegmentedControl
+            label='奖项位置'
+            value={sectionPreferences.awards.titlePosition}
+            options={awardPositionOptions}
+            onChange={(titlePosition) =>
+              updateSectionPreferences('awards', { titlePosition })
+            }
+          />
+        )
       case 'campus':
       case 'other':
         return null
@@ -2637,6 +2653,21 @@ const ResumeEditor = ({
                         />
                       </div>
                       <div className='sm:pl-8'>
+                        {section === 'awards' && (
+                          <InputGroup
+                            label='比赛名称'
+                            value={item.competitionName ?? ''}
+                            onChange={(value) =>
+                              updateSectionEntry(
+                                section,
+                                item.id,
+                                'competitionName',
+                                value
+                              )
+                            }
+                            placeholder='例：全国大学生数学建模竞赛'
+                          />
+                        )}
                         <InputGroup
                           label={titleLabel}
                           value={item.title}
@@ -2721,6 +2752,7 @@ const ResumeEditor = ({
       subtitlePlaceholder: '例：学校 / 赛事组委会',
       addTemplate: {
         title: '新奖项',
+        competitionName: '',
         subtitle: '颁发方',
         date: '时间',
         details: '',

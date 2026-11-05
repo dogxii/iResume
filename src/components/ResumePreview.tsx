@@ -118,6 +118,7 @@ const densityClasses: Record<
 }
 
 const hasSectionEntryContent = (item: SectionEntry) =>
+  item.competitionName?.trim() ||
   item.title.trim() ||
   item.subtitle.trim() ||
   item.date.trim() ||
@@ -1410,36 +1411,68 @@ const ResumePreview = forwardRef<HTMLDivElement, ResumePreviewProps>(
       return (
         <section key={key} {...getSectionProps(key, isLast)}>
           {renderSectionHeader(key)}
-          {visibleItems.map((item) => (
-            <div key={item.id} className={`${spacing.item} last:mb-0`}>
-              <div className='print-item-header mb-1'>
-                <div className='flex items-baseline justify-between gap-4'>
-                  <div className='min-w-0'>
-                    {item.title.trim() && (
-                      <h3
-                        className={`resume-item-title font-bold text-base ${c.heading}`}
-                      >
-                        {item.title}
-                      </h3>
-                    )}
-                    {item.subtitle.trim() && (
-                      <div className={`text-sm font-medium ${c.primary}`}>
-                        {item.subtitle}
+          {visibleItems.map((item) => {
+            const competitionName =
+              key === 'awards' ? item.competitionName?.trim() : ''
+            const titlePosition =
+              competitionName && item.title.trim()
+                ? sectionPreferences.awards.titlePosition
+                : 'bottom'
+            const awardTitle = item.title.trim() && (
+              <h3
+                className={`resume-item-title min-w-0 break-words font-bold text-base ${c.heading}`}
+              >
+                {item.title}
+              </h3>
+            )
+
+            return (
+              <div key={item.id} className={`${spacing.item} last:mb-0`}>
+                <div className='print-item-header mb-1'>
+                  <div
+                    className={
+                      titlePosition === 'middle'
+                        ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-baseline gap-4'
+                        : 'flex items-baseline justify-between gap-4'
+                    }
+                  >
+                    <div className='min-w-0'>
+                      <div className='flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5'>
+                        {competitionName && (
+                          <div
+                            className={`min-w-0 break-words text-sm font-medium ${c.heading}`}
+                          >
+                            {item.competitionName}
+                          </div>
+                        )}
+                      </div>
+                      {titlePosition === 'bottom' && awardTitle}
+                      {item.subtitle.trim() && (
+                        <div className={`text-sm font-medium ${c.primary}`}>
+                          {item.subtitle}
+                        </div>
+                      )}
+                    </div>
+                    {titlePosition === 'middle' && (
+                      <div className='min-w-0 justify-self-center text-center'>
+                        {awardTitle}
                       </div>
                     )}
+                    {item.date.trim() && (
+                      <span
+                        className={`shrink-0 justify-self-end text-sm ${c.muted}`}
+                      >
+                        {item.date}
+                      </span>
+                    )}
                   </div>
-                  {item.date.trim() && (
-                    <span className={`shrink-0 text-sm ${c.muted}`}>
-                      {item.date}
-                    </span>
-                  )}
                 </div>
+                {item.details.trim() && (
+                  <div>{renderDetailBlocks(item.details)}</div>
+                )}
               </div>
-              {item.details.trim() && (
-                <div>{renderDetailBlocks(item.details)}</div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </section>
       )
     }

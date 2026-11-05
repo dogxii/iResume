@@ -93,6 +93,7 @@ export const initialResumeState: ResumeData = {
     {
       id: 1,
       title: '校级一等奖学金',
+      competitionName: '',
       subtitle: '南昌大学',
       date: '2021.12',
       details: '',
