@@ -109,8 +109,9 @@ D 的反馈是「变化太小，可以推翻旧设计」，于是 E 重新设计
 
 源码在 `src/`：
 
-- `shared.js`：交互逻辑
+- `e.js` / `theme-e.css`：方向 E（独立实现）
+- `shared.js`：A–D 的交互逻辑
 - `shared.css`：骨架和简历产物样式
 - `theme-*.css`：每个方向的视觉
 
-改完后运行 `node docs/design/prototypes/src/build.mjs` 重新生成三个 HTML。
+改完后运行 `node docs/design/prototypes/src/build.mjs` 重新生成全部 HTML。

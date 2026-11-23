@@ -1,4 +1,4 @@
-// 生成三个独立的单文件 HTML 原型：node docs/design/prototypes/src/build.mjs
+// 生成各方向独立的单文件 HTML 原型：node docs/design/prototypes/src/build.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
