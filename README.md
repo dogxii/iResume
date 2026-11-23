@@ -2,11 +2,11 @@
   
 # <img src="./public/favicon.svg" width="30" /> iResume
 
-**在线简历工作台 · 轻量优雅多布局**
+**直接在纸上写简历 · 所见即所得 · 本地优先**
 
 [立即体验](https://resume.dogxi.me) · [报告问题](https://github.com/dogxii/iresume/issues) · [功能建议](https://github.com/dogxii/iresume/issues)
 
-![Version](https://img.shields.io/badge/version-2.0.0-6366f1?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.0--alpha-111113?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)
 ![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript)
@@ -21,18 +21,28 @@ https://resume.dogxi.me
 
 ## 📚 简介
 
-iResume 是一款本地优先的在线简历生成器。它把简历库、结构化编辑、实时预览、外观微调、分页检查和导出能力放在一个轻量工作台里，适合快速维护多份投递版本。
+iResume 3 是一次彻底的重写。没有表单，也没有左边填写、右边预览：**直接点简历纸面上的文字就能改**，编辑时看到的纸面就是导出的 PDF。
 
-**核心理念：** 少一点配置感，多一点交付感。默认样式保持克制专业，需要时再通过布局、主题色、字号、页边距和区块显示偏好做细节调整。
+**核心理念：** 默认就能写出一份好简历。最佳实践直接内置在产品里：一页适配、ATS 友好的版式、统一的日期格式、写作批注。需要个性化时，可以自由定制主题。
 
 ## ⚡️ 功能特性
 
-- 简历工作台：侧栏式简历库，可搜索、放大查看并继续编辑多份简历
-- 模板中心：使用真实简历内容预览 11 种布局，并可从模板快速创建
-- 工作台：左右分区编辑，实时预览，支持缩放、拖动画布和点击区块定位编辑
-- 外观设置：内置多套布局，可自定义主题色、字号、页边距、标题图标、图标大小和区块显示偏好
-- 导出投递：支持 PDF 打印优化、PNG 图片导出和分页预估
-- 数据安全：简历与版本快照保存在 IndexedDB，可通过 GitHub OAuth 加密同步
+- **所见即所得编辑**：
+  - 直接在纸面上输入；
+  - 回车新起一条要点，在行首按退格会和上一条合并；
+  - 支持 `**粗体**` 和 `[链接](url)`。
+- **主题引擎**：
+  - 8 套预设：清简、经典、侧标题、双栏、现代、紧凑、时间线、书卷；
+  - 版式、标题样式、字体、颜色、间距、日期写法都可以单独调整；
+  - 可以把调整好的主题另存，也可以导入 / 导出主题文件分享给别人。
+- **一页适配**：实时显示页数和超出的行数，一键按「行高 → 间距 → 边距 → 字号」逐级压缩，可以撤销。
+- **写作批注**：像文档评论一样显示在页边，提示缺少量化结果、用弱动词开头、要点过长、日期不规范、经历没有倒序等问题。
+- **导出**：
+  - PDF：通过浏览器打印生成，文字可以选中，可以被 ATS 解析；
+  - JSON：完整备份内容和主题。
+- **本地优先**：
+  - 数据保存在浏览器的 IndexedDB 中；
+  - 首次打开时会自动导入 2.x 的数据，旧数据保持原样。
 
 ## 🚀 快速开始
 
@@ -60,13 +70,18 @@ bun run preview
 
 ## 🧭 使用提示
 
-- 导出 PDF 时建议关闭浏览器页眉页脚，并开启背景图形
-- 简历内容默认存储在 IndexedDB，界面偏好保存在 LocalStorage；换浏览器或清理缓存前可以先导出备份
-- GitHub 云同步需要配置 `.env.example` 中的 OAuth 环境变量，callback URL 使用应用首页地址即可
+- 导出 PDF 时，在打印对话框里选择「存储为 PDF」，并关闭「页眉和页脚」
+- 简历只保存在当前浏览器；换设备或清理浏览器数据前，先在首页点击「备份全部」
+- 快捷键：
+  - `⌘/Ctrl + Z` 撤销，`⇧⌘Z` 重做
+  - `⌘/Ctrl + P` 导出 PDF
+  - 预览模式下按 `Esc` 返回编辑
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React · Biome · Bun
+React 19 · TypeScript · Vite · IndexedDB · Lucide · Vitest · Biome · Bun（运行时依赖只有 react、react-dom、lucide-react）
+
+开发前请先阅读 [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md)，里面有架构说明和路线图。提交前请运行 `bun run check`。
 
 ## 💰 赞赏项目
 
@@ -78,10 +93,6 @@ React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB · Lucide React ·
   <img src="https://s2.loli.net/2022/12/29/TtNiqZnwy6ESGjO.jpg" alt="WeChat Pay" width="160" />
   <img src="https://s2.loli.net/2022/12/29/5xk8paK4wGDnAhW.jpg" alt="Alipay" width="160" />
 </div>
-
-## 🙏 感谢
-
-规整单栏主题来自于 [@Viki](https://viki.moe) 大佬设计的 figma 简历。
 
 ## 🪪 License
 

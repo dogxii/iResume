@@ -1,16 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { App } from './app/App'
+import './app/app.css'
 
 const root = document.getElementById('root')
-
-if (!root) {
-  throw new Error('iResume root element is missing')
+if (root) {
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  )
 }
-
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-)

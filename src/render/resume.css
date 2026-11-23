@@ -1,0 +1,543 @@
+/*
+ * iResume 简历样式表 —— 全部主题共用这一份。
+ * 主题差异只通过 CSS 变量（themeVars）与 data-* 属性（themeAttrs）表达。
+ * 长度单位：字号用 pt，间距用 em（随字号缩放），页面用 mm。
+ */
+
+.r-paper {
+  box-sizing: border-box;
+  position: relative;
+  width: var(--r-page-w);
+  min-height: var(--r-page-h);
+  padding: var(--r-margin);
+  background: #fff;
+  color: var(--r-ink);
+  text-align: left;
+  font-family: var(--r-font);
+  font-size: var(--r-size);
+  line-height: var(--r-leading);
+  font-kerning: normal;
+  font-feature-settings: "kern", "liga";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.r-paper *,
+.r-paper *::before,
+.r-paper *::after {
+  box-sizing: border-box;
+}
+.r-paper :where(h1, h2, p, ul, dl, dt, dd, li, figure) {
+  margin: 0;
+  padding: 0;
+}
+.r-paper a {
+  color: var(--r-link-color);
+  text-decoration: none;
+}
+.r-paper strong {
+  font-weight: 650;
+  color: var(--r-ink);
+}
+.r-paper time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— 页眉 ————————————————————————————————————————— */
+
+.r-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.4em;
+  margin-bottom: calc(var(--r-section) * 1.05);
+}
+.r-id {
+  flex: 1;
+  min-width: 0;
+}
+.r-name {
+  font-family: var(--r-font-heading);
+  font-size: var(--r-name);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+  color: var(--r-name-color);
+}
+.r-headline {
+  margin-top: 0.3em;
+  font-size: 1.08em;
+  color: var(--r-muted);
+}
+.r-contacts {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1em 0;
+  margin-top: 0.6em;
+  padding: 0;
+  color: var(--r-muted);
+  font-size: 0.94em;
+}
+.r-contacts li {
+  display: inline-flex;
+}
+.r-contacts li + li::before {
+  content: "·";
+  margin: 0 0.6em;
+  color: var(--r-rule);
+}
+.r-contacts a {
+  color: inherit;
+}
+.r-photo {
+  order: 2;
+  flex-shrink: 0;
+  width: 24mm;
+  height: 30mm;
+  object-fit: cover;
+  border-radius: 2mm;
+}
+.r-photo[data-shape="circle"] {
+  height: 24mm;
+  border-radius: 50%;
+}
+
+[data-header="center"] .r-id {
+  text-align: center;
+}
+[data-header="center"] .r-contacts {
+  justify-content: center;
+}
+[data-header="split"] .r-id {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 2em;
+  align-items: end;
+}
+[data-header="split"] .r-contacts {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin-top: 0;
+  text-align: right;
+}
+[data-contacts="stacked"] .r-contacts {
+  flex-direction: column;
+  align-items: inherit;
+}
+[data-contacts="stacked"] .r-contacts li + li::before {
+  content: none;
+}
+[data-header="split"][data-contacts="stacked"] .r-contacts {
+  align-items: flex-end;
+}
+
+/* —— 区块与标题 ————————————————————————————————————— */
+
+.r-section {
+  position: relative;
+}
+.r-section + .r-section {
+  margin-top: var(--r-section);
+}
+.r-heading {
+  position: relative;
+  margin-bottom: 0.6em;
+  font-family: var(--r-font-heading);
+  font-size: var(--r-title);
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--r-heading-color);
+  break-after: avoid;
+}
+[data-caps="true"] .r-heading {
+  font-size: calc(var(--r-title) * 0.88);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+[data-heading="rule"] .r-heading {
+  padding-bottom: 0.28em;
+  border-bottom: 0.75pt solid var(--r-rule);
+}
+[data-heading="underline"] .r-heading::after {
+  content: "";
+  display: block;
+  width: 1.8em;
+  height: 1.6pt;
+  margin-top: 0.32em;
+  border-radius: 1pt;
+  background: var(--r-rule);
+}
+[data-heading="bar"] .r-heading {
+  padding-left: 0.55em;
+  border-left: 3pt solid var(--r-accent);
+  line-height: 1.15;
+}
+[data-heading="band"] .r-heading {
+  padding: 0.16em 0.5em;
+  border-radius: 2pt;
+  background: var(--r-aside);
+}
+
+/* —— 条目 ——————————————————————————————————————————— */
+
+.r-entry {
+  position: relative;
+  break-inside: avoid;
+}
+.r-entry + .r-entry {
+  margin-top: var(--r-entry);
+}
+.r-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1em;
+}
+.r-entry-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.55em;
+}
+.r-title {
+  font-weight: 650;
+  color: var(--r-ink);
+}
+.r-sub {
+  color: var(--r-ink);
+}
+.r-sub:not([data-empty])::before,
+.r-loc:not([data-empty])::before {
+  content: "·";
+  margin-right: 0.55em;
+  color: var(--r-muted);
+}
+.r-loc {
+  color: var(--r-muted);
+}
+[data-sub="below"] .r-entry-main {
+  flex-direction: column;
+  align-items: flex-start;
+}
+[data-sub="below"] .r-sub::before {
+  content: none !important;
+}
+[data-sub="below"] .r-sub {
+  color: var(--r-muted);
+}
+.r-date {
+  flex-shrink: 0;
+  color: var(--r-muted);
+  font-size: 0.94em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+[data-date="below"] .r-entry-head {
+  flex-direction: column;
+  gap: 0;
+}
+[data-date="gutter"] .r-entry {
+  display: grid;
+  grid-template-columns: 7.4em minmax(0, 1fr);
+  column-gap: 1.4em;
+}
+[data-date="gutter"] .r-entry-head {
+  display: contents;
+}
+[data-date="gutter"] .r-entry > :not(.r-entry-head),
+[data-date="gutter"] .r-entry-main {
+  grid-column: 2;
+}
+[data-date="gutter"] .r-date {
+  grid-column: 1;
+  grid-row: 1 / span 8;
+  align-self: start;
+  white-space: normal;
+}
+[data-timeline="true"][data-date="gutter"] .r-entry::before {
+  content: "";
+  position: absolute;
+  top: 0.5em;
+  left: calc(7.4em + 0.7em - 2.5pt);
+  width: 5pt;
+  height: 5pt;
+  border-radius: 50%;
+  background: var(--r-accent);
+}
+[data-timeline="true"][data-date="gutter"] .r-entry::after {
+  content: "";
+  position: absolute;
+  top: calc(0.5em + 7pt);
+  bottom: calc(-1 * var(--r-entry) + 2pt);
+  left: calc(7.4em + 0.7em - 0.4pt);
+  width: 0.8pt;
+  background: var(--r-rule);
+}
+[data-timeline="true"][data-date="gutter"] .r-entry:last-child::after {
+  bottom: 0;
+}
+[data-date="gutter"] .r-entry-main,
+[data-date="gutter"] .r-entry > .r-meta,
+[data-date="gutter"] .r-entry > .r-text,
+[data-date="gutter"] .r-entry > .r-bullets {
+  padding-left: 0;
+}
+
+.r-meta {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.9em;
+  color: var(--r-muted);
+  font-size: 0.92em;
+}
+.r-links a + a::before {
+  content: "·";
+  margin: 0 0.5em;
+  color: var(--r-muted);
+}
+.r-links a {
+  color: var(--r-link-color);
+}
+.r-text {
+  margin-top: 0.2em;
+}
+.r-textblock .r-text {
+  margin-top: 0;
+}
+.r-bullets {
+  list-style: none;
+  margin-top: 0.22em;
+  padding: 0;
+}
+.r-textblock .r-bullets {
+  margin-top: 0;
+}
+.r-bullets li {
+  position: relative;
+  padding-left: 1.05em;
+}
+.r-bullets li + li {
+  margin-top: 0.12em;
+}
+.r-bullets li::before {
+  content: "•";
+  position: absolute;
+  left: 0.12em;
+  color: var(--r-muted);
+}
+[data-bullet="dash"] .r-bullets li::before {
+  content: "–";
+}
+[data-bullet="square"] .r-bullets li::before {
+  content: "▪";
+  font-size: 0.8em;
+  top: 0.12em;
+}
+[data-bullet="none"] .r-bullets li {
+  padding-left: 0;
+}
+[data-bullet="none"] .r-bullets li::before {
+  content: none;
+}
+
+/* —— 技能等「行」布局 ———————————————————————————————— */
+
+.r-rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 1.2em;
+  row-gap: 0.18em;
+}
+.r-row {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+.r-row dt {
+  font-weight: 600;
+}
+.r-row > dd:first-child {
+  grid-column: 1 / -1;
+}
+.r-chips {
+  display: none;
+}
+[data-skills="inline"] .r-rows,
+[data-skills="inline"] .r-row {
+  display: block;
+}
+[data-skills="inline"] .r-row dt,
+[data-skills="inline"] .r-row dd {
+  display: inline;
+}
+[data-skills="inline"] .r-row dt:not([data-empty])::after {
+  content: "：";
+}
+[data-skills="tags"] .r-rows,
+[data-skills="tags"] .r-row {
+  display: block;
+}
+[data-skills="tags"] .r-row + .r-row {
+  margin-top: 0.5em;
+}
+[data-skills="tags"] .r-row dt {
+  margin-bottom: 0.25em;
+}
+[data-skills="tags"] .r-plain {
+  display: none;
+}
+[data-skills="tags"] .r-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+.r-chip {
+  padding: 0 0.45em;
+  border: 0.6pt solid var(--r-rule);
+  border-radius: 3pt;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+
+/* —— 版式：侧标题 —————————————————————————————————— */
+
+[data-layout="side-headings"] .r-section {
+  display: grid;
+  grid-template-columns: 21% minmax(0, 1fr);
+  column-gap: 1.4em;
+}
+[data-layout="side-headings"] .r-heading {
+  margin-bottom: 0;
+  padding-top: 0.12em;
+}
+[data-layout="side-headings"] .r-header {
+  padding-left: calc(21% + 1.4em - 0.3em);
+}
+
+/* —— 版式：双栏 ———————————————————————————————————— */
+
+[data-layout="aside-left"],
+[data-layout="aside-right"] {
+  display: grid;
+  grid-template-columns: 33% minmax(0, 1fr);
+  padding: 0;
+  background: linear-gradient(to right, var(--r-aside) 33%, #fff 33%);
+}
+[data-layout="aside-right"] {
+  grid-template-columns: minmax(0, 1fr) 33%;
+  background: linear-gradient(to left, var(--r-aside) 33%, #fff 33%);
+}
+[data-layout="aside-right"] .r-aside {
+  order: 2;
+}
+.r-aside {
+  padding: var(--r-margin) calc(var(--r-margin) * 0.8);
+  font-size: 0.94em;
+}
+.r-main {
+  padding: var(--r-margin);
+  min-width: 0;
+}
+.r-aside .r-photo {
+  display: block;
+  margin-bottom: 1.2em;
+}
+.r-aside > .r-contacts {
+  flex-direction: column;
+  margin: 0 0 var(--r-section);
+}
+.r-aside > .r-contacts li + li::before {
+  content: none;
+}
+.r-aside .r-entry-head {
+  flex-direction: column;
+  gap: 0;
+}
+.r-aside .r-rows {
+  display: block;
+}
+.r-aside .r-row {
+  display: block;
+}
+.r-aside .r-row + .r-row {
+  margin-top: 0.4em;
+}
+
+/* —— 编辑态 —————————————————————————————————————— */
+
+[data-editable] .f {
+  outline: none;
+  border-radius: 2px;
+  cursor: text;
+  transition:
+    background-color 0.12s,
+    box-shadow 0.12s;
+}
+[data-editable] .f:hover {
+  background: rgb(37 99 235 / 0.06);
+}
+[data-editable] .f:focus {
+  background: rgb(37 99 235 / 0.07);
+  box-shadow: 0 0 0 2px rgb(37 99 235 / 0.2);
+}
+[data-editable] .f[data-empty] {
+  display: inline-block;
+  min-width: 1.5em;
+}
+[data-editable] :is(p, dd, li > .f).f[data-empty],
+[data-editable] li > .f {
+  display: block;
+}
+[data-editable] .f[data-empty]::after {
+  content: attr(data-ph);
+  color: #b4b7bf;
+  font-weight: 400;
+  pointer-events: none;
+}
+[data-editable] .f[data-empty]::before {
+  content: none !important;
+}
+[data-editable] .f[data-empty]:focus::after {
+  color: #cdd0d6;
+}
+[data-editable] .r-entry:not(:hover, :focus-within) .r-opt[data-empty],
+[data-editable]
+  .r-entry:not(:hover, :focus-within)
+  .r-meta:not(:has(.f:not([data-empty]))) {
+  display: none;
+}
+[data-editable]
+  .r-date:has(.r-end[data-empty]):not(:hover, :focus-within)
+  .r-dash,
+[data-editable]
+  .r-date:has(.r-start[data-empty]):has(.r-end[data-empty])
+  .r-dash {
+  opacity: 0.4;
+}
+[data-editable] .r-header .r-contacts li + li::before {
+  pointer-events: none;
+}
+[data-editable] [data-hidden] {
+  opacity: 0.35;
+}
+.r-aside .r-entry-main {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.r-aside :is(.r-sub, .r-loc)::before {
+  content: none !important;
+}
+.r-aside .r-sub {
+  color: var(--r-muted);
+}
+/* 没有要点的条目：只在悬停或编辑时露出「写一条要点」的占位 */
+[data-editable]
+  .r-entry:not(:hover, :focus-within)
+  .r-bullets:has(> li:only-child > .f[data-empty]) {
+  display: none;
+}

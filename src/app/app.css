@@ -1,0 +1,498 @@
+/* iResume 界面层设计 token 与基础组件（与简历产物的 resume.css 完全独立） */
+
+:root {
+  --bg: #f7f7f8;
+  --desk: #efeff1;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --hover: rgb(0 0 0 / 0.045);
+  --press: rgb(0 0 0 / 0.07);
+  --border: #e6e6e9;
+  --border-2: #d6d6db;
+  --text: #0b0b0d;
+  --text-2: #4a4a52;
+  --text-3: #71717a;
+  --text-4: #a1a1aa;
+  --primary: #111113;
+  --primary-fg: #ffffff;
+  --brand: #2563eb;
+  --warn: #d97706;
+  --warn-bg: #fff7e8;
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-float:
+    0 0 0 1px rgb(0 0 0 / 0.06), 0 2px 6px rgb(0 0 0 / 0.04),
+    0 18px 44px rgb(0 0 0 / 0.12);
+  --shadow-paper:
+    0 0 0 1px rgb(0 0 0 / 0.04), 0 2px 4px rgb(0 0 0 / 0.03),
+    0 28px 64px -16px rgb(0 0 0 / 0.18);
+  --font:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+#root {
+  height: 100%;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+kbd {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-4);
+}
+
+/* —— 启动 / 错误 —— */
+.app-splash {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: var(--text-3);
+  animation: fade-in 0.4s 0.2s both;
+}
+.app-splash.is-error p {
+  margin: 0;
+}
+
+/* —— 品牌 —— */
+.u-logo {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  line-height: 1;
+  font-family: var(--font);
+}
+
+/* —— 按钮 —— */
+.u-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    opacity 0.12s;
+}
+.u-btn.is-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.u-btn.is-ghost:hover {
+  background: var(--hover);
+}
+.u-btn.is-soft {
+  background: var(--surface-2);
+}
+.u-btn.is-soft:hover {
+  background: var(--press);
+}
+.u-btn.is-primary {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.u-btn.is-primary:hover {
+  opacity: 0.88;
+}
+.u-btn.is-primary kbd {
+  color: rgb(255 255 255 / 0.55);
+}
+.u-btn:disabled {
+  opacity: 0.4;
+}
+.u-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: background-color 0.12s;
+}
+.u-icon-btn.is-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.u-icon-btn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.u-icon-btn:disabled {
+  opacity: 0.3;
+}
+
+/* —— 弹层 / 抽屉 —— */
+.u-pop {
+  position: fixed;
+  z-index: 50;
+  min-width: 200px;
+  max-width: min(92vw, 440px);
+  max-height: min(72vh, 640px);
+  overflow: auto;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  animation: pop-in 0.14s ease-out;
+}
+.u-pop.is-wide {
+  max-width: min(94vw, 720px);
+}
+.u-pop-title {
+  padding: 8px 10px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.u-sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  background: rgb(0 0 0 / 0.22);
+  animation: fade-in 0.16s;
+}
+.u-sheet {
+  width: 100%;
+  max-height: 78vh;
+  overflow: auto;
+  padding: 6px 8px calc(14px + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  animation: sheet-in 0.2s ease-out;
+}
+.u-sheet-grip {
+  width: 36px;
+  height: 4px;
+  margin: 4px auto 8px;
+  border-radius: 2px;
+  background: var(--border-2);
+}
+.u-sheet-title {
+  padding: 2px 10px 8px;
+  font-weight: 600;
+}
+
+/* —— 菜单 —— */
+.u-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+.u-menu.is-wide {
+  min-width: 300px;
+}
+.u-menu-label {
+  padding: 8px 10px 4px;
+  font-size: 12px;
+  color: var(--text-4);
+}
+.u-menu-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
+}
+.u-menu-hint {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.u-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+.u-menu-item > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-3);
+}
+.u-menu-item > span {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 2px;
+}
+.u-menu-item b {
+  font-weight: 500;
+}
+.u-menu-item em {
+  font-style: normal;
+  color: var(--text-4);
+  font-size: 12px;
+}
+.u-menu-item small {
+  flex-basis: 100%;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.u-menu-item:hover {
+  background: var(--hover);
+}
+.u-menu-item.is-danger,
+.u-menu-item.is-danger > svg {
+  color: var(--danger);
+}
+
+/* —— 表单控件 —— */
+.u-seg {
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.u-seg button {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.u-seg button:hover {
+  color: var(--text);
+}
+.u-seg button.is-on {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06),
+    0 1px 2px rgb(0 0 0 / 0.08);
+}
+.u-slider {
+  display: block;
+  padding: 6px 2px;
+}
+.u-slider-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.u-slider output {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.u-slider input {
+  width: 100%;
+  accent-color: var(--primary);
+}
+.u-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.u-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.u-toggle i {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--border-2);
+  transition: background-color 0.15s;
+}
+.u-toggle i::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 0.15s;
+}
+.u-toggle input:checked + i {
+  background: var(--primary);
+}
+.u-toggle input:checked + i::after {
+  transform: translateX(12px);
+}
+.u-toggle input:focus-visible + i {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* —— 轻提示 —— */
+.u-toasts {
+  position: fixed;
+  left: 50%;
+  top: 16px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.u-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 90vw;
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: #18181b;
+  color: #fafafa;
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.2);
+  pointer-events: auto;
+  animation: toast-in 0.2s ease-out;
+}
+.u-toast button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #93b4ff;
+  font-weight: 600;
+}
+
+/* —— 打印 —— 只输出简历本身 */
+.print-root {
+  display: none;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    height: auto;
+  }
+  #root,
+  .u-toasts,
+  .u-pop,
+  .u-sheet-layer {
+    display: none !important;
+  }
+  .print-root {
+    display: block !important;
+  }
+  [data-printing="flow"] .print-root .r-paper {
+    width: auto;
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  [data-printing="aside"] .print-root .r-paper {
+    width: auto;
+    min-height: 100vh;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

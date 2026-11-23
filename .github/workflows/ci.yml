@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Type check
+        run: bun run typecheck
+      - name: Unit tests
+        run: bun run test
+      - name: Build
+        run: bunx vite build
