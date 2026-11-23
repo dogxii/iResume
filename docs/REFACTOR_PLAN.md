@@ -6,6 +6,19 @@
 
 ---
 
+> ### 2026-11-23 更新：方向已定为 E「所见即所得」，项目改由 Claude 主导和长期维护
+>
+> 设计稿见 [`docs/design/prototypes/e-canvas.html`](design/prototypes/e-canvas.html)。不再兼容旧的布局和交互，这对架构有以下影响：
+>
+> - **取消表单式编辑器**。原来约 2800 行的 `ResumeEditor` 不再保留，改为在模板渲染器里输出「可编辑字段」。
+>   - 每个模板只写一份渲染代码，通过 `editable` 开关同时服务编辑和打印 / 导出两种场景。
+>   - 字段采用 `contenteditable="plaintext-only"` 并绑定数据路径；要点列表单独实现一个 `EditableList`，处理回车、退格和上下方向键。
+> - **编辑器外壳只剩四块**：顶栏、文字大纲、底部 Dock（带弹层）、页边批注。原来的左右面板全部取消。
+> - **写作建议独立成一个模块** `features/suggestions`：用纯函数规则生成建议，界面上以批注呈现，每条可单独忽略，并支持后续扩展规则。
+> - **App UI 的 token 改为黑白单色**，蓝色只用在品牌 i 标；简历产物的 token 仍保持独立。
+> - 第四节 D0 阶段视为完成；D1 组件库按 E 的需要裁剪，只做 Button、IconButton、Popover / Sheet、Menu、Slider、Segmented、Toast、Tooltip。
+> - **执行顺序**：P0 安全网 → P1 数据层 → 新外壳 + 可编辑模板（P2 / P3 合并）→ 模板迁移 → 性能 → 同步安全。
+
 ## 一、现状诊断
 
 ### 1. 代码结构

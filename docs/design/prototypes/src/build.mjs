@@ -9,6 +9,14 @@ const read = (f) => readFileSync(join(src, f), 'utf8')
 
 const directions = [
   {
+    file: 'e-canvas.html',
+    key: 'E',
+    title: '所见即所得',
+    css: 'theme-e.css',
+    js: 'e.js',
+    proto: {},
+  },
+  {
     file: 'd-clean.html',
     key: 'D',
     title: '简约',
@@ -83,7 +91,6 @@ const directions = [
 ]
 
 const sharedCss = read('shared.css')
-const sharedJs = read('shared.js')
 
 for (const d of directions) {
   const links = directions
@@ -107,12 +114,12 @@ ${read(d.css)}
   <div class="pb-group"><button type="button" data-pb-view="home">首页</button><button type="button" data-pb-view="editor">编辑器</button></div>
   <div class="pb-group"><button type="button" data-pb-device="desktop">桌面</button><button type="button" data-pb-device="mobile">手机</button></div>
   <span class="pb-spacer"></span>
-  <span>可点击、可编辑：点简历区块、拖动大纲排序、切「设计」调样式</span>
+  <span>${d.key === 'E' ? '直接点简历上的文字就能改 · 回车新起一条 · 底部 Dock 调样式' : '可点击、可编辑：点简历区块、拖动大纲排序、切「设计」调样式'}</span>
 </div>
 <div class="stage"><div id="app"></div></div>
 <script>window.PROTO = ${JSON.stringify(d.proto)}</script>
 <script>
-${sharedJs}
+${read(d.js || 'shared.js')}
 </script>
 </body>
 </html>
