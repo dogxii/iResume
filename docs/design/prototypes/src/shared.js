@@ -261,6 +261,7 @@
 
   // ---------------------------------------------------------------- helpers
   const section = (id) => state.doc.sections.find((s) => s.id === id)
+  const floating = () => Boolean(F.floating) && state.device !== 'mobile'
   const fontCss = (id) => (FONTS.find((f) => f.id === id) || FONTS[0]).css
 
   const inline = (text) =>
@@ -449,6 +450,7 @@
                   ? `<button type="button" class="search-trigger" data-action="palette">${icon('search')}<span>搜索简历或执行命令</span><kbd>⌘K</kbd></button>`
                   : `<label class="search">${icon('search')}<input placeholder="搜索名称或标签" /></label>`
               }
+              ${F.createCard ? btn(`${icon('upload', 15)}<span>导入</span>`, 'data-toast="导入：iResume JSON / 粘贴已有简历文本"', 'btn') : ''}
               ${btn(`${icon('plus')}<span>新建简历</span>`, 'data-go="editor"', 'btn btn-primary')}
             </div>
           </header>
@@ -481,10 +483,10 @@
               '卡片视图',
               'data-toast'
             )}</div>
-            <div class="doc-grid">${HOME_DOCS.map(docCard).join('')}</div>
+            <div class="doc-grid">${F.createCard ? `<button type="button" class="create-card" data-go="editor"><span class="cc-plus">${icon('plus', 20)}</span><strong>新建简历</strong><span>空白开始，或从模板创建</span></button>` : ''}${HOME_DOCS.map(docCard).join('')}</div>
           </section>
 
-          <section class="home-section">
+          ${F.createCard ? '' : `<section class="home-section">
             <div class="sec-head"><h2>新建一份</h2></div>
             <div class="start-grid">${start
               .map(
@@ -492,7 +494,7 @@
                   `<button type="button" class="start-tile" ${attr}><span class="st-icon">${icon(ic, 20)}</span><strong>${t}</strong><span>${d}</span></button>`
               )
               .join('')}</div>
-          </section>
+          </section>`}
 
           <section class="home-section">
             <div class="sec-head"><h2>精选模板</h2><div class="chips">${['全部', '通用', '技术', '设计', '学术', 'ATS 友好']
@@ -520,6 +522,7 @@
   // ---------------------------------------------------------------- EDITOR
   function renderTopbar() {
     const score = completeness()
+    if (floating()) return renderSideHead()
     return `<header class="topbar">
       <div class="tb-left">
         <button type="button" class="icon-btn" data-go="home" aria-label="返回我的简历" title="返回我的简历">${icon('arrowLeft', 18)}</button>
@@ -562,6 +565,47 @@
             </div>`
               : ''
           }
+        </div>
+      </div>
+    </header>`
+  }
+
+  function exportMenu() {
+    return state.exportOpen
+      ? `<div class="menu" role="menu">${[
+          ['file', 'PDF 文档', '投递首选，矢量清晰', 'PDF'],
+          ['eyeView', 'PNG 图片', '适合发微信 / 预览', 'PNG'],
+          ['download', 'JSON 备份', '可再次导入编辑', 'JSON'],
+          ['note', 'Markdown', '纯文本，方便粘贴', 'Markdown'],
+        ]
+          .map(
+            ([ic, t, d, k]) =>
+              `<button type="button" role="menuitem" class="menu-item" data-export="${k}">${icon(ic, 16)}<span><strong>${t}</strong><small>${d}</small></span></button>`
+          )
+          .join('')}</div>`
+      : ''
+  }
+
+  function renderSideHead() {
+    return `<header class="topbar side-head">
+      <div class="sh-row">
+        <button type="button" class="brand-btn" data-go="home" title="返回我的简历"><span class="logo">i</span><span class="brand-name">Resume</span></button>
+        <span class="sb-spacer"></span>
+        <span class="save-state" id="save-state">${saveLabel()}</span>
+      </div>
+      <div class="doc-meta-wrap">
+        <button type="button" class="doc-title" data-action="meta"><span class="dt-name">${esc(state.doc.name)}</span><span class="ver">v${esc(state.doc.version)}</span>${icon('chevDown', 14)}</button>
+        ${state.metaOpen ? renderMetaPopover() : ''}
+      </div>
+      <div class="sh-row sh-tools">
+        <button type="button" class="icon-btn" data-action="undo" aria-label="撤销" title="撤销 ⌘Z" ${undoStack.length ? '' : 'disabled'}>${icon('undo', 17)}</button>
+        <button type="button" class="icon-btn" data-action="redo" aria-label="重做" title="重做 ⇧⌘Z" ${redoStack.length ? '' : 'disabled'}>${icon('redo', 17)}</button>
+        <button type="button" class="icon-btn" data-toast="版本历史：对比差异 / 回滚" aria-label="版本历史" title="版本历史">${icon('history', 17)}</button>
+        <button type="button" class="icon-btn" data-toast="导入：JSON 备份 / 粘贴文本" aria-label="导入" title="导入">${icon('upload', 17)}</button>
+        <span class="sb-spacer"></span>
+        <div class="menu-wrap">
+          <button type="button" class="btn btn-primary" data-action="export">${icon('download', 16)}<span>导出</span>${icon('chevDown', 14)}</button>
+          ${exportMenu()}
         </div>
       </div>
     </header>`
@@ -628,6 +672,7 @@
           <span class="zoom-val" id="zoom-val">100%</span>
           <button type="button" class="icon-btn" data-zoom="+" aria-label="放大">${icon('plus', 15)}</button>
           <button type="button" class="icon-btn" data-zoom="fit" aria-label="适应宽度" title="适应宽度">${icon('maximize', 15)}</button>
+          ${F.pageMode ? `<span class="zoom-sep"></span><button type="button" class="icon-btn is-on" data-toast="连续预览" aria-label="连续预览" title="连续预览">${icon('file', 15)}</button><button type="button" class="icon-btn" data-toast="分页预览：每页独立显示，所见即所得" aria-label="分页预览" title="分页预览">${icon('clipboard', 15)}</button>` : ''}
         </div>
       </div>
       <div class="canvas-scroll" id="canvas-scroll"><div class="sheet-wrap" id="sheet-wrap"><div class="sheet" id="sheet"></div></div></div>
@@ -647,6 +692,20 @@
       .join('')}</div>`
 
   function renderInspector() {
+    const tabs = floating()
+      ? `<div class="insp-tabs">${seg(
+          [
+            ['content', `${icon('pen', 15)}<span>内容</span>`],
+            ['design', `${icon('palette', 15)}<span>设计</span>`],
+          ],
+          state.mode,
+          'data-mode'
+        )}</div>`
+      : ''
+    return tabs + renderInspectorBody()
+  }
+
+  function renderInspectorBody() {
     if (state.mode === 'design') return renderDesign()
     if (state.selected === 'personal') {
       const p = state.doc.personal
@@ -764,10 +823,11 @@
   }
 
   function renderEditor() {
-    return `<div class="ed">
-      ${renderTopbar()}
+    const fl = floating()
+    return `<div class="ed${fl ? ' ed-floating' : ''}">
+      ${fl ? '' : renderTopbar()}
       <div class="ed-body">
-        <aside class="ed-left panel" id="outline" aria-label="大纲">${renderOutline()}</aside>
+        <aside class="ed-left panel" aria-label="大纲">${fl ? renderTopbar() : ''}<div id="outline">${renderOutline()}</div></aside>
         <main class="ed-canvas" id="canvas">${renderCanvas()}</main>
         <aside class="ed-right panel" id="inspector" aria-label="检查器">${renderInspector()}</aside>
       </div>

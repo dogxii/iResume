@@ -9,6 +9,24 @@ const read = (f) => readFileSync(join(src, f), 'utf8')
 
 const directions = [
   {
+    file: 'd-clean.html',
+    key: 'D',
+    title: '简约',
+    css: 'theme-d.css',
+    proto: {
+      themeClass: 'theme-d',
+      defaultTheme: 'light',
+      defaultDesign: { accent: '#2456d6', template: 'classic' },
+      features: { floating: true, createCard: true, pageMode: true },
+      copy: {
+        brandSub: '',
+        greeting: '我的简历',
+        lead: '4 份简历 · 自动保存在本地 · 已同步到 GitHub',
+        outline: '区块',
+      },
+    },
+  },
+  {
     file: 'a-paper.html',
     key: 'A',
     title: '纸墨',

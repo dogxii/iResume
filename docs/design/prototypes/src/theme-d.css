@@ -1,0 +1,549 @@
+/* ===================================================================
+   方案 D ·「简约」Clean —— 在 iResume 现有风格上做减法
+   保留：蓝色 i 标、slate 中性色 + 单一蓝色强调、三块浮动圆角面板、
+        画布顶部浮动工具胶囊、虚线「新建简历」卡片
+   去掉：装饰性字体、渐变、彩色底块；统一间距、圆角、层级
+   =================================================================== */
+.theme-d {
+  --bg: #f5f6f8;
+  --nav-bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f5f8;
+  --input-bg: #ffffff;
+  --border: #e6e9ee;
+  --border-strong: #d4d9e1;
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef3fe;
+  --accent-text: #1d4ed8;
+  --success: #16a34a;
+  --warning: #d97706;
+  --warning-soft: #fef3e2;
+  --danger: #dc2626;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 14px;
+  --thumb-radius: 8px;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 4px 8px rgb(15 23 42 / 0.04), 0 18px 44px rgb(15 23 42 / 0.12);
+  --paper-shadow: 0 1px 3px rgb(15 23 42 / 0.06), 0 10px 30px rgb(15 23 42 / 0.07);
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: var(--font-ui);
+  --fs: 14px;
+  --h1: 24px;
+  --h2: 15px;
+  --ctl-h: 36px;
+  --nav-w: 232px;
+  --left-w: 284px;
+  --right-w: 372px;
+  --ed-gap: 12px;
+  --topbar-h: 56px;
+  --page-pad: 36px 44px 64px;
+  --desk: #eceff3;
+  --toast-bg: #0f172a;
+}
+
+/* ---------- 品牌：沿用原来的蓝色 i 标 ---------- */
+.theme-d .logo {
+  width: auto;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: 14px;
+}
+.theme-d .brand-name {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.theme-d .brand-sub {
+  display: none;
+}
+.theme-d .btn {
+  font-weight: 500;
+}
+.theme-d .btn-primary {
+  box-shadow: 0 1px 2px rgb(37 99 235 / 0.25);
+}
+
+/* ---------- 首页 ---------- */
+.theme-d .home-nav {
+  padding: 20px 12px;
+}
+.theme-d .brand {
+  padding: 2px 8px 22px;
+}
+.theme-d .nav-item {
+  padding: 8px 10px;
+}
+.theme-d .nav-item .i {
+  color: var(--text-3);
+}
+.theme-d .nav-item.is-active .i {
+  color: currentColor;
+}
+.theme-d .nav-foot {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  margin-left: -12px;
+  margin-right: -12px;
+  padding-left: 22px;
+}
+.theme-d .eyebrow {
+  display: none;
+}
+.theme-d .home-inner {
+  gap: 40px;
+}
+.theme-d .home-head {
+  align-items: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.theme-d .home-head h1 {
+  margin: 0 0 4px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.theme-d .lead {
+  font-size: 13.5px;
+  color: var(--text-3);
+}
+.theme-d .search input {
+  width: 260px;
+}
+.theme-d .sec-head h2 {
+  font-weight: 600;
+}
+.theme-d .count {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+}
+.theme-d .sec-head .seg {
+  border: 0;
+}
+.theme-d .sec-head .seg button {
+  height: 28px;
+  font-size: 13px;
+}
+.theme-d .doc-grid,
+.theme-d .tpl-strip {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 28px 22px;
+}
+.theme-d .doc-thumb {
+  border: 1px solid var(--border);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.theme-d .doc-card:hover .doc-thumb,
+.theme-d .tpl-tile:hover .doc-thumb,
+.theme-d .doc-card:focus-visible .doc-thumb {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+.theme-d .doc-card:focus-visible,
+.theme-d .tpl-tile:focus-visible {
+  outline: none;
+}
+.theme-d .doc-info {
+  padding-top: 12px;
+  gap: 4px;
+}
+.theme-d .doc-info h3 {
+  font-size: 14.5px;
+}
+.theme-d .doc-meta span + span::before {
+  content: "·";
+  margin-right: 10px;
+  color: var(--border-strong);
+}
+.theme-d .doc-meta {
+  gap: 0;
+}
+.theme-d .doc-meta span + span {
+  margin-left: 10px;
+}
+.theme-d .tags {
+  margin-top: 4px;
+}
+.theme-d .tag {
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.theme-d .doc-badge {
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+.theme-d .doc-more {
+  border: 1px solid var(--border);
+}
+/* 原版特色：虚线「新建」卡片 */
+.theme-d .create-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 240px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--thumb-radius);
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12.5px;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.theme-d .create-card strong {
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.theme-d .create-card:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--text-2);
+}
+.theme-d .cc-plus {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  box-shadow: var(--shadow-sm);
+}
+.theme-d .create-card:hover .cc-plus {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.theme-d .chip-btn {
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+}
+.theme-d .chip-btn:hover {
+  color: var(--text);
+}
+.theme-d .chip-btn.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-sm);
+}
+.theme-d .tpl-info strong {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---------- 编辑器：三块浮动面板（原版布局） ---------- */
+.theme-d .ed-floating {
+  grid-template-rows: minmax(0, 1fr);
+}
+.theme-d .ed-floating .panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.theme-d .ed-floating .ed-left {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+.theme-d .ed-floating #outline {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.theme-d .side-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  height: auto;
+  padding: 14px 14px 12px;
+  background: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.theme-d .sh-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.theme-d .brand-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+}
+.theme-d .side-head .doc-meta-wrap {
+  margin: 6px 0 0;
+}
+.theme-d .side-head .doc-title {
+  width: 100%;
+  justify-content: flex-start;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+  font-size: 15px;
+}
+.theme-d .side-head .doc-title .i:last-child {
+  margin-left: auto;
+  color: var(--text-3);
+}
+.theme-d .sh-tools {
+  margin: 0 -6px;
+}
+.theme-d .sh-tools .save-state {
+  margin-left: 4px;
+}
+.theme-d .sh-tools .btn-primary {
+  height: 34px;
+  padding: 0 12px;
+}
+.theme-d .side-head .popover {
+  width: 100%;
+}
+
+.theme-d .topbar:not(.side-head) {
+  background: var(--surface);
+}
+.theme-d .panel-head {
+  min-height: 48px;
+  border-bottom: 0;
+  padding: 12px 16px 6px;
+}
+.theme-d #outline .panel-head h3 {
+  font-size: 12.5px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.theme-d .ph-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.theme-d .title-input {
+  font-size: 15px;
+}
+.theme-d .outline {
+  padding: 0 10px 8px;
+  gap: 2px;
+}
+.theme-d .ol-item {
+  min-height: 42px;
+  padding: 0 6px 0 2px;
+}
+.theme-d .ol-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.theme-d .ol-item.is-active .ol-icon {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.theme-d .ol-item.is-active {
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.theme-d .ol-title {
+  color: var(--text);
+}
+.theme-d .ol-item.is-active .ol-title {
+  color: var(--accent-text);
+}
+/* 建议：只给一个小圆点，不抢视线 */
+.theme-d .ol-tips {
+  font-size: 0;
+  width: 6px;
+  min-width: 6px;
+  height: 6px;
+  padding: 0;
+  background: var(--warning);
+}
+.theme-d .add-section {
+  margin: 6px 10px 12px;
+  width: calc(100% - 20px);
+  height: 38px;
+}
+
+/* 画布 + 浮动胶囊 */
+.theme-d .ed-floating .ed-canvas {
+  background: transparent;
+}
+.theme-d .canvas-tools {
+  top: 4px;
+}
+.theme-d .zoom {
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: var(--shadow);
+}
+.theme-d .zoom-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.theme-d .zoom .icon-btn.is-on {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.theme-d .ed-floating .canvas-scroll {
+  padding: 56px 24px 88px;
+}
+.theme-d .fit-chip {
+  font-size: 13px;
+  box-shadow: var(--shadow);
+}
+
+/* 检查器：顶部「内容 / 设计」分段 */
+.theme-d .insp-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 12px 12px 4px;
+  background: var(--surface);
+}
+.theme-d .insp-tabs .seg {
+  display: flex;
+  border: 0;
+  border-radius: 10px;
+  padding: 3px;
+}
+.theme-d .insp-tabs .seg button {
+  flex: 1;
+  justify-content: center;
+  height: 32px;
+  border-radius: 8px;
+}
+.theme-d .ed-floating .ed-right .panel-head {
+  position: static;
+}
+.theme-d .insp-body {
+  padding: 8px 16px 20px;
+}
+.theme-d .entry-card {
+  border-radius: var(--radius);
+}
+.theme-d .entry-card.is-open {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.theme-d .eh-tips {
+  font-size: 0;
+  min-width: 6px;
+  width: 6px;
+  height: 6px;
+  background: var(--warning);
+}
+/* 建议：轻量行内提示 */
+.theme-d .tip {
+  background: none;
+  padding: 0;
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+.theme-d .tips {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  gap: 6px;
+}
+.theme-d .entry-actions .btn-ghost {
+  color: var(--text-3);
+}
+.theme-d .photo-row {
+  background: none;
+  border: 1px solid var(--border);
+}
+.theme-d .group {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.theme-d .group:last-child {
+  border-bottom: 0;
+}
+.theme-d .group h4 {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.theme-d .design .seg {
+  border: 0;
+}
+.theme-d .tpl-card {
+  border-radius: var(--radius);
+}
+.theme-d .swatch {
+  width: 26px;
+  height: 26px;
+}
+
+/* 手机 */
+.theme-d.device-mobile .topbar {
+  border-bottom: 1px solid var(--border);
+}
+.theme-d.device-mobile .create-card {
+  min-height: 200px;
+}
+.theme-d.device-mobile .home-head {
+  padding-bottom: 16px;
+}
+.theme-d.device-mobile .home-actions .btn:not(.btn-primary) {
+  display: none;
+}
+.theme-d .tag {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.theme-d .side-head .save-state {
+  font-size: 12px;
+}
+.theme-d.device-mobile .doc-grid,
+.theme-d.device-mobile .tpl-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 12px;
+}
+.theme-d.device-mobile .create-card {
+  display: none;
+}
+.theme-d.device-mobile .search input {
+  width: 100%;
+}
+.theme-d.device-mobile .doc-meta span:nth-child(2) {
+  display: none;
+}

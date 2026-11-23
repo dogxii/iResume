@@ -1724,7 +1724,8 @@ input[type="range"] {
   overflow: hidden;
   border-bottom: 1px solid var(--border);
 }
-.device-mobile[data-mtab="edit"] .ed-left > :not(.outline) {
+.device-mobile[data-mtab="edit"] .ed-left > :not(#outline),
+.device-mobile[data-mtab="edit"] #outline > :not(.outline) {
   display: none;
 }
 .device-mobile .outline {
