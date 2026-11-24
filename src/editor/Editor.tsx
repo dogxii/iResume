@@ -46,6 +46,7 @@ import { MatchPanel } from './Match'
 import { FIT_STEPS, FIT_TARGET, type Measure, measurePaper } from './measure'
 import { focusTarget, MarginNotes, NotesList } from './Notes'
 import { AddSection, Outline } from './Outline'
+import { Pages } from './Pages'
 import { paperTools } from './PaperTools'
 import { download, printResume, safeFilename } from './print'
 import {
@@ -132,7 +133,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     ro.observe(paper)
     void document.fonts?.ready.then(run)
     return () => ro.disconnect()
-  }, [doc, mobile])
+  }, [doc, mobile, preview])
 
   const fitOnePage = () => {
     const paper = paperRef.current?.querySelector<HTMLElement>('.r-paper')
@@ -171,7 +172,12 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     setPanel(null)
     void flushNow()
     flushSync(() => setPrinting(true))
-    printResume(doc.theme, safeFilename(doc.name), () => setPrinting(false))
+    printResume(
+      doc.theme,
+      safeFilename(doc.name),
+      () => setPrinting(false),
+      measure?.pages
+    )
   }
   const exportJson = () => {
     setPanel(null)
@@ -469,9 +475,18 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
             ref={stageRef}
             style={{ paddingRight: notesW }}
           >
-            <div className='e-paper' ref={paperRef} style={{ zoom }}>
+            <div
+              className={`e-paper ${preview && measure && !mobile ? 'is-paged' : ''}`}
+              ref={paperRef}
+              style={{ zoom }}
+            >
               {preview ? (
-                <Resume doc={doc} />
+                <>
+                  <div className={measure && !mobile ? 'e-measure' : ''}>
+                    <Resume doc={doc} />
+                  </div>
+                  {measure && !mobile && <Pages doc={doc} measure={measure} />}
+                </>
               ) : (
                 <EditContext.Provider value={editApi}>
                   <Resume
@@ -485,17 +500,17 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
                 !preview &&
                 measure &&
                 measure.pages > 1 &&
-                Array.from({ length: measure.pages - 1 }, (_, i) => (
-                  <div
-                    key={i}
-                    className='e-pagebreak'
-                    style={{
-                      top: measure.marginPx + measure.pageContent * (i + 1),
-                    }}
-                  >
-                    <span>第 {i + 2} 页</span>
-                  </div>
-                ))}
+                measure.frames.slice(1).flatMap((frames, i) =>
+                  frames.map((f, j) => (
+                    <div
+                      key={`${i}-${f.left}`}
+                      className='e-pagebreak'
+                      style={{ top: f.from, left: f.left, width: f.width }}
+                    >
+                      {j === frames.length - 1 && <span>第 {i + 2} 页</span>}
+                    </div>
+                  ))
+                )}
             </div>
             {showMarginNotes && (
               <MarginNotes

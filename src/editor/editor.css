@@ -88,8 +88,6 @@
 /* 页面分隔线 */
 .e-pagebreak {
   position: absolute;
-  left: 0;
-  right: 0;
   height: 0;
   border-top: 1px dashed rgb(220 38 38 / 0.45);
   pointer-events: none;
@@ -1201,4 +1199,46 @@ button.e-outline-row > .e-outline-name {
 }
 .e-kw button:hover svg {
   opacity: 1;
+}
+
+/* —— 逐页预览 —— */
+.e-paper.is-paged {
+  background: none;
+  box-shadow: none !important;
+}
+.e-measure {
+  position: absolute;
+  inset: 0 auto auto 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.e-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.e-page {
+  position: relative;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.04),
+    0 30px 80px -20px rgb(0 0 0 / 0.25);
+}
+.e-page-bg {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  min-height: 0;
+}
+.e-page-window {
+  position: absolute;
+  overflow: hidden;
+}
+.e-page-no {
+  position: absolute;
+  right: 0;
+  bottom: -22px;
+  color: var(--text-4);
+  font: 500 11px / 18px var(--font);
+  font-variant-numeric: tabular-nums;
 }

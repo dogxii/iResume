@@ -150,6 +150,8 @@
   font-weight: 650;
   line-height: 1.3;
   color: var(--r-heading-color);
+  /* 下划线样式的 ::after 是块级元素，不加 break-inside 时标题内部也可能断页 */
+  break-inside: avoid;
   break-after: avoid;
 }
 [data-caps="true"] .r-heading {
@@ -442,6 +444,12 @@
 .r-main {
   padding: var(--r-margin);
   min-width: 0;
+}
+/* 双栏打印不留页边距（侧栏色带要通到纸边），续页靠复制栏内边距留出上下白边 */
+.r-aside,
+.r-main {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .r-aside .r-photo {
   display: block;
