@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { type ImportResult, importAny } from '../migrate'
 import { createDoc, duplicateDoc } from '../model/defaults'
 import { uid } from '../model/ids'
-import type { ResumeDoc, Snapshot } from '../model/types'
+import type { ResumeDoc, Snapshot, Target } from '../model/types'
 import type { Theme } from '../theme/types'
 import { type Database, openDatabase, readLegacyWorkspace } from './db'
 
@@ -244,6 +244,20 @@ export function duplicate(id: string): ResumeDoc | undefined {
   const doc = state.docs[id]
   if (!doc) return
   return addDocs([duplicateDoc(doc)])[0]
+}
+
+/** 派生一份岗位定制版：内容完整复制，并记住来源 */
+export function derive(
+  id: string,
+  target: Partial<Omit<Target, 'baseId'>> = {}
+): ResumeDoc | undefined {
+  const doc = state.docs[id]
+  if (!doc) return
+  const t = { role: '', company: '', jd: '', ...target, baseId: id }
+  const suffix = t.company || t.role || '定制'
+  const copy = duplicateDoc(doc, `${doc.name} · ${suffix}`)
+  copy.target = t
+  return addDocs([copy])[0]
 }
 
 export async function remove(id: string) {

@@ -214,3 +214,49 @@ describe('snapshots', () => {
     expect(snaps[0].doc.id).toBe(added[0].id)
   })
 })
+
+describe('derive', () => {
+  beforeEach(async () => {
+    store.__reset()
+    await store.init(new IDBFactory())
+  })
+  it('复制内容并记录来源与目标岗位', () => {
+    const base = Object.values(store.getState().docs)[0]
+    const copy = store.derive(base.id, {
+      company: '字节跳动',
+      role: '前端工程师',
+    })
+    expect(copy?.id).not.toBe(base.id)
+    expect(copy?.name).toBe(`${base.name} · 字节跳动`)
+    expect(copy?.target).toEqual({
+      baseId: base.id,
+      company: '字节跳动',
+      role: '前端工程师',
+      jd: '',
+    })
+    expect(copy?.sections.length).toBe(base.sections.length)
+    expect(store.getState().docs[base.id].target).toBeUndefined()
+  })
+})
+
+describe('setTarget', () => {
+  beforeEach(async () => {
+    store.__reset()
+    await store.init(new IDBFactory())
+  })
+  it('派生版名称跟随公司变化，手动改名后不再跟随', async () => {
+    const { actions } = await import('../editor/actions')
+    const base = Object.values(store.getState().docs)[0]
+    const copy = store.derive(base.id) as NonNullable<
+      ReturnType<typeof store.derive>
+    >
+    const a = actions(copy.id)
+    a.setTarget({ company: '星图' })
+    expect(store.getState().docs[copy.id].name).toBe(`${base.name} · 星图`)
+    a.setTarget({ company: '星图科技' })
+    expect(store.getState().docs[copy.id].name).toBe(`${base.name} · 星图科技`)
+    a.rename('我的投递')
+    a.setTarget({ company: '别家' })
+    expect(store.getState().docs[copy.id].name).toBe('我的投递')
+  })
+})

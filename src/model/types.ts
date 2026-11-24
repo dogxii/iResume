@@ -80,6 +80,17 @@ export interface ResumeDoc {
   sections: Section[]
   theme: Theme
   dismissed: string[]
+  /** 岗位定制信息：派生版本与 JD 匹配 */
+  target?: Target
+}
+
+export interface Target {
+  /** 派生自哪份简历（可能已被删除） */
+  baseId: string
+  role: string
+  company: string
+  /** 岗位描述原文，只保存在本机 */
+  jd: string
 }
 
 /** 版本快照：某一时刻的完整文档 */

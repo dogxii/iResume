@@ -194,3 +194,17 @@
     padding: 0 8px;
   }
 }
+
+.h-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(37 99 235 / 0.08);
+  color: var(--brand);
+  font-size: 11px;
+  font-style: normal;
+  vertical-align: 1px;
+}

@@ -124,5 +124,13 @@ export function normalizeDoc(v: unknown): ResumeDoc {
       : [],
     theme: normalizeTheme(r.theme),
     dismissed: strList(r.dismissed),
+    ...(isRec(r.target) && {
+      target: {
+        baseId: str(r.target.baseId),
+        role: str(r.target.role),
+        company: str(r.target.company),
+        jd: str(r.target.jd),
+      },
+    }),
   }
 }

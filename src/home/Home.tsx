@@ -2,8 +2,10 @@ import {
   Copy,
   Download,
   FilePlus2,
+  GitBranchPlus,
   Github,
   MoreHorizontal,
+  Target,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -15,6 +17,7 @@ import type { ResumeDoc } from '../model/types'
 import { Resume } from '../render/Resume'
 import {
   addDocs,
+  derive,
   duplicate,
   importResult,
   remove,
@@ -196,6 +199,11 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
           <span>
             {ago(doc.updatedAt)} · {doc.theme.name}
             {doc.tags.length > 0 && ` · ${doc.tags.join(' / ')}`}
+            {doc.target && (doc.target.company || doc.target.role) && (
+              <em className='h-target'>
+                <Target size={11} /> {doc.target.company || doc.target.role}
+              </em>
+            )}
           </span>
         </button>
         <button
@@ -224,6 +232,16 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
               }}
             >
               复制一份
+            </MenuItem>
+            <MenuItem
+              icon={<GitBranchPlus size={15} />}
+              onClick={() => {
+                setOpen(false)
+                const copy = derive(doc.id)
+                if (copy) window.location.hash = `/edit/${copy.id}#match`
+              }}
+            >
+              派生定制版…
             </MenuItem>
             <MenuItem
               icon={<Download size={15} />}

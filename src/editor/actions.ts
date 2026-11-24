@@ -4,6 +4,7 @@ import type {
   ResumeDoc,
   Section,
   SectionKind,
+  Target,
 } from '../model/types'
 import { requestFocus } from '../render/Field'
 import { update } from '../store/store'
@@ -24,6 +25,27 @@ export function actions(docId: string) {
       u((d) => {
         d.theme = structuredClone(theme)
       })
+    },
+    setTarget(patch: Partial<Target>) {
+      const suffix = (t?: Partial<Target>) => t?.company || t?.role || '定制'
+      u(
+        (d) => {
+          const prev = d.target
+          d.target = {
+            baseId: '',
+            role: '',
+            company: '',
+            jd: '',
+            ...prev,
+            ...patch,
+          }
+          // 派生版的默认名称跟随公司 / 岗位变化；用户改过名字就不再动
+          const tail = ` · ${suffix(prev)}`
+          if (prev?.baseId && d.name.endsWith(tail))
+            d.name = `${d.name.slice(0, -tail.length)} · ${suffix(d.target)}`
+        },
+        `target:${Object.keys(patch).join()}`
+      )
     },
     rename(name: string) {
       u((d) => {

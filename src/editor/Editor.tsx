@@ -14,6 +14,7 @@ import {
   Redo2,
   Ruler,
   Sparkles,
+  Target,
   Type,
   Undo2,
   X,
@@ -41,6 +42,7 @@ import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
 import { actions } from './actions'
+import { MatchPanel } from './Match'
 import { FIT_STEPS, FIT_TARGET, type Measure, measurePaper } from './measure'
 import { focusTarget, MarginNotes, NotesList } from './Notes'
 import { AddSection, Outline } from './Outline'
@@ -65,6 +67,7 @@ type PanelId =
   | 'notes'
   | 'export'
   | 'versions'
+  | 'match'
 
 export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const a = useMemo(() => actions(doc.id), [doc.id])
@@ -87,6 +90,15 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const anchors = useRef<Partial<Record<PanelId, HTMLButtonElement | null>>>({})
 
   const notes = useMemo(() => lint(doc), [doc])
+  useEffect(() => {
+    if (!window.location.hash.endsWith('#match')) return
+    window.history.replaceState(
+      null,
+      '',
+      window.location.hash.replace(/#match$/, '')
+    )
+    setPanel('match')
+  }, [])
   const showMarginNotes = wide && !mobile && !preview && notes.length > 0
 
   const editApi = useMemo<EditApi>(
@@ -242,7 +254,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     </button>
   )
   const panelBody: Record<
-    Exclude<PanelId, 'export' | 'versions'>,
+    Exclude<PanelId, 'export' | 'versions' | 'match'>,
     ReactNode
   > = {
     theme: <ThemeGallery doc={doc} a={a} />,
@@ -270,6 +282,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     notes: `写作建议 · ${notes.length}`,
     export: '导出',
     versions: '历史版本',
+    match: '岗位匹配',
   }
 
   const activeSection =
@@ -318,6 +331,37 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
             >
               <Redo2 size={17} />
             </IconButton>
+            <button
+              ref={(el) => {
+                anchors.current.match = el
+              }}
+              type='button'
+              className={`u-btn is-ghost is-md e-match-btn ${panel === 'match' ? 'is-on' : ''}`}
+              aria-label='岗位匹配'
+              aria-expanded={panel === 'match'}
+              onClick={() => toggle('match')}
+            >
+              <Target size={16} />
+              {!mobile &&
+                (doc.target?.company || doc.target?.role || '岗位匹配')}
+            </button>
+            <Popover
+              anchor={anchors.current.match ?? null}
+              open={panel === 'match'}
+              onClose={() => setPanel(null)}
+              align='end'
+              title='岗位匹配'
+            >
+              {!mobile && <div className='u-pop-title'>岗位匹配</div>}
+              <MatchPanel
+                doc={doc}
+                a={a}
+                onDerived={(id) => {
+                  setPanel(null)
+                  window.location.hash = `/edit/${id}#match`
+                }}
+              />
+            </Popover>
             <button
               ref={(el) => {
                 anchors.current.versions = el
