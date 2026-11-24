@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { Editor } from '../editor/Editor'
 import { Home } from '../home/Home'
 import { init, useApp } from '../store/store'
+import { initSync } from '../sync/controller'
 import { Logo } from '../ui/controls'
 import { Toaster, toast } from '../ui/toast'
 
@@ -30,6 +31,10 @@ export function App() {
     started = true
     void init()
   }, [])
+
+  useEffect(() => {
+    if (status === 'ready') void initSync()
+  }, [status])
 
   useEffect(() => {
     if (migrated > 0)

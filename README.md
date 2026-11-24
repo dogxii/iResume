@@ -37,9 +37,16 @@ iResume 3 是一次彻底的重写。没有表单，也没有左边填写、右�
   - 可以把调整好的主题另存，也可以导入 / 导出主题文件分享给别人。
 - **一页适配**：实时显示页数和超出的行数，一键按「行高 → 间距 → 边距 → 字号」逐级压缩，可以撤销。
 - **写作批注**：像文档评论一样显示在页边，提示缺少量化结果、用弱动词开头、要点过长、日期不规范、经历没有倒序等问题。
+- **历史版本**：每天第一次编辑前自动留底，也可以给当前版本命名保存；可以与当前内容逐条对比，一键恢复（恢复本身也能撤回）。
+- **定制投递**：从一份简历派生出针对某个岗位的版本；粘贴 JD 后在本机提取关键词，显示已覆盖、部分匹配和缺失的词。
 - **导出**：
   - PDF：通过浏览器打印生成，文字可以选中，可以被 ATS 解析；
-  - JSON：完整备份内容和主题。
+  - Markdown、纯文本（复制到网申表单）、[JSON Resume](https://jsonresume.org)；
+  - iResume JSON：完整备份内容和主题。
+- **端到端加密同步**：
+  - 加密后存进你自己 GitHub 账号下的私密 Gist；
+  - 密钥由同步口令在本机派生（PBKDF2-SHA256 60 万次 + AES-GCM），GitHub 和 iResume 服务端都无法读取；
+  - 多设备按修改时间合并，被覆盖的一方自动存进历史版本。
 - **本地优先**：
   - 数据保存在浏览器的 IndexedDB 中；
   - 首次打开时会自动导入 2.x 的数据，旧数据保持原样。
@@ -68,10 +75,22 @@ bun run build
 bun run preview
 ```
 
+## 同步配置（可选）
+
+不做任何配置时，用户可以粘贴一个只勾选 `gist` 权限的 [Personal access token](https://github.com/settings/tokens/new?scopes=gist&description=iResume%20sync) 来连接。
+
+想提供「使用 GitHub 登录」按钮，需要：
+
+1. 创建一个 GitHub OAuth App，回调地址填站点根地址；
+2. 前端环境变量 `VITE_GITHUB_OAUTH_CLIENT_ID`；
+3. 服务端（Vercel Functions，见 `api/github/oauth.js`）环境变量 `GITHUB_OAUTH_CLIENT_ID`、`GITHUB_OAUTH_CLIENT_SECRET`。
+
+服务端只用于把 OAuth code 换成 token，接触不到同步口令和简历内容。`api/github/sync-key.js` 仅用于一次性导入 2.x 的云端数据。
+
 ## 🧭 使用提示
 
 - 导出 PDF 时，在打印对话框里选择「存储为 PDF」，并关闭「页眉和页脚」
-- 简历只保存在当前浏览器；换设备或清理浏览器数据前，先在首页点击「备份全部」
+- 简历默认只保存在当前浏览器；换设备或清理浏览器数据前，先在首页点击「备份全部」，或开启「同步」
 - 快捷键：
   - `⌘/Ctrl + Z` 撤销，`⇧⌘Z` 重做
   - `⌘/Ctrl + P` 导出 PDF

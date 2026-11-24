@@ -29,6 +29,7 @@ import { Button, Logo, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { ago } from '../ui/time'
 import { toast } from '../ui/toast'
+import { SyncButton } from './SyncPanel'
 import './home.css'
 
 export function Home({ onOpen }: { onOpen(id: string): void }) {
@@ -66,6 +67,7 @@ export function Home({ onOpen }: { onOpen(id: string): void }) {
           <span>iResume</span>
         </div>
         <nav className='h-top-actions'>
+          <SyncButton />
           <Button onClick={() => file.current?.click()}>
             <Upload size={15} /> 导入
           </Button>

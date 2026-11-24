@@ -208,3 +208,127 @@
   font-style: normal;
   vertical-align: 1px;
 }
+
+/* —— 同步 —— */
+.h-sync-btn.is-ready {
+  color: var(--text-2);
+}
+.h-sync-btn.is-warn,
+.h-sync-btn.is-error,
+.h-sync-btn.is-needs-key {
+  color: var(--warn);
+}
+.h-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 360px;
+  max-width: 100%;
+  padding: 8px 10px 10px;
+  font-size: 13px;
+}
+.h-sync p {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.h-sync a {
+  color: var(--brand);
+}
+.h-sync-intro {
+  display: flex;
+  gap: 10px;
+}
+.h-sync-intro > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ok);
+}
+.h-sync-intro strong {
+  display: block;
+  margin-bottom: 2px;
+}
+.h-sync-token {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.h-sync-token label {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.h-sync-token code {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+.h-sync-token > div {
+  display: flex;
+  gap: 6px;
+}
+.h-sync input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.h-sync input:focus {
+  outline: none;
+  border-color: var(--border-2);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+.h-sync input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.h-sync-pass {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.h-sync-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.h-sync-account img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.h-sync-account > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.h-sync-account span,
+.h-sync-note {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.h-sync .h-sync-note {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.h-sync-msg.is-error {
+  color: var(--danger) !important;
+}
+.h-sync-msg.is-ok {
+  color: var(--ok) !important;
+}
+.h-sync-legacy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 12px;
+}

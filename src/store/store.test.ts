@@ -260,3 +260,56 @@ describe('setTarget', () => {
     expect(store.getState().docs[copy.id].name).toBe('我的投递')
   })
 })
+
+describe('sync integration', () => {
+  beforeEach(async () => {
+    store.__reset()
+    await store.init(new IDBFactory())
+  })
+  it('删除留下墓碑，撤销删除会清除墓碑并更新时间', async () => {
+    const doc = Object.values(store.getState().docs)[0]
+    await store.remove(doc.id)
+    expect(Object.keys((await store.localSyncData()).tombstones)).toEqual([
+      doc.id,
+    ])
+    const [back] = store.addDocs([doc])
+    expect(back.id).toBe(doc.id)
+    expect(back.updatedAt > doc.updatedAt).toBe(true)
+    expect((await store.localSyncData()).tombstones).toEqual({})
+  })
+  it('applySync 覆盖前存快照，并跳过同步期间改过的简历', async () => {
+    const doc = Object.values(store.getState().docs)[0]
+    const remote = {
+      ...structuredClone(doc),
+      name: '远端改名',
+      updatedAt: '2999-01-01T00:00:00.000Z',
+    }
+    const result = await store.applySync({
+      result: { docs: [remote], themes: [], tombstones: {} },
+      put: [remote],
+      overwritten: [doc],
+      remove: [],
+      themesChanged: false,
+      pushRemote: false,
+    })
+    expect(result).toEqual({ put: 1, removed: 0 })
+    expect(store.getState().docs[doc.id].name).toBe('远端改名')
+    const snaps = await store.listSnapshots(doc.id)
+    expect(snaps[0].doc.name).toBe(doc.name)
+
+    const stale = {
+      ...remote,
+      name: '更旧的远端',
+      updatedAt: '2000-01-01T00:00:00.000Z',
+    }
+    await store.applySync({
+      result: { docs: [stale], themes: [], tombstones: {} },
+      put: [stale],
+      overwritten: [],
+      remove: [],
+      themesChanged: false,
+      pushRemote: false,
+    })
+    expect(store.getState().docs[doc.id].name).toBe('远端改名')
+  })
+})

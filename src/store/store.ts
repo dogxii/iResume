@@ -3,6 +3,7 @@ import { type ImportResult, importAny } from '../migrate'
 import { createDoc, duplicateDoc } from '../model/defaults'
 import { uid } from '../model/ids'
 import type { ResumeDoc, Snapshot, Target } from '../model/types'
+import type { MergePlan, SyncData } from '../sync/merge'
 import type { Theme } from '../theme/types'
 import { type Database, openDatabase, readLegacyWorkspace } from './db'
 
@@ -138,6 +139,7 @@ export async function init(factory?: IDBFactory) {
       await db.setKv('legacy-checked', true)
     }
     const themes = (await db.getKv<Theme[]>('themes')) ?? []
+    tombstones = (await db.getKv<Record<string, string>>('tombstones')) ?? {}
     set({
       status: 'ready',
       docs: Object.fromEntries(docs.map((d) => [d.id, d])),
@@ -230,9 +232,17 @@ export const undo = (id: string) => step(id, 'past')
 export const redo = (id: string) => step(id, 'future')
 
 export function addDocs(docs: ResumeDoc[]): ResumeDoc[] {
-  const added = docs.map((doc) =>
-    state.docs[doc.id] ? { ...doc, id: uid('r') } : doc
-  )
+  const now = new Date().toISOString()
+  const added = docs.map((doc) => {
+    if (state.docs[doc.id]) return { ...doc, id: uid('r') }
+    // 撤销删除：清掉墓碑，并让它比删除更新，同步时才不会再被删掉
+    if (tombstones[doc.id]) {
+      delete tombstones[doc.id]
+      saveTombstones()
+      return { ...doc, updatedAt: now }
+    }
+    return doc
+  })
   set({
     docs: { ...state.docs, ...Object.fromEntries(added.map((d) => [d.id, d])) },
   })
@@ -266,6 +276,8 @@ export async function remove(id: string) {
   dirty.delete(id)
   histories.delete(id)
   set({ docs })
+  tombstones[id] = new Date().toISOString()
+  saveTombstones()
   await db?.deleteDoc(id)
   const snaps = (await db?.listSnapshots(id)) ?? []
   if (snaps.length) await db?.deleteSnapshots(snaps.map((x) => x.id))
@@ -362,6 +374,75 @@ export async function restoreSnapshot(docId: string, snapshot: Snapshot) {
   })
 }
 
+// —— 同步 ——————————————————————————————————————————————————
+
+/** 已删除简历的 id → 删除时间，用于把删除同步到其他设备 */
+let tombstones: Record<string, string> = {}
+const saveTombstones = () => void db?.setKv('tombstones', tombstones)
+
+export const kvGet = async <T>(key: string) => db?.getKv<T>(key)
+export const kvSet = async (key: string, value: unknown) =>
+  db?.setKv(key, value)
+
+/** 本机当前的全部可同步数据（先落盘未保存的修改） */
+export async function localSyncData(): Promise<SyncData> {
+  await flush()
+  return {
+    docs: Object.values(state.docs),
+    themes: state.themes,
+    tombstones: { ...tombstones },
+  }
+}
+
+/**
+ * 把同步结果落到本机：被覆盖的本机版本先存快照；
+ * 同步期间用户又改过的简历保持不动，留给下一次同步。
+ */
+export async function applySync(plan: MergePlan) {
+  if (!db) return
+  const docs = { ...state.docs }
+  const put: ResumeDoc[] = []
+  for (const doc of plan.put) {
+    const cur = docs[doc.id]
+    if (cur && cur.updatedAt > doc.updatedAt) continue
+    put.push(doc)
+    docs[doc.id] = doc
+  }
+  const removed: string[] = []
+  for (const id of plan.remove) {
+    const cur = docs[id]
+    const dead = plan.result.tombstones[id]
+    if (cur && dead && cur.updatedAt > dead) continue
+    removed.push(id)
+    delete docs[id]
+    histories.delete(id)
+  }
+  const kept = new Set(put.map((d) => d.id))
+  const snaps = plan.overwritten
+    .filter((d) => kept.has(d.id))
+    .map((d) => ({
+      id: uid('v'),
+      docId: d.id,
+      label: '同步覆盖前的本机版本',
+      auto: true,
+      createdAt: new Date().toISOString(),
+      doc: d,
+    }))
+  if (snaps.length) await db.putSnapshots(snaps)
+  if (put.length) await db.putDocs(put)
+  for (const id of removed) await db.deleteDoc(id)
+  tombstones = { ...plan.result.tombstones }
+  saveTombstones()
+  if (put.length || removed.length) {
+    set({ docs })
+    channel?.postMessage({ type: 'put', ids: put.map((d) => d.id) })
+    if (removed.length) channel?.postMessage({ type: 'delete', ids: removed })
+  }
+  for (const s of snaps) bumpSnapshots(s.docId)
+  if (plan.themesChanged) saveThemes(plan.result.themes)
+  return { put: put.length, removed: removed.length }
+}
+
 export function saveThemes(themes: Theme[]) {
   set({ themes })
   void db?.setKv('themes', themes)
@@ -375,6 +456,7 @@ export function __reset() {
   db = null
   listCache = null
   autoChecked.clear()
+  tombstones = {}
   state = {
     status: 'loading',
     docs: {},
