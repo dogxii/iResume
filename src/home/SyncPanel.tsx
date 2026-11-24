@@ -180,7 +180,7 @@ function SyncPanel() {
     </div>
   )
 
-  if (s.phase === 'needs-key' || (busy && !s.lastSyncAt)) {
+  if (s.phase === 'needs-key' || s.unlocking) {
     const tooShort = pass.length > 0 && pass.length < 8
     const mismatch = !s.joining && confirm.length > 0 && confirm !== pass
     const canSubmit =

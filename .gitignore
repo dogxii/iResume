@@ -9,3 +9,7 @@ output/playwright/
 .env
 .env.*
 !.env.example
+test-results/
+playwright-report/
+# 截图基线与系统字体相关，只在本机生成
+e2e/*-snapshots/

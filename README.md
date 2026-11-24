@@ -103,6 +103,15 @@ React 19 · TypeScript · Vite · IndexedDB · Lucide · Vitest · Biome · Bun�
 
 开发前请先阅读 [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md)，里面有架构说明和路线图。提交前请运行 `bun run check`。
 
+端到端测试（Playwright，基于生产构建）：
+
+```bash
+bunx playwright install chromium   # 首次
+bun run e2e                         # 功能 + 无障碍
+bun run e2e:visual -- --update-snapshots   # 首次生成本机截图基线
+bun run e2e:visual                  # 之后对比截图
+```
+
 ## 💰 赞赏项目
 
 如果觉得这个项目对你有帮助，欢迎请我喝咖啡 ☕️

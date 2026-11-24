@@ -130,7 +130,7 @@ export function Home({
         {incoming && (
           <section className='h-incoming' aria-label='收到的主题'>
             <span className='h-thumb'>
-              <span className='h-thumb-zoom'>
+              <span className='h-thumb-zoom' inert>
                 <Resume doc={{ ...sample.current, theme: incoming }} />
               </span>
             </span>
@@ -220,7 +220,7 @@ export function Home({
                 }
               >
                 <span className='h-thumb'>
-                  <span className='h-thumb-zoom'>
+                  <span className='h-thumb-zoom' inert>
                     <Resume doc={{ ...sample.current, theme }} />
                   </span>
                 </span>
@@ -252,9 +252,11 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
         type='button'
         className='h-thumb'
         onClick={onOpen}
-        aria-label={`打开 ${doc.name}`}
+        // 与下方名称按钮重复：鼠标可点，读屏与键盘只用名称按钮
+        tabIndex={-1}
+        aria-hidden
       >
-        <span className='h-thumb-zoom'>
+        <span className='h-thumb-zoom' inert>
           <Resume doc={doc} />
         </span>
       </button>

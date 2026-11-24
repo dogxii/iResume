@@ -71,6 +71,7 @@ const channel =
 
 async function flush() {
   clearTimeout(timer)
+  pendingSince = 0
   if (!db || dirty.size === 0) return
   const ids = [...dirty]
   dirty.clear()
@@ -86,11 +87,19 @@ async function flush() {
 }
 export const flushNow = flush
 
+/** 停止输入 400ms 后保存；持续输入时最多每 2 秒保存一次 */
+const SAVE_DELAY = 400
+const SAVE_MAX_WAIT = 2000
+let pendingSince = 0
+
 function persist(id: string) {
   dirty.add(id)
   if (state.save !== 'pending') set({ save: 'pending' })
   clearTimeout(timer)
-  timer = setTimeout(flush, 400)
+  const now = Date.now()
+  if (!pendingSince) pendingSince = now
+  const wait = Math.min(SAVE_DELAY, SAVE_MAX_WAIT - (now - pendingSince))
+  timer = setTimeout(flush, Math.max(0, wait))
 }
 
 channel?.addEventListener('message', async (event: MessageEvent) => {
@@ -451,6 +460,7 @@ export function saveThemes(themes: Theme[]) {
 /** 仅供测试：重置模块状态 */
 export function __reset() {
   clearTimeout(timer)
+  pendingSince = 0
   dirty.clear()
   histories.clear()
   db = null

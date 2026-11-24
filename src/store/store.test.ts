@@ -313,3 +313,21 @@ describe('sync integration', () => {
     expect(store.getState().docs[doc.id].name).toBe('远端改名')
   })
 })
+
+describe('保存节奏', () => {
+  it('持续输入时也会定期写入数据库（最多间隔 2 秒）', async () => {
+    store.__reset()
+    const factory = new IDBFactory()
+    await store.init(factory)
+    const id = Object.keys(store.getState().docs)[0]
+    for (let i = 0; i < 10; i++) {
+      store.update(id, (d) => {
+        d.profile.name = `名字${i}`
+      })
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    // 一直在输入（间隔 < 400ms），但 2.5 秒内应已至少写入过一次
+    const saved = await openDatabase(factory).getDoc(id)
+    expect(saved?.profile.name).toMatch(/^名字[5-9]$/)
+  }, 10_000)
+})

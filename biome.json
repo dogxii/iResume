@@ -6,7 +6,9 @@
       "!!node_modules",
       "!!dist",
       "!!coverage",
-      "!!docs/design/prototypes"
+      "!!docs/design/prototypes",
+      "!!test-results",
+      "!!playwright-report"
     ]
   },
   "formatter": {

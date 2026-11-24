@@ -49,7 +49,7 @@
 }
 .e-save {
   padding-left: 4px;
-  color: var(--text-4);
+  color: var(--text-3);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -211,7 +211,7 @@
   padding: 0 10px 8px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-4);
+  color: var(--text-3);
 }
 .e-outline ol {
   margin: 0;

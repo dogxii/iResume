@@ -38,6 +38,8 @@ export interface SyncView {
   joining: boolean
   /** 发现 2.x 的云端数据 */
   legacy: boolean
+  /** 正在用口令派生密钥 / 解锁（此时仍显示口令表单） */
+  unlocking: boolean
   message?: string
   messageKind?: 'ok' | 'error'
 }
@@ -64,7 +66,12 @@ export const oauthClientId: string | undefined = import.meta.env
 
 let settings: Settings | null = null
 let remoteKdf: Envelope['kdf'] | null = null
-let view: SyncView = { phase: 'off', joining: false, legacy: false }
+let view: SyncView = {
+  phase: 'off',
+  joining: false,
+  legacy: false,
+  unlocking: false,
+}
 const listeners = new Set<() => void>()
 const emit = (patch: Partial<SyncView>) => {
   view = { ...view, ...patch }
@@ -237,7 +244,7 @@ async function prepareKey() {
 
 export async function setPassphrase(passphrase: string) {
   if (!settings) return
-  emit({ phase: 'busy', message: '正在生成密钥…（需要几秒）' })
+  emit({ phase: 'busy', unlocking: true, message: '正在生成密钥…（需要几秒）' })
   try {
     const key = remoteKdf
       ? await deriveKey(passphrase, remoteKdf.salt, remoteKdf.iterations)
@@ -247,9 +254,11 @@ export async function setPassphrase(passphrase: string) {
     settings.key = key
     await save()
     watch()
+    emit({ unlocking: false })
     await syncNow()
   } catch (e) {
     emit({
+      unlocking: false,
       phase: 'needs-key',
       message:
         e instanceof WrongPassphrase

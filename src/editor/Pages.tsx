@@ -15,7 +15,6 @@ export function Pages({ doc, measure }: { doc: ResumeDoc; measure: Measure }) {
     <div className='e-pages'>
       {measure.frames.map((frames, i) => (
         <section
-          // biome-ignore lint/suspicious/noArrayIndexKey: 页码即身份
           key={i}
           className='e-page'
           style={{ width: w, height: h }}

@@ -31,7 +31,9 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "check": "biome check . && tsc --noEmit && vitest run && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e": "playwright test --project=functional",
+    "e2e:visual": "playwright test --project=visual"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -39,7 +41,9 @@
     "lucide-react": "^0.556.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.5.12",
+    "@playwright/test": "1.63.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

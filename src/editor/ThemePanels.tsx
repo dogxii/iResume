@@ -43,7 +43,7 @@ function adopt(next: Theme, current: Theme): Theme {
 
 function Thumb({ doc, theme }: { doc: ResumeDoc; theme: Theme }) {
   return (
-    <div className='e-thumb' aria-hidden>
+    <div className='e-thumb' aria-hidden inert>
       <div className='e-thumb-zoom'>
         <Resume doc={{ ...doc, theme }} />
       </div>

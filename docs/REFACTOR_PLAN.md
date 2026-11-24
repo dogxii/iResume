@@ -182,11 +182,11 @@ Theme {
 - [x] 主题分享（链接或文件）：链接只编码与预设不同的字段（通常 < 200 字符），打开后经 normalizeTheme 校验
 - 英文界面
 - [x] PWA 离线：手写 Service Worker（页面网络优先、哈希资源缓存优先、/api 与跨域不缓存），可安装，离线时同步自动暂停、联网后补同步
-- Playwright 截图回归测试
-- 无障碍检查
+- [x] Playwright 回归测试：`bun run e2e` 覆盖编辑、8 套预设的「编辑器 / 预览 / PDF」页数一致、历史版本、岗位匹配、主题链接、加密同步（模拟 GitHub）、离线；CI 执行。`bun run e2e:visual` 是逐预设截图对比，基线与系统字体相关，只在本机生成
+- [x] 无障碍检查：axe-core 审查首页、同步面板、编辑器、各面板与预览（serious / critical 为零）；预设颜色与界面次要文字对比度 ≥ 4.5，有单元测试守护
 
 ## 4. 质量线
 
 - `model` / `migrate` / `theme` / `lint` 四层的单元测试覆盖率 ≥ 90%。
 - 迁移器用真实的 v2 示例数据做「迁移前后快照」测试。
-- 每次提交前 `bun run lint && bun run typecheck && bun run test && bun run build` 全部通过，CI 同样执行这四项。
+- 每次提交前 `bun run lint && bun run typecheck && bun run test && bun run build` 全部通过，CI 同样执行这四项，并另起一个任务跑端到端测试。

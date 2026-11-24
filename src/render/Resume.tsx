@@ -197,6 +197,8 @@ function SectionView({
   tools?: Tools
 }) {
   const edit = useEdit()
+  // 编辑时 dt/dd 是可编辑文本框，不能再放在 <dl> 里
+  const Rows = edit ? 'div' : 'dl'
   const items = edit ? section.items : section.items.filter((i) => !i.hidden)
   if (!edit && !hasContent(section)) return null
   return (
@@ -223,7 +225,7 @@ function SectionView({
       </h2>
       <div className='r-body'>
         {section.layout === 'rows' ? (
-          <dl className='r-rows'>
+          <Rows className='r-rows'>
             {items.map((item, index) => (
               <Row
                 key={item.id}
@@ -234,7 +236,7 @@ function SectionView({
                 theme={theme}
               />
             ))}
-          </dl>
+          </Rows>
         ) : (
           items.map((item, index) =>
             section.layout === 'text' ? (

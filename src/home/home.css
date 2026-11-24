@@ -175,7 +175,7 @@
   gap: 8px;
   padding: 20px max(20px, calc((100vw - 1180px) / 2));
   border-top: 1px solid var(--border);
-  color: var(--text-4);
+  color: var(--text-3);
   font-size: 12px;
 }
 

@@ -91,6 +91,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const anchors = useRef<Partial<Record<PanelId, HTMLButtonElement | null>>>({})
 
   const notes = useMemo(() => lint(doc), [doc])
+  // 离开编辑器时立即写入，不等防抖
+  useEffect(() => () => void flushNow(), [])
   useEffect(() => {
     if (!window.location.hash.endsWith('#match')) return
     window.history.replaceState(
