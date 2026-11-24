@@ -1,4 +1,4 @@
-import type { ResumeDoc } from '../model/types'
+import type { ResumeDoc, Snapshot } from '../model/types'
 
 const DB_NAME = 'iresume-v3'
 const DB_VERSION = 1
@@ -22,6 +22,9 @@ export interface Database {
   getDoc(id: string): Promise<ResumeDoc | undefined>
   putDocs(docs: ResumeDoc[]): Promise<void>
   deleteDoc(id: string): Promise<void>
+  listSnapshots(docId: string): Promise<Snapshot[]>
+  putSnapshots(snapshots: Snapshot[]): Promise<void>
+  deleteSnapshots(ids: string[]): Promise<void>
   getKv<T>(key: string): Promise<T | undefined>
   setKv(key: string, value: unknown): Promise<void>
 }
@@ -73,6 +76,23 @@ export function openDatabase(factory: IDBFactory = indexedDB): Database {
     async deleteDoc(id) {
       const { tx, os } = await store('docs', 'readwrite')
       os.delete(id)
+      await done(tx)
+    },
+    async listSnapshots(docId) {
+      const { os } = await store('snapshots', 'readonly')
+      const list = await promisify(
+        os.index('doc').getAll(docId) as IDBRequest<Snapshot[]>
+      )
+      return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    },
+    async putSnapshots(snapshots) {
+      const { tx, os } = await store('snapshots', 'readwrite')
+      for (const s of snapshots) os.put(s)
+      await done(tx)
+    },
+    async deleteSnapshots(ids) {
+      const { tx, os } = await store('snapshots', 'readwrite')
+      for (const id of ids) os.delete(id)
       await done(tx)
     },
     async getKv<T>(key: string) {

@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react'
-import { importAny } from '../migrate'
+import { type ImportResult, importAny } from '../migrate'
 import { createDoc, duplicateDoc } from '../model/defaults'
 import { uid } from '../model/ids'
-import type { ResumeDoc } from '../model/types'
+import type { ResumeDoc, Snapshot } from '../model/types'
 import type { Theme } from '../theme/types'
 import { type Database, openDatabase, readLegacyWorkspace } from './db'
 
@@ -17,6 +17,8 @@ export interface AppState {
   migrated: number
   themes: Theme[]
   history: Record<string, { undo: number; redo: number }>
+  /** 每份简历的快照列表版本号：变化时界面重新读取 */
+  snapshots: Record<string, number>
 }
 
 let state: AppState = {
@@ -26,6 +28,7 @@ let state: AppState = {
   migrated: 0,
   themes: [],
   history: {},
+  snapshots: {},
 }
 const listeners = new Set<() => void>()
 const set = (patch: Partial<AppState>) => {
@@ -122,8 +125,10 @@ export async function init(factory?: IDBFactory) {
       const legacy = await readLegacyWorkspace(factory).catch(() => undefined)
       if (legacy) {
         try {
-          docs = importAny(legacy).docs
+          const result = importAny(legacy)
+          docs = result.docs
           migrated = docs.length
+          if (result.snapshots?.length) await db.putSnapshots(result.snapshots)
         } catch {
           /* 旧数据无法识别：保持原样，不影响启动 */
         }
@@ -189,6 +194,11 @@ export function update(
   recipe(draft)
   draft.updatedAt = new Date().toISOString()
 
+  if (!autoChecked.has(id)) {
+    autoChecked.add(id)
+    void autoSnapshot(current)
+  }
+
   const h = histories.get(id) ?? { past: [], future: [], at: 0 }
   const now = Date.now()
   const merge =
@@ -243,7 +253,99 @@ export async function remove(id: string) {
   histories.delete(id)
   set({ docs })
   await db?.deleteDoc(id)
+  const snaps = (await db?.listSnapshots(id)) ?? []
+  if (snaps.length) await db?.deleteSnapshots(snaps.map((x) => x.id))
   channel?.postMessage({ type: 'delete', ids: [id] })
+}
+
+/** 导入一批简历（及其历史版本）；id 冲突时自动换新 id，快照随之对应 */
+export async function importResult(result: ImportResult): Promise<ResumeDoc[]> {
+  const added = addDocs(result.docs)
+  const map = new Map(result.docs.map((d, i) => [d.id, added[i].id]))
+  const snaps = (result.snapshots ?? [])
+    .filter((x) => map.has(x.docId))
+    .map((x) => {
+      const docId = map.get(x.docId) as string
+      return { ...x, id: uid('v'), docId, doc: { ...x.doc, id: docId } }
+    })
+  if (snaps.length) await db?.putSnapshots(snaps)
+  return added
+}
+
+// —— 版本快照 ——————————————————————————————————————————————
+
+export const AUTO_KEEP = 20
+const autoChecked = new Set<string>()
+const bumpSnapshots = (docId: string) =>
+  set({
+    snapshots: {
+      ...state.snapshots,
+      [docId]: (state.snapshots[docId] ?? 0) + 1,
+    },
+  })
+
+export async function listSnapshots(docId: string): Promise<Snapshot[]> {
+  return (await db?.listSnapshots(docId)) ?? []
+}
+
+export async function saveSnapshot(docId: string, label: string, auto = false) {
+  const doc = state.docs[docId]
+  if (!db || !doc) return
+  await db.putSnapshots([
+    {
+      id: uid('v'),
+      docId,
+      label: label.trim() || '手动保存',
+      auto,
+      createdAt: new Date().toISOString(),
+      doc,
+    },
+  ])
+  await pruneAuto(docId)
+  bumpSnapshots(docId)
+}
+
+async function pruneAuto(docId: string) {
+  const autos = (await db?.listSnapshots(docId))?.filter((x) => x.auto) ?? []
+  if (autos.length > AUTO_KEEP)
+    await db?.deleteSnapshots(autos.slice(AUTO_KEEP).map((x) => x.id))
+}
+
+/** 每份简历每天第一次编辑前自动留一份底 */
+async function autoSnapshot(before: ResumeDoc) {
+  if (!db) return
+  const list = await db.listSnapshots(before.id)
+  const today = new Date().toDateString()
+  if (
+    list.some((x) => x.auto && new Date(x.createdAt).toDateString() === today)
+  )
+    return
+  await db.putSnapshots([
+    {
+      id: uid('v'),
+      docId: before.id,
+      label: '自动保存',
+      auto: true,
+      createdAt: new Date().toISOString(),
+      doc: before,
+    },
+  ])
+  await pruneAuto(before.id)
+  bumpSnapshots(before.id)
+}
+
+export async function deleteSnapshot(docId: string, id: string) {
+  await db?.deleteSnapshots([id])
+  bumpSnapshots(docId)
+}
+
+/** 恢复快照：先保存当前版本，再整体替换内容（可撤销） */
+export async function restoreSnapshot(docId: string, snapshot: Snapshot) {
+  await saveSnapshot(docId, '恢复前的版本', true)
+  update(docId, (d) => {
+    const { id, createdAt } = d
+    Object.assign(d, structuredClone(snapshot.doc), { id, createdAt })
+  })
 }
 
 export function saveThemes(themes: Theme[]) {
@@ -258,6 +360,7 @@ export function __reset() {
   histories.clear()
   db = null
   listCache = null
+  autoChecked.clear()
   state = {
     status: 'loading',
     docs: {},
@@ -265,5 +368,6 @@ export function __reset() {
     migrated: 0,
     themes: [],
     history: {},
+    snapshots: {},
   }
 }

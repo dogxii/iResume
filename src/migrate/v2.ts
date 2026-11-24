@@ -13,6 +13,7 @@ import type {
   Item,
   ResumeDoc,
   Section,
+  Snapshot,
 } from '../model/types'
 import { SCHEMA } from '../model/types'
 import { normalizeTheme } from '../theme/normalize'
@@ -295,4 +296,40 @@ export function convertV2Document(raw: unknown): ResumeDoc {
     dismissed: [],
     ...content,
   }
+}
+
+/** 2.x 的 histories：{ [docId]: { snapshots: [{ id, label, version, createdAt, document: { data, appearance } }] } } */
+export function convertV2Histories(raw: unknown): Snapshot[] {
+  if (!isRec(raw)) return []
+  const out: Snapshot[] = []
+  for (const [docId, history] of Object.entries(raw)) {
+    const snapshots =
+      isRec(history) && Array.isArray(history.snapshots)
+        ? history.snapshots
+        : []
+    for (const s of snapshots) {
+      if (!isRec(s) || !isRec(s.document)) continue
+      const createdAt = str(s.createdAt)
+      const label = str(s.label).trim() || '手动保存'
+      const version = str(s.version).trim()
+      out.push({
+        id: str(s.id) || uid('v'),
+        docId,
+        label: version ? `${label} · v${version}` : label,
+        auto: false,
+        createdAt: Number.isFinite(Date.parse(createdAt))
+          ? createdAt
+          : new Date().toISOString(),
+        doc: convertV2Document({
+          id: docId,
+          name: label,
+          createdAt,
+          updatedAt: createdAt,
+          data: s.document.data,
+          appearance: s.document.appearance,
+        }),
+      })
+    }
+  }
+  return out
 }

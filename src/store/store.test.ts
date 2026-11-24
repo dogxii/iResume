@@ -101,3 +101,116 @@ describe('store', () => {
     expect(store.selectDocList(store.getState())).toHaveLength(2)
   })
 })
+
+describe('snapshots', () => {
+  it('takes one automatic snapshot per day before the first edit', async () => {
+    await store.init(factory)
+    const id = store.selectDocList(store.getState())[0].id
+    store.update(id, (d) => {
+      d.profile.name = 'A'
+    })
+    store.update(id, (d) => {
+      d.profile.name = 'B'
+    })
+    await new Promise((r) => setTimeout(r, 30))
+    const list = await store.listSnapshots(id)
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ auto: true, label: '自动保存' })
+    expect(list[0].doc.profile.name).toBe('林小明')
+  })
+
+  it('saves, restores (undoably) and deletes snapshots', async () => {
+    await store.init(factory)
+    const id = store.selectDocList(store.getState())[0].id
+    await store.saveSnapshot(id, '投字节版')
+    store.update(id, (d) => {
+      d.profile.name = '改过了'
+    })
+    const [manual] = (await store.listSnapshots(id)).filter((s) => !s.auto)
+    expect(manual.label).toBe('投字节版')
+    await store.restoreSnapshot(id, manual)
+    expect(store.getState().docs[id].profile.name).toBe('林小明')
+    expect(store.getState().docs[id].id).toBe(id)
+    const labels = (await store.listSnapshots(id)).map((s) => s.label)
+    expect(labels).toContain('恢复前的版本')
+    store.undo(id)
+    expect(store.getState().docs[id].profile.name).toBe('改过了')
+    await store.deleteSnapshot(id, manual.id)
+    expect(
+      (await store.listSnapshots(id)).some((s) => s.id === manual.id)
+    ).toBe(false)
+  })
+
+  it('migrates 2.x histories along with documents', async () => {
+    await new Promise<void>((resolve) => {
+      const req = factory.open('iresume', 2)
+      req.onupgradeneeded = () => req.result.createObjectStore('workspace')
+      req.onsuccess = () => {
+        const tx = req.result.transaction('workspace', 'readwrite')
+        tx.objectStore('workspace').put(
+          {
+            version: 2,
+            library: {
+              documents: [{ id: 'old', name: '旧简历', data: legacyData }],
+            },
+            histories: {
+              old: {
+                snapshots: [
+                  {
+                    id: 's1',
+                    label: '投递版',
+                    version: '1.1.0',
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                    document: {
+                      data: {
+                        ...legacyData,
+                        personal: { ...legacyData.personal, name: '旧名字' },
+                      },
+                      appearance: {},
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          'current'
+        )
+        tx.oncomplete = () => {
+          req.result.close()
+          resolve()
+        }
+      }
+    })
+    await store.init(factory)
+    const [snap] = await store.listSnapshots('old')
+    expect(snap).toMatchObject({
+      id: 's1',
+      label: '投递版 · v1.1.0',
+      auto: false,
+    })
+    expect(snap.doc.profile.name).toBe('旧名字')
+  })
+
+  it('remaps snapshot ids when imported docs collide', async () => {
+    await store.init(factory)
+    const [doc] = store.selectDocList(store.getState())
+    const added = await store.importResult({
+      source: 'v2-workspace',
+      docs: [structuredClone(doc)],
+      snapshots: [
+        {
+          id: 'x',
+          docId: doc.id,
+          label: 'L',
+          auto: false,
+          createdAt: '2025-01-01T00:00:00.000Z',
+          doc,
+        },
+      ],
+    })
+    expect(added[0].id).not.toBe(doc.id)
+    const snaps = await store.listSnapshots(added[0].id)
+    expect(snaps).toHaveLength(1)
+    expect(snaps[0].doc.id).toBe(added[0].id)
+  })
+})

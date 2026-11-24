@@ -16,6 +16,7 @@ import { Resume } from '../render/Resume'
 import {
   addDocs,
   duplicate,
+  importResult,
   remove,
   selectDocList,
   useApp,
@@ -23,23 +24,9 @@ import {
 import { PRESETS } from '../theme/presets'
 import { Button, Logo, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
+import { ago } from '../ui/time'
 import { toast } from '../ui/toast'
 import './home.css'
-
-const fmt = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
-function ago(iso: string) {
-  const diff = (Date.parse(iso) - Date.now()) / 1000
-  const units: [Intl.RelativeTimeFormatUnit, number][] = [
-    ['year', 31536000],
-    ['month', 2592000],
-    ['day', 86400],
-    ['hour', 3600],
-    ['minute', 60],
-  ]
-  for (const [unit, s] of units)
-    if (Math.abs(diff) >= s) return fmt.format(Math.round(diff / s), unit)
-  return '刚刚'
-}
 
 export function Home({ onOpen }: { onOpen(id: string): void }) {
   const docs = useApp(selectDocList)
@@ -56,8 +43,8 @@ export function Home({ onOpen }: { onOpen(id: string): void }) {
     let count = 0
     for (const f of files) {
       try {
-        const { docs: imported } = importAny(JSON.parse(await f.text()))
-        addDocs(imported)
+        const result = importAny(JSON.parse(await f.text()))
+        const imported = await importResult(result)
         count += imported.length
       } catch (error) {
         toast(

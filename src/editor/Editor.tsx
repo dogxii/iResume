@@ -7,6 +7,7 @@ import {
   Eye,
   FileJson,
   FileText,
+  History,
   Lightbulb,
   Palette,
   Printer,
@@ -52,6 +53,7 @@ import {
   ThemeGallery,
   TypePanel,
 } from './ThemePanels'
+import { Versions } from './Versions'
 import './editor.css'
 
 type PanelId =
@@ -62,6 +64,7 @@ type PanelId =
   | 'space'
   | 'notes'
   | 'export'
+  | 'versions'
 
 export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const a = useMemo(() => actions(doc.id), [doc.id])
@@ -238,7 +241,10 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       <span>{label}</span>
     </button>
   )
-  const panelBody: Record<Exclude<PanelId, 'export'>, ReactNode> = {
+  const panelBody: Record<
+    Exclude<PanelId, 'export' | 'versions'>,
+    ReactNode
+  > = {
     theme: <ThemeGallery doc={doc} a={a} />,
     layout: <LayoutPanel doc={doc} a={a} />,
     type: <TypePanel doc={doc} a={a} />,
@@ -263,6 +269,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     space: '间距与纸张',
     notes: `写作建议 · ${notes.length}`,
     export: '导出',
+    versions: '历史版本',
   }
 
   const activeSection =
@@ -311,6 +318,30 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
             >
               <Redo2 size={17} />
             </IconButton>
+            <button
+              ref={(el) => {
+                anchors.current.versions = el
+              }}
+              type='button'
+              className={`u-icon-btn ${panel === 'versions' ? 'is-on' : ''}`}
+              aria-label='历史版本'
+              title='历史版本'
+              aria-expanded={panel === 'versions'}
+              onClick={() => toggle('versions')}
+            >
+              <History size={17} />
+            </button>
+            <Popover
+              anchor={anchors.current.versions ?? null}
+              open={panel === 'versions'}
+              onClose={() => setPanel(null)}
+              align='end'
+              title='历史版本'
+              className='is-versions'
+            >
+              {!mobile && <div className='u-pop-title'>历史版本</div>}
+              <Versions doc={doc} onDone={() => setPanel(null)} />
+            </Popover>
             <IconButton
               label='预览'
               onClick={() => {

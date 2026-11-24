@@ -143,14 +143,14 @@ Theme {
   - 日期统一转换为 `YYYY-MM`
   - 遇到无法对应的字段，放进自定义区块，不丢数据
 
-**M2.2 版本快照**（`src/store/snapshots.ts`）
-- [ ] 快照存进 `snapshots` 表，每条记录为 `{ id, docId, label, auto, createdAt, doc }`
-- [ ] 两种快照：
+**M2.2 版本快照**（`src/store/store.ts` · `src/model/diff.ts` · `src/editor/Versions.tsx`）
+- [x] 快照存进 `snapshots` 表，每条记录为 `{ id, docId, label, auto, createdAt, doc }`
+- [x] 两种快照：
   - 手动：起名保存；
   - 自动：每天第一次编辑前存一份，最多保留 20 份自动快照。
-- [ ] 恢复前先自动保存当前版本，所以恢复操作本身也能撤回
-- [ ] 对比：按区块和条目列出新增 / 删除 / 修改，修改的要点给出修改前后的原文
-- [ ] 迁移 2.x 的 `histories`，导入旧数据时一并转换
+- [x] 恢复前先自动保存当前版本，所以恢复操作本身也能撤回
+- [x] 对比：按区块和条目列出新增 / 删除 / 修改，修改的要点给出修改前后的原文
+- [x] 迁移 2.x 的 `histories`，导入旧数据时一并转换
 
 **M2.3 定制投递**
 - [ ] 派生：从一份简历复制出岗位定制版，记录 `baseId` 和目标岗位

@@ -1,7 +1,7 @@
 import { fromJsonResume, isJsonResume } from '../export/jsonresume'
-import type { ResumeDoc } from '../model/types'
+import type { ResumeDoc, Snapshot } from '../model/types'
 import { isRec, normalizeDoc, type Rec } from './normalize'
-import { convertV2Document } from './v2'
+import { convertV2Document, convertV2Histories } from './v2'
 
 export { normalizeDoc } from './normalize'
 export { convertV2Document } from './v2'
@@ -36,6 +36,8 @@ export type ImportSource =
 export interface ImportResult {
   source: ImportSource
   docs: ResumeDoc[]
+  /** 随数据一起带来的历史版本（目前来自 2.x 工作区） */
+  snapshots?: Snapshot[]
 }
 
 /**
@@ -57,6 +59,7 @@ export function importAny(value: unknown): ImportResult {
   if (isRec(value.library) && Array.isArray(value.library.documents)) {
     return {
       source: 'v2-workspace',
+      snapshots: convertV2Histories(value.histories),
       docs: value.library.documents.map(convertV2Document),
     }
   }

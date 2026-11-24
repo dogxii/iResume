@@ -81,3 +81,14 @@ export interface ResumeDoc {
   theme: Theme
   dismissed: string[]
 }
+
+/** 版本快照：某一时刻的完整文档 */
+export interface Snapshot {
+  id: string
+  docId: string
+  label: string
+  /** 自动快照会被定期清理，手动快照永久保留 */
+  auto: boolean
+  createdAt: string
+  doc: ResumeDoc
+}
