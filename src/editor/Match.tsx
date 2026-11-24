@@ -1,5 +1,6 @@
 import { Copy, GitBranchPlus } from 'lucide-react'
 import { useDeferredValue, useMemo } from 'react'
+import { defineMessages, useT } from '../i18n'
 import {
   extractKeywords,
   type MatchedKeyword,
@@ -12,15 +13,63 @@ import type { actions } from './actions'
 
 type Actions = ReturnType<typeof actions>
 
-const GROUPS: {
-  key: MatchedKeyword['coverage']
-  title: string
-  hint: string
-}[] = [
-  { key: 'missing', title: '缺失', hint: '点击复制，写进真实做过的经历里' },
-  { key: 'partial', title: '部分匹配', hint: '意思接近，建议改用 JD 的原词' },
-  { key: 'covered', title: '已覆盖', hint: '' },
-]
+const M = defineMessages(
+  {
+    missing: '缺失',
+    missingHint: '点击复制，写进真实做过的经历里',
+    partial: '部分匹配',
+    partialHint: '意思接近，建议改用 JD 的原词',
+    covered: '已覆盖',
+    coveredHint: '',
+    copied: (text: string) => `已复制「${text}」`,
+    noClipboard: '无法访问剪贴板',
+    derivedFrom: (name: string) => `定制版本 · 派生自「${name}」`,
+    deletedResume: '已删除的简历',
+    deriveHint: '投递前建议先派生一份定制版，原简历保持不动。',
+    derive: '派生定制版',
+    company: '公司',
+    companyPlaceholder: '如：星图科技',
+    role: '岗位',
+    rolePlaceholder: '如：高级前端工程师',
+    jd: '岗位描述（JD）',
+    jdPlaceholder:
+      '把招聘页上的「岗位职责」和「任职要求」整段粘贴进来。只在本机分析，不会上传。',
+    coverage: (covered: number, total: number) =>
+      `关键词覆盖 · ${covered}/${total}`,
+    copy: '复制',
+    footnote: '关键词只是线索，不是清单：只写你真正做过、面试时讲得清的内容。',
+  },
+  {
+    missing: 'Missing',
+    missingHint:
+      'Click to copy, then work it into experience you actually have',
+    partial: 'Partial match',
+    partialHint: 'Close in meaning — consider using the JD’s exact wording',
+    covered: 'Covered',
+    coveredHint: '',
+    copied: (text: string) => `Copied “${text}”`,
+    noClipboard: 'Can’t access the clipboard',
+    derivedFrom: (name: string) => `Tailored version · based on “${name}”`,
+    deletedResume: 'a deleted resume',
+    deriveHint:
+      'Before applying, create a tailored copy so the original stays untouched.',
+    derive: 'Create tailored copy',
+    company: 'Company',
+    companyPlaceholder: 'e.g. Acme Inc.',
+    role: 'Role',
+    rolePlaceholder: 'e.g. Senior Frontend Engineer',
+    jd: 'Job description',
+    jdPlaceholder:
+      'Paste the full responsibilities and requirements from the job posting. Analyzed locally — nothing is uploaded.',
+    coverage: (covered: number, total: number) =>
+      `Keyword coverage · ${covered}/${total}`,
+    copy: 'Copy',
+    footnote:
+      'Keywords are hints, not a checklist: only include what you’ve really done and can speak to in an interview.',
+  }
+)
+
+const GROUPS: MatchedKeyword['coverage'][] = ['missing', 'partial', 'covered']
 
 /** 岗位匹配：粘贴 JD，本地提取关键词，对照简历的覆盖情况 */
 export function MatchPanel({
@@ -32,6 +81,7 @@ export function MatchPanel({
   a: Actions
   onDerived(id: string): void
 }) {
+  const t = useT(M)
   const target = doc.target
   const jd = target?.jd ?? ''
   const deferred = useDeferredValue(doc)
@@ -47,21 +97,19 @@ export function MatchPanel({
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      toast(`已复制「${text}」`)
+      toast(t.copied(text))
     } catch {
-      toast('无法访问剪贴板')
+      toast(t.noClipboard)
     }
   }
 
   return (
     <div className='e-panel e-match'>
       {target?.baseId ? (
-        <p className='e-hint'>
-          定制版本 · 派生自「{base?.name ?? '已删除的简历'}」
-        </p>
+        <p className='e-hint'>{t.derivedFrom(base?.name ?? t.deletedResume)}</p>
       ) : (
         <div className='e-match-derive'>
-          <p className='e-hint'>投递前建议先派生一份定制版，原简历保持不动。</p>
+          <p className='e-hint'>{t.deriveHint}</p>
           <button
             type='button'
             className='u-btn is-soft is-sm'
@@ -74,34 +122,34 @@ export function MatchPanel({
               if (copy) onDerived(copy.id)
             }}
           >
-            <GitBranchPlus size={14} /> 派生定制版
+            <GitBranchPlus size={14} /> {t.derive}
           </button>
         </div>
       )}
       <div className='e-match-fields'>
         <label>
-          <span>公司</span>
+          <span>{t.company}</span>
           <input
             value={target?.company ?? ''}
-            placeholder='如：星图科技'
+            placeholder={t.companyPlaceholder}
             onChange={(e) => a.setTarget({ company: e.currentTarget.value })}
           />
         </label>
         <label>
-          <span>岗位</span>
+          <span>{t.role}</span>
           <input
             value={target?.role ?? ''}
-            placeholder='如：高级前端工程师'
+            placeholder={t.rolePlaceholder}
             onChange={(e) => a.setTarget({ role: e.currentTarget.value })}
           />
         </label>
       </div>
       <label className='e-match-jd'>
-        <span>岗位描述（JD）</span>
+        <span>{t.jd}</span>
         <textarea
           value={jd}
           rows={jd ? 5 : 7}
-          placeholder='把招聘页上的「岗位职责」和「任职要求」整段粘贴进来。只在本机分析，不会上传。'
+          placeholder={t.jdPlaceholder}
           onChange={(e) => a.setTarget({ jd: e.currentTarget.value })}
         />
       </label>
@@ -111,9 +159,11 @@ export function MatchPanel({
             <div>
               <strong>{result.score}%</strong>
               <span>
-                关键词覆盖 ·{' '}
-                {result.keywords.filter((k) => k.coverage === 'covered').length}
-                /{keywords.length}
+                {t.coverage(
+                  result.keywords.filter((k) => k.coverage === 'covered')
+                    .length,
+                  keywords.length
+                )}
               </span>
             </div>
             <span className='e-match-bar'>
@@ -121,24 +171,25 @@ export function MatchPanel({
             </span>
           </div>
           {GROUPS.map((g) => {
-            const list = result.keywords.filter((k) => k.coverage === g.key)
+            const list = result.keywords.filter((k) => k.coverage === g)
             if (!list.length) return null
+            const hint = t[`${g}Hint`]
             return (
-              <div key={g.key} className='e-match-group'>
+              <div key={g} className='e-match-group'>
                 <div className='e-row-label'>
-                  {g.title} · {list.length}
-                  {g.hint && <em>{g.hint}</em>}
+                  {t[g]} · {list.length}
+                  {hint && <em>{hint}</em>}
                 </div>
-                <div className={`e-kw is-${g.key}`}>
+                <div className={`e-kw is-${g}`}>
                   {list.map((k) =>
-                    g.key === 'covered' ? (
+                    g === 'covered' ? (
                       <span key={k.key}>{k.label}</span>
                     ) : (
                       <button
                         type='button'
                         key={k.key}
                         onClick={() => void copy(k.label)}
-                        title='复制'
+                        title={t.copy}
                       >
                         {k.label}
                         <Copy size={11} />
@@ -149,9 +200,7 @@ export function MatchPanel({
               </div>
             )
           })}
-          <p className='e-hint'>
-            关键词只是线索，不是清单：只写你真正做过、面试时讲得清的内容。
-          </p>
+          <p className='e-hint'>{t.footnote}</p>
         </>
       )}
     </div>

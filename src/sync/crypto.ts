@@ -1,3 +1,5 @@
+import { defineMessages, tr } from '../i18n'
+
 /**
  * 端到端加密：口令只在本机参与运算，GitHub 与 iResume 服务端都无法解密。
  * PBKDF2-SHA256 派生 AES-GCM 256 位密钥，密钥不可导出；
@@ -6,6 +8,21 @@
 
 export const FORMAT = 'iresume.sync.v3'
 export const ITERATIONS = 600_000
+
+const M = defineMessages(
+  {
+    wrongPassphrase: '同步口令不正确',
+    invalidJson: '云端文件不是有效的 JSON',
+    invalidFormat: '云端文件格式不正确',
+    notLegacy: '不是 2.x 的同步文件',
+  },
+  {
+    wrongPassphrase: 'Incorrect sync passphrase',
+    invalidJson: 'The cloud file isn’t valid JSON',
+    invalidFormat: 'The cloud file has an unexpected format',
+    notLegacy: 'Not a 2.x sync file',
+  }
+)
 
 export interface Envelope {
   format: typeof FORMAT
@@ -24,7 +41,7 @@ export interface SyncKey {
 
 export class WrongPassphrase extends Error {
   constructor() {
-    super('同步口令不正确')
+    super(tr(M).wrongPassphrase)
   }
 }
 
@@ -94,7 +111,7 @@ export function parseEnvelope(content: string): Envelope {
   try {
     v = JSON.parse(content)
   } catch {
-    throw new Error('云端文件不是有效的 JSON')
+    throw new Error(tr(M).invalidJson)
   }
   if (
     v.format !== FORMAT ||
@@ -106,7 +123,7 @@ export function parseEnvelope(content: string): Envelope {
     typeof v.iv !== 'string' ||
     typeof v.data !== 'string'
   )
-    throw new Error('云端文件格式不正确')
+    throw new Error(tr(M).invalidFormat)
   return v as Envelope
 }
 
@@ -140,7 +157,7 @@ export async function openLegacy(
     data?: string
   }
   if (v.format !== 'iresume.gist-sync.v2' || !v.iv || !v.data)
-    throw new Error('不是 2.x 的同步文件')
+    throw new Error(tr(M).notLegacy)
   const key = await crypto.subtle.importKey(
     'raw',
     fromBase64(rawKey),

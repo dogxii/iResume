@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getLang, setLang } from '../i18n'
 import { createDoc, newItem, newSection } from '../model/defaults'
 import type { ResumeDoc } from '../model/types'
 import { lint } from './index'
@@ -25,6 +26,34 @@ const rules = (doc: ResumeDoc) => lint(doc).map((s) => s.rule)
 describe('lint', () => {
   it('sample resume is clean', () => {
     expect(lint(createDoc({ sample: true }))).toEqual([])
+  })
+
+  it('English sample resume is clean and fully English', () => {
+    const doc = createDoc({ sample: true, locale: 'en' })
+    expect(doc.name).toBe('Sample resume')
+    expect(doc.theme.date.present).toBe('Present')
+    expect(doc.sections.map((s) => s.kind)).toEqual(
+      createDoc({ sample: true }).sections.map((s) => s.kind)
+    )
+    expect(JSON.stringify([doc.profile, doc.sections])).not.toMatch(
+      /[\u4e00-\u9fff]/
+    )
+    expect(lint(doc)).toEqual([])
+  })
+
+  it('writes suggestions in the UI language', () => {
+    const doc = docWith(['assisted with the rollout'])
+    const weak = () => lint(doc).find((s) => s.rule === 'weak-verb')
+    const prev = getLang()
+    try {
+      setLang('zh')
+      expect(weak()?.title).toBe('「assisted」开头偏弱')
+      setLang('en')
+      expect(weak()?.title).toBe('“assisted” is a weak opener')
+      expect(weak()?.detail).toMatch(/Led, Designed, Built/)
+    } finally {
+      setLang(prev)
+    }
   })
 
   it('flags missing numbers and weak verbs', () => {

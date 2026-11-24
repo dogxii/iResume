@@ -1,6 +1,78 @@
+import { defineMessages, getLang, type Lang } from '../i18n'
+import { themeName } from '../theme/presets'
 import { formatRange } from './dates'
 import { plainText } from './inline'
 import type { Item, ResumeDoc, Section } from './types'
+
+const M = defineMessages(
+  {
+    present: '至今',
+    untitledItem: '未命名条目',
+    untitledSection: '未命名区块',
+    title: '标题',
+    subtitle: '副标题',
+    location: '地点',
+    tags: '关键词',
+    text: '描述',
+    dates: '时间',
+    links: '链接',
+    hidden: '已隐藏',
+    shown: '已显示',
+    bullet: '要点',
+    profile: '个人信息',
+    name: '姓名',
+    headline: '一句话定位',
+    contact: '联系方式',
+    photoChanged: '更换了照片',
+    photoRemoved: '移除了照片',
+    section: '区块',
+    sectionTitle: '区块标题',
+    sectionHidden: '区块已隐藏',
+    sectionShown: '区块已显示',
+    layout: '排版方式',
+    item: '条目',
+    itemOrder: '条目顺序',
+    overall: '整体',
+    sectionOrder: '区块顺序',
+    design: '设计',
+    themeParams: (name: string) => `主题「${name}」的参数`,
+    theme: '主题',
+  },
+  {
+    present: 'Present',
+    untitledItem: 'Untitled entry',
+    untitledSection: 'Untitled section',
+    title: 'Title',
+    subtitle: 'Subtitle',
+    location: 'Location',
+    tags: 'Keywords',
+    text: 'Description',
+    dates: 'Dates',
+    links: 'Links',
+    hidden: 'Hidden',
+    shown: 'Shown',
+    bullet: 'Bullet',
+    profile: 'Profile',
+    name: 'Name',
+    headline: 'Headline',
+    contact: 'Contact',
+    photoChanged: 'Photo replaced',
+    photoRemoved: 'Photo removed',
+    section: 'Section',
+    sectionTitle: 'Section title',
+    sectionHidden: 'Section hidden',
+    sectionShown: 'Section shown',
+    layout: 'Layout',
+    item: 'Entry',
+    itemOrder: 'Entry order',
+    overall: 'Overall',
+    sectionOrder: 'Section order',
+    design: 'Design',
+    themeParams: (name: string) => `Settings of theme “${name}”`,
+    theme: 'Theme',
+  }
+)
+type Msg = (typeof M)['zh']
 
 export type ChangeKind = 'added' | 'removed' | 'changed' | 'moved'
 
@@ -13,13 +85,12 @@ export interface Change {
   after?: string
 }
 
-const DATE = { style: 'dot' as const, present: '至今' }
-const itemName = (i: Item) =>
+const itemName = (t: Msg, i: Item) =>
   plainText(i.title || i.subtitle || i.text || i.bullets[0] || '').slice(
     0,
     24
-  ) || '未命名条目'
-const sectionName = (s: Section) => s.title.trim() || '未命名区块'
+  ) || t.untitledItem
+const sectionName = (t: Msg, s: Section) => s.title.trim() || t.untitledSection
 
 /** 最长公共子序列：返回两侧未匹配的元素下标 */
 function lcsDiff(a: string[], b: string[]) {
@@ -48,41 +119,36 @@ function lcsDiff(a: string[], b: string[]) {
   return { removed, added }
 }
 
-const FIELDS: [keyof Item, string][] = [
-  ['title', '标题'],
-  ['subtitle', '副标题'],
-  ['location', '地点'],
-  ['tags', '关键词'],
-  ['text', '描述'],
-]
+const FIELDS = ['title', 'subtitle', 'location', 'tags', 'text'] as const
 
-function diffItem(where: string, a: Item, b: Item, out: Change[]) {
-  for (const [key, label] of FIELDS) {
+function diffItem(t: Msg, where: string, a: Item, b: Item, out: Change[]) {
+  for (const key of FIELDS) {
     const before = String(a[key] ?? '')
     const after = String(b[key] ?? '')
     if (before !== after)
       out.push({
         kind: 'changed',
         where,
-        what: label,
+        what: t[key],
         before: plainText(before),
         after: plainText(after),
       })
   }
-  const da = formatRange(a.start, a.end, DATE)
-  const db = formatRange(b.start, b.end, DATE)
+  const date = { style: 'dot' as const, present: t.present }
+  const da = formatRange(a.start, a.end, date)
+  const db = formatRange(b.start, b.end, date)
   if (da !== db)
-    out.push({ kind: 'changed', where, what: '时间', before: da, after: db })
+    out.push({ kind: 'changed', where, what: t.dates, before: da, after: db })
   if (a.links.join() !== b.links.join())
     out.push({
       kind: 'changed',
       where,
-      what: '链接',
+      what: t.links,
       before: a.links.join('  '),
       after: b.links.join('  '),
     })
   if (!!a.hidden !== !!b.hidden)
-    out.push({ kind: 'changed', where, what: b.hidden ? '已隐藏' : '已显示' })
+    out.push({ kind: 'changed', where, what: b.hidden ? t.hidden : t.shown })
 
   const ba = a.bullets.filter((x) => x.trim())
   const bb = b.bullets.filter((x) => x.trim())
@@ -94,7 +160,7 @@ function diffItem(where: string, a: Item, b: Item, out: Change[]) {
       out.push({
         kind: 'changed',
         where,
-        what: '要点',
+        what: t.bullet,
         before: plainText(ba[removed[k]]),
         after: plainText(bb[added[k]]),
       })
@@ -102,37 +168,42 @@ function diffItem(where: string, a: Item, b: Item, out: Change[]) {
       out.push({
         kind: 'removed',
         where,
-        what: '要点',
+        what: t.bullet,
         before: plainText(ba[removed[k]]),
       })
     else
       out.push({
         kind: 'added',
         where,
-        what: '要点',
+        what: t.bullet,
         after: plainText(bb[added[k]]),
       })
   }
 }
 
 /** 列出从 older 到 newer 的内容变化（主题变化只做概括） */
-export function diffDocs(older: ResumeDoc, newer: ResumeDoc): Change[] {
+export function diffDocs(
+  older: ResumeDoc,
+  newer: ResumeDoc,
+  lang: Lang = getLang()
+): Change[] {
+  const t = M[lang]
   const out: Change[] = []
   const pa = older.profile
   const pb = newer.profile
   if (pa.name !== pb.name)
     out.push({
       kind: 'changed',
-      where: '个人信息',
-      what: '姓名',
+      where: t.profile,
+      what: t.name,
       before: pa.name,
       after: pb.name,
     })
   if (pa.headline !== pb.headline)
     out.push({
       kind: 'changed',
-      where: '个人信息',
-      what: '一句话定位',
+      where: t.profile,
+      what: t.headline,
       before: pa.headline,
       after: pb.headline,
     })
@@ -142,37 +213,37 @@ export function diffDocs(older: ResumeDoc, newer: ResumeDoc): Change[] {
     if (!cb.includes(v))
       out.push({
         kind: 'removed',
-        where: '个人信息',
-        what: '联系方式',
+        where: t.profile,
+        what: t.contact,
         before: v,
       })
   for (const v of cb)
     if (!ca.includes(v))
-      out.push({ kind: 'added', where: '个人信息', what: '联系方式', after: v })
+      out.push({ kind: 'added', where: t.profile, what: t.contact, after: v })
   if (pa.photo !== pb.photo)
     out.push({
       kind: 'changed',
-      where: '个人信息',
-      what: pb.photo ? '更换了照片' : '移除了照片',
+      where: t.profile,
+      what: pb.photo ? t.photoChanged : t.photoRemoved,
     })
 
   const sa = new Map(older.sections.map((s) => [s.id, s]))
   const sb = new Map(newer.sections.map((s) => [s.id, s]))
   for (const s of older.sections)
     if (!sb.has(s.id))
-      out.push({ kind: 'removed', where: sectionName(s), what: '区块' })
+      out.push({ kind: 'removed', where: sectionName(t, s), what: t.section })
   for (const s of newer.sections) {
     const prev = sa.get(s.id)
     if (!prev) {
-      out.push({ kind: 'added', where: sectionName(s), what: '区块' })
+      out.push({ kind: 'added', where: sectionName(t, s), what: t.section })
       continue
     }
-    const where = sectionName(s)
+    const where = sectionName(t, s)
     if (prev.title !== s.title)
       out.push({
         kind: 'changed',
         where,
-        what: '区块标题',
+        what: t.sectionTitle,
         before: prev.title,
         after: s.title,
       })
@@ -180,40 +251,45 @@ export function diffDocs(older: ResumeDoc, newer: ResumeDoc): Change[] {
       out.push({
         kind: 'changed',
         where,
-        what: s.hidden ? '区块已隐藏' : '区块已显示',
+        what: s.hidden ? t.sectionHidden : t.sectionShown,
       })
     if (prev.layout !== s.layout)
-      out.push({ kind: 'changed', where, what: '排版方式' })
+      out.push({ kind: 'changed', where, what: t.layout })
     const ia = new Map(prev.items.map((i) => [i.id, i]))
     const ib = new Set(s.items.map((i) => i.id))
     for (const i of prev.items)
       if (!ib.has(i.id))
-        out.push({ kind: 'removed', where, what: '条目', before: itemName(i) })
+        out.push({
+          kind: 'removed',
+          where,
+          what: t.item,
+          before: itemName(t, i),
+        })
     for (const i of s.items) {
       const old = ia.get(i.id)
       if (!old)
-        out.push({ kind: 'added', where, what: '条目', after: itemName(i) })
-      else diffItem(`${where} › ${itemName(i)}`, old, i, out)
+        out.push({ kind: 'added', where, what: t.item, after: itemName(t, i) })
+      else diffItem(t, `${where} › ${itemName(t, i)}`, old, i, out)
     }
     const orderA = prev.items.map((i) => i.id).filter((id) => ib.has(id))
     const orderB = s.items.map((i) => i.id).filter((id) => ia.has(id))
     if (orderA.join() !== orderB.join())
-      out.push({ kind: 'moved', where, what: '条目顺序' })
+      out.push({ kind: 'moved', where, what: t.itemOrder })
   }
   const orderA = older.sections.map((s) => s.id).filter((id) => sb.has(id))
   const orderB = newer.sections.map((s) => s.id).filter((id) => sa.has(id))
   if (orderA.join() !== orderB.join())
-    out.push({ kind: 'moved', where: '整体', what: '区块顺序' })
+    out.push({ kind: 'moved', where: t.overall, what: t.sectionOrder })
   if (JSON.stringify(older.theme) !== JSON.stringify(newer.theme))
     out.push({
       kind: 'changed',
-      where: '设计',
+      where: t.design,
       what:
         older.theme.name === newer.theme.name
-          ? `主题「${newer.theme.name}」的参数`
-          : '主题',
-      before: older.theme.name,
-      after: newer.theme.name,
+          ? t.themeParams(themeName(newer.theme, lang))
+          : t.theme,
+      before: themeName(older.theme, lang),
+      after: themeName(newer.theme, lang),
     })
   return out
 }

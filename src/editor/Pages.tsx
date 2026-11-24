@@ -1,14 +1,21 @@
 import type { CSSProperties } from 'react'
+import { defineMessages, useT } from '../i18n'
 import type { ResumeDoc } from '../model/types'
 import { Resume } from '../render/Resume'
 import { pagePx, themeAttrs, themeVars } from '../theme/css'
 import type { Measure } from './measure'
+
+const M = defineMessages(
+  { page: (i: number, n: number) => `第 ${i} 页，共 ${n} 页` },
+  { page: (i: number, n: number) => `Page ${i} of ${n}` }
+)
 
 /**
  * 逐页预览：每页由若干「窗口」拼成，每个窗口显示纸面的一段，
  * 切分位置来自 measurePaper 的分页模拟，与打印结果一致。
  */
 export function Pages({ doc, measure }: { doc: ResumeDoc; measure: Measure }) {
+  const t = useT(M)
   const [w, h] = pagePx(doc.theme.page)
   const n = measure.frames.length
   return (
@@ -18,7 +25,7 @@ export function Pages({ doc, measure }: { doc: ResumeDoc; measure: Measure }) {
           key={i}
           className='e-page'
           style={{ width: w, height: h }}
-          aria-label={`第 ${i + 1} 页，共 ${n} 页`}
+          aria-label={t.page(i + 1, n)}
         >
           {/* 纸张底色（双栏版式的侧栏色带） */}
           <div

@@ -7,7 +7,7 @@ import type {
   Target,
 } from '../model/types'
 import { requestFocus } from '../render/Field'
-import { update } from '../store/store'
+import { derivedSuffix, TAILORED_SUFFIX, update } from '../store/store'
 import type { Theme } from '../theme/types'
 
 const sec = (d: ResumeDoc, id: string) => d.sections.find((s) => s.id === id)
@@ -27,7 +27,6 @@ export function actions(docId: string) {
       })
     },
     setTarget(patch: Partial<Target>) {
-      const suffix = (t?: Partial<Target>) => t?.company || t?.role || '定制'
       u(
         (d) => {
           const prev = d.target
@@ -40,9 +39,16 @@ export function actions(docId: string) {
             ...patch,
           }
           // 派生版的默认名称跟随公司 / 岗位变化；用户改过名字就不再动
-          const tail = ` · ${suffix(prev)}`
-          if (prev?.baseId && d.name.endsWith(tail))
-            d.name = `${d.name.slice(0, -tail.length)} · ${suffix(d.target)}`
+          // 未填公司 / 岗位时的默认后缀可能是用另一种界面语言起的；
+          // 前后都没填时保持原样，不因界面语言不同而改名
+          const named = (t?: Partial<Target>) => !!(t?.company || t?.role)
+          const tail = (
+            named(prev) ? [derivedSuffix(prev)] : Object.values(TAILORED_SUFFIX)
+          )
+            .map((s) => ` · ${s}`)
+            .find((s) => d.name.endsWith(s))
+          if (prev?.baseId && tail && (named(prev) || named(d.target)))
+            d.name = `${d.name.slice(0, -tail.length)} · ${derivedSuffix(d.target)}`
         },
         `target:${Object.keys(patch).join()}`
       )

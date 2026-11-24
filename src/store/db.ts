@@ -1,8 +1,17 @@
+import { defineMessages, tr } from '../i18n'
 import type { ResumeDoc, Snapshot } from '../model/types'
 
 const DB_NAME = 'iresume-v3'
 const DB_VERSION = 1
 const LEGACY_DB = 'iresume'
+
+const M = defineMessages(
+  { aborted: 'IndexedDB 事务被中止', openFailed: '无法打开本地数据库' },
+  {
+    aborted: 'IndexedDB transaction was aborted',
+    openFailed: 'Couldn’t open the local database',
+  }
+)
 
 const promisify = <T>(request: IDBRequest<T>) =>
   new Promise<T>((resolve, reject) => {
@@ -14,7 +23,7 @@ const done = (tx: IDBTransaction) =>
   new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
-    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB 事务被中止'))
+    tx.onabort = () => reject(tx.error ?? new Error(tr(M).aborted))
   })
 
 export interface Database {
@@ -49,7 +58,7 @@ export function openDatabase(factory: IDBFactory = indexedDB): Database {
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => {
         pending = null
-        reject(request.error ?? new Error('无法打开本地数据库'))
+        reject(request.error ?? new Error(tr(M).openFailed))
       }
     })
     return pending

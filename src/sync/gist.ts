@@ -1,9 +1,28 @@
+import { defineMessages, tr } from '../i18n'
+
 /** GitHub Gist 的最小客户端。fetch 可注入，便于测试。 */
 
 export const FILE = 'iresume-sync-v3.json'
 export const LEGACY_FILE = 'iresume-sync.json'
 const API = 'https://api.github.com'
-const DESCRIPTION = 'iResume 加密同步（端到端加密，仅能用你的同步口令解开）'
+
+const M = defineMessages(
+  {
+    description: 'iResume 加密同步（端到端加密，仅能用你的同步口令解开）',
+    unauthorized: 'GitHub 授权已失效，请重新连接',
+    rateLimited: 'GitHub 请求过于频繁，请稍后再试',
+    failed: (status: number) => `GitHub 请求失败（${status}）`,
+    unreadable: '无法读取同步文件',
+  },
+  {
+    description:
+      'iResume encrypted sync (end-to-end encrypted; only your sync passphrase can unlock it)',
+    unauthorized: 'GitHub authorization expired. Please reconnect.',
+    rateLimited: 'Too many GitHub requests. Try again later.',
+    failed: (status: number) => `GitHub request failed (${status})`,
+    unreadable: 'Couldn’t read the sync file',
+  }
+)
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
@@ -67,12 +86,13 @@ export function gistClient(
     }
     if (!res.ok) {
       const msg = (body as { message?: string }).message
+      const t = tr(M)
       throw new GitHubError(
         res.status === 401
-          ? 'GitHub 授权已失效，请重新连接'
+          ? t.unauthorized
           : res.status === 403 && /rate limit/i.test(msg ?? '')
-            ? 'GitHub 请求过于频繁，请稍后再试'
-            : (msg ?? `GitHub 请求失败（${res.status}）`),
+            ? t.rateLimited
+            : (msg ?? t.failed(res.status)),
         res.status
       )
     }
@@ -112,9 +132,9 @@ export function gistClient(
       if (!f) return null
       if (typeof f.content === 'string' && !f.truncated) return f.content
       if (!f.raw_url?.startsWith('https://gist.githubusercontent.com/'))
-        throw new Error('无法读取同步文件')
+        throw new Error(tr(M).unreadable)
       const raw = await fetchImpl(f.raw_url)
-      if (!raw.ok) throw new GitHubError('无法读取同步文件', raw.status)
+      if (!raw.ok) throw new GitHubError(tr(M).unreadable, raw.status)
       return raw.text()
     },
     async create(content: string, file = FILE): Promise<GistRef> {
@@ -122,7 +142,7 @@ export function gistClient(
         await call<Gist>('/gists', {
           method: 'POST',
           body: JSON.stringify({
-            description: DESCRIPTION,
+            description: tr(M).description,
             public: false,
             files: { [file]: { content } },
           }),

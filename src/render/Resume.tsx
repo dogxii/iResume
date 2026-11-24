@@ -1,8 +1,14 @@
-import type { CSSProperties, ReactNode } from 'react'
+import {
+  type CSSProperties,
+  createContext,
+  type ReactNode,
+  useContext,
+} from 'react'
+import { defineMessages } from '../i18n'
 import { formatDate } from '../model/dates'
 import { CONTACT_META, KIND_META } from '../model/defaults'
 import { toHref } from '../model/inline'
-import type { Contact, Item, ResumeDoc, Section } from '../model/types'
+import type { Contact, Item, Locale, ResumeDoc, Section } from '../model/types'
 import { themeAttrs, themeVars } from '../theme/css'
 import type { Theme } from '../theme/types'
 import { Bullets } from './Bullets'
@@ -22,15 +28,62 @@ interface Props {
   className?: string
 }
 
-const ITEM_PH: Record<string, [string, string]> = {
-  experience: ['公司名称', '职位'],
-  projects: ['项目名称', '你的角色'],
-  education: ['学校', '专业 · 学位'],
-  awards: ['奖项名称', '颁发机构'],
-  activities: ['组织 / 活动', '角色'],
-  publications: ['论文题目', '作者 · 期刊 / 会议'],
-  custom: ['标题', '副标题'],
+/** 纸面占位文字：跟随简历自己的语言（doc.locale），而不是界面语言 */
+const M = defineMessages(
+  {
+    name: '你的名字',
+    headline: '一句话定位，例如「前端工程师 · 3 年经验」',
+    location: '城市',
+    start: '开始',
+    end: '结束',
+    links: '链接',
+    tags: '技术栈 / 关键词',
+    text: '一句话描述',
+    bullets: '动词开头 + 做了什么 + 结果数字',
+    rowTitle: '类别',
+    rowText: '用逗号分隔，例如 React, TypeScript',
+    write: '写点什么…',
+  },
+  {
+    name: 'Your name',
+    headline: 'One-line headline, e.g. “Frontend engineer · 3 years”',
+    location: 'City',
+    start: 'Start',
+    end: 'End',
+    links: 'Links',
+    tags: 'Tech stack / keywords',
+    text: 'One-line description',
+    bullets: 'Action verb + what you did + measurable result',
+    rowTitle: 'Category',
+    rowText: 'Comma-separated, e.g. React, TypeScript',
+    write: 'Write something…',
+  }
+)
+
+const ITEM_PH: Record<Locale, Record<string, [string, string]>> = {
+  zh: {
+    experience: ['公司名称', '职位'],
+    projects: ['项目名称', '你的角色'],
+    education: ['学校', '专业 · 学位'],
+    awards: ['奖项名称', '颁发机构'],
+    activities: ['组织 / 活动', '角色'],
+    publications: ['论文题目', '作者 · 期刊 / 会议'],
+    custom: ['标题', '副标题'],
+  },
+  en: {
+    experience: ['Company', 'Title'],
+    projects: ['Project name', 'Your role'],
+    education: ['School', 'Major · Degree'],
+    awards: ['Award', 'Issuer'],
+    activities: ['Organization / activity', 'Role'],
+    publications: ['Paper title', 'Authors · Journal / conference'],
+    custom: ['Title', 'Subtitle'],
+  },
 }
+
+/** 当前纸面的语言（doc.locale），供各子组件取占位文字 */
+const PaperLocale = createContext<Locale>('zh')
+const usePaperLocale = () => useContext(PaperLocale)
 
 /** 统一渲染器：编辑、预览、打印共用。是否可编辑由 EditContext 决定。 */
 export function Resume({ doc, tools, className }: Props) {
@@ -57,24 +110,26 @@ export function Resume({ doc, tools, className }: Props) {
       data-editable={editable || undefined}
       lang={doc.locale === 'en' ? 'en' : 'zh-CN'}
     >
-      {aside ? (
-        <>
-          <aside className='r-aside'>
-            <Photo doc={doc} />
-            <Contacts doc={doc} />
-            {sections(asideSections)}
-          </aside>
-          <div className='r-main'>
-            <Header doc={doc} tools={tools} withContacts={false} />
+      <PaperLocale.Provider value={doc.locale}>
+        {aside ? (
+          <>
+            <aside className='r-aside'>
+              <Photo doc={doc} />
+              <Contacts doc={doc} />
+              {sections(asideSections)}
+            </aside>
+            <div className='r-main'>
+              <Header doc={doc} tools={tools} withContacts={false} />
+              {sections(mainSections)}
+            </div>
+          </>
+        ) : (
+          <>
+            <Header doc={doc} tools={tools} withContacts />
             {sections(mainSections)}
-          </div>
-        </>
-      ) : (
-        <>
-          <Header doc={doc} tools={tools} withContacts />
-          {sections(mainSections)}
-        </>
-      )}
+          </>
+        )}
+      </PaperLocale.Provider>
     </article>
   )
 }
@@ -101,6 +156,7 @@ function Header({
   withContacts: boolean
 }) {
   const edit = useEdit()
+  const ph = M[doc.locale]
   const p = doc.profile
   const target = { itemId: 'profile' }
   return (
@@ -113,7 +169,7 @@ function Header({
           className='r-name'
           fkey='profile:name'
           value={p.name}
-          placeholder='你的名字'
+          placeholder={ph.name}
           target={target}
           onChange={(v) =>
             edit?.update((d) => {
@@ -126,7 +182,7 @@ function Header({
           className='r-headline'
           fkey='profile:headline'
           value={p.headline}
-          placeholder='一句话定位，例如「前端工程师 · 3 年经验」'
+          placeholder={ph.headline}
           target={target}
           onChange={(v) =>
             edit?.update((d) => {
@@ -154,7 +210,7 @@ function Contacts({ doc }: { doc: ResumeDoc }) {
             <Field
               fkey={`contact:${c.id}`}
               value={c.value}
-              placeholder={CONTACT_META[c.kind].placeholder.zh}
+              placeholder={CONTACT_META[c.kind].placeholder[doc.locale]}
               target={{ itemId: 'profile' }}
               onChange={(v) =>
                 edit.update((d) => {
@@ -197,6 +253,7 @@ function SectionView({
   tools?: Tools
 }) {
   const edit = useEdit()
+  const locale = usePaperLocale()
   // 编辑时 dt/dd 是可编辑文本框，不能再放在 <dl> 里
   const Rows = edit ? 'div' : 'dl'
   const items = edit ? section.items : section.items.filter((i) => !i.hidden)
@@ -213,7 +270,7 @@ function SectionView({
         <Field
           fkey={`${section.id}:title`}
           value={section.title}
-          placeholder={KIND_META[section.kind].zh}
+          placeholder={KIND_META[section.kind][locale]}
           target={{ sectionId: section.id }}
           onChange={(v) =>
             edit?.update((d) => {
@@ -296,7 +353,10 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
   const set = useItemUpdate(section.id, item.id)
   const k = (f: string) => `${item.id}:${f}`
   const target = { sectionId: section.id, itemId: item.id }
-  const [titlePh, subPh] = ITEM_PH[section.kind] ?? ITEM_PH.custom
+  const locale = usePaperLocale()
+  const ph = M[locale]
+  const [titlePh, subPh] =
+    ITEM_PH[locale][section.kind] ?? ITEM_PH[locale].custom
   const field = (
     name: 'title' | 'subtitle' | 'location' | 'tags',
     className: string,
@@ -344,20 +404,20 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
         <div className='r-entry-main'>
           {field('title', 'r-title', titlePh)}
           {field('subtitle', 'r-sub', subPh)}
-          {field('location', 'r-loc r-opt', '城市')}
+          {field('location', 'r-loc r-opt', ph.location)}
         </div>
         {(edit || hasDate) && (
           <div
             className='r-date'
             data-open={item.start && !item.end ? '' : undefined}
           >
-            {date('start', '开始')}
+            {date('start', ph.start)}
             {(edit || (item.start.trim() && item.end.trim())) && (
               <span className='r-dash' aria-hidden>
                 {' – '}
               </span>
             )}
-            {date('end', '结束')}
+            {date('end', ph.end)}
           </div>
         )}
       </div>
@@ -368,7 +428,7 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
               fkey={k('links')}
               className='r-links r-opt'
               value={item.links.join('  ')}
-              placeholder='链接'
+              placeholder={ph.links}
               target={target}
               onChange={(v) =>
                 set((i) => {
@@ -390,7 +450,7 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
               </span>
             )
           )}
-          {field('tags', 'r-tags r-opt', '技术栈 / 关键词')}
+          {field('tags', 'r-tags r-opt', ph.tags)}
         </div>
       )}
       {(item.text || !edit) && (
@@ -400,7 +460,7 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
           className='r-text'
           value={item.text}
           rich
-          placeholder='一句话描述'
+          placeholder={ph.text}
           target={target}
           onChange={(v) =>
             set((i) => {
@@ -413,7 +473,8 @@ function Entry({ section, item, index, theme, tools }: ItemProps) {
         base={k('b')}
         items={item.bullets}
         target={target}
-        placeholder='动词开头 + 做了什么 + 结果数字'
+        locale={locale}
+        placeholder={ph.bullets}
         onChange={(next, coalesce) =>
           set((i) => {
             i.bullets = next
@@ -429,6 +490,7 @@ function Row({ section, item, index, tools }: ItemProps) {
   const k = (f: string) => `${item.id}:${f}`
   const target = { sectionId: section.id, itemId: item.id }
   const edit = useEdit()
+  const ph = M[usePaperLocale()]
   const chips = item.text.split(/[,，、;；]\s*/).filter((s) => s.trim())
   return (
     <div
@@ -441,7 +503,7 @@ function Row({ section, item, index, tools }: ItemProps) {
         as='dt'
         fkey={k('title')}
         value={item.title}
-        placeholder='类别'
+        placeholder={ph.rowTitle}
         target={target}
         onChange={(v) =>
           set((i) => {
@@ -455,7 +517,7 @@ function Row({ section, item, index, tools }: ItemProps) {
           fkey={k('text')}
           value={item.text}
           rich
-          placeholder='用逗号分隔，例如 React, TypeScript'
+          placeholder={ph.rowText}
           target={target}
           onChange={(v) =>
             set((i) => {
@@ -485,6 +547,7 @@ function TextBlock({ section, item, index, tools }: Omit<ItemProps, 'theme'>) {
   const set = useItemUpdate(section.id, item.id)
   const k = (f: string) => `${item.id}:${f}`
   const target = { sectionId: section.id, itemId: item.id }
+  const locale = usePaperLocale()
   const useBullets = item.bullets.length > 0
   return (
     <div
@@ -500,7 +563,7 @@ function TextBlock({ section, item, index, tools }: Omit<ItemProps, 'theme'>) {
           fkey={k('text')}
           value={item.text}
           rich
-          placeholder={KIND_META[section.kind].hint.zh || '写点什么…'}
+          placeholder={KIND_META[section.kind].hint[locale] || M[locale].write}
           target={target}
           onChange={(v) =>
             set((i) => {
@@ -514,6 +577,7 @@ function TextBlock({ section, item, index, tools }: Omit<ItemProps, 'theme'>) {
           base={k('b')}
           items={item.bullets}
           target={target}
+          locale={locale}
           onChange={(next, c) =>
             set((i) => {
               i.bullets = next

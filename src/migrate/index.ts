@@ -1,4 +1,5 @@
 import { fromJsonResume, isJsonResume } from '../export/jsonresume'
+import { defineMessages, tr } from '../i18n'
 import type { ResumeDoc, Snapshot } from '../model/types'
 import { isRec, normalizeDoc, type Rec } from './normalize'
 import { convertV2Document, convertV2Histories } from './v2'
@@ -7,6 +8,14 @@ export { normalizeDoc } from './normalize'
 export { convertV2Document } from './v2'
 
 export const BUNDLE_FORMAT = 'iresume'
+
+const M = defineMessages(
+  { notData: '文件内容不是 iResume 数据', unknown: '无法识别的文件格式' },
+  {
+    notData: 'This file doesn’t contain iResume data',
+    unknown: 'Unrecognized file format',
+  }
+)
 
 export interface ResumeBundle {
   format: typeof BUNDLE_FORMAT
@@ -45,7 +54,7 @@ export interface ImportResult {
  * 无法识别时抛出错误，绝不返回「默认数据」冒充导入结果。
  */
 export function importAny(value: unknown): ImportResult {
-  if (!isRec(value)) throw new Error('文件内容不是 iResume 数据')
+  if (!isRec(value)) throw new Error(tr(M).notData)
 
   if (value.format === BUNDLE_FORMAT && Array.isArray(value.docs)) {
     return { source: 'v3-bundle', docs: value.docs.map(normalizeDoc) }
@@ -80,5 +89,5 @@ export function importAny(value: unknown): ImportResult {
   if (isRec(value.personal)) {
     return { source: 'v2-data', docs: [convertV2Document({ data: value })] }
   }
-  throw new Error('无法识别的文件格式')
+  throw new Error(tr(M).unknown)
 }

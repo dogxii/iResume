@@ -381,3 +381,21 @@
     max-width: 180px;
   }
 }
+
+/* —— 界面语言切换 —— */
+@media (max-width: 700px) {
+  .h-lang svg {
+    display: none;
+  }
+}
+/* 窄屏顶栏只留图标，文字仍保留给读屏 */
+@media (max-width: 560px) {
+  .h-top-actions .h-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

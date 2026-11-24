@@ -1,3 +1,5 @@
+import { defineMessages } from '../i18n'
+import type { Locale } from '../model/types'
 import { caretOffset, selectionCollapsed } from './caret'
 import { Field, requestFocus, useEdit } from './Field'
 import { Inline } from './inline'
@@ -8,13 +10,25 @@ interface Props {
   items: string[]
   onChange(next: string[], coalesce?: string): void
   placeholder?: string
+  /** 纸面语言，决定后续要点的占位文字 */
+  locale: Locale
   target?: { sectionId?: string; itemId?: string }
 }
+
+/** 纸面占位文字，跟随简历语言 */
+const M = defineMessages({ more: '继续写一条…' }, { more: 'Add another…' })
 
 /**
  * 要点列表：回车拆分、行首退格合并、上下键跨条移动、多行粘贴自动拆条。
  */
-export function Bullets({ base, items, onChange, placeholder, target }: Props) {
+export function Bullets({
+  base,
+  items,
+  onChange,
+  placeholder,
+  locale,
+  target,
+}: Props) {
   const edit = useEdit()
   if (!edit) {
     const visible = items.filter((b) => b.trim())
@@ -40,7 +54,7 @@ export function Bullets({ base, items, onChange, placeholder, target }: Props) {
             fkey={key(i)}
             value={value}
             rich
-            placeholder={i === 0 ? placeholder : '继续写一条…'}
+            placeholder={i === 0 ? placeholder : M[locale].more}
             target={target}
             onChange={(v) => {
               const next = [...list]

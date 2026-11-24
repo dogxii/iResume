@@ -1,3 +1,4 @@
+import { defineMessages, tr } from '../i18n'
 import { normalizeDoc } from '../migrate/normalize'
 import type { ResumeDoc } from '../model/types'
 import { normalizeTheme } from '../theme/normalize'
@@ -27,6 +28,11 @@ export interface MergePlan {
 }
 
 /** 墓碑保留 180 天，足够让长期离线的设备也收到删除 */
+const M = defineMessages(
+  { corrupt: '云端数据已损坏' },
+  { corrupt: 'Cloud data is corrupted' }
+)
+
 const TOMBSTONE_TTL = 180 * 24 * 3600 * 1000
 
 const isRec = (v: unknown): v is Record<string, unknown> =>
@@ -34,7 +40,7 @@ const isRec = (v: unknown): v is Record<string, unknown> =>
 
 /** 校验并规范化解密出的云端数据；不认识的内容一律丢弃 */
 export function parseSyncData(v: unknown): SyncData {
-  if (!isRec(v)) throw new Error('云端数据已损坏')
+  if (!isRec(v)) throw new Error(tr(M).corrupt)
   const docs = Array.isArray(v.docs)
     ? v.docs.filter(isRec).map((d) => normalizeDoc(d))
     : []

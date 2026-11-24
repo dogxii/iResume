@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { Editor } from '../editor/Editor'
 import { Home } from '../home/Home'
+import { defineMessages, tr, useT } from '../i18n'
 import { init, useApp } from '../store/store'
 import { initSync } from '../sync/controller'
 import { decodeTheme, THEME_ROUTE } from '../theme/share'
@@ -19,6 +20,20 @@ export const go = (path: string) => {
 
 let started = false
 
+const M = defineMessages(
+  {
+    migrated: (n: number) => `已从旧版导入 ${n} 份简历，原数据保持不变`,
+    dbError: (error: string) => `无法打开本地数据库：${error}`,
+    privateHint: '如果你在无痕模式下，请切换到普通窗口。',
+  },
+  {
+    migrated: (n: number) =>
+      `Imported ${n} ${n === 1 ? 'resume' : 'resumes'} from the previous version. Your original data is untouched.`,
+    dbError: (error: string) => `Couldn’t open the local database: ${error}`,
+    privateHint: 'If you’re in a private window, switch to a regular one.',
+  }
+)
+
 export function App() {
   const hash = useSyncExternalStore(subscribeHash, getHash)
   const status = useApp((s) => s.status)
@@ -33,6 +48,7 @@ export function App() {
     [hash]
   )
   const doc = useApp((s) => (editId ? s.docs[editId] : undefined))
+  const t = useT(M)
 
   useEffect(() => {
     if (started) return
@@ -45,8 +61,7 @@ export function App() {
   }, [status])
 
   useEffect(() => {
-    if (migrated > 0)
-      toast(`已从旧版导入 ${migrated} 份简历，原数据保持不变`, undefined, 6000)
+    if (migrated > 0) toast(tr(M).migrated(migrated), undefined, 6000)
   }, [migrated])
 
   useEffect(() => {
@@ -64,8 +79,8 @@ export function App() {
     return (
       <div className='app-splash is-error'>
         <Logo size={32} />
-        <p>无法打开本地数据库：{error}</p>
-        <p>如果你在无痕模式下，请切换到普通窗口。</p>
+        <p>{t.dbError(error ?? '')}</p>
+        <p>{t.privateHint}</p>
       </div>
     )
   }

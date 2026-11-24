@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { defineMessages, getLang, type Lang, tr } from '../i18n'
 import { type ImportResult, importAny } from '../migrate'
 import { createDoc, duplicateDoc } from '../model/defaults'
 import { uid } from '../model/ids'
@@ -6,6 +7,33 @@ import type { ResumeDoc, Snapshot, Target } from '../model/types'
 import type { MergePlan, SyncData } from '../sync/merge'
 import type { Theme } from '../theme/types'
 import { type Database, openDatabase, readLegacyWorkspace } from './db'
+
+const M = defineMessages(
+  {
+    tailored: '定制',
+    manual: '手动保存',
+    auto: '自动保存',
+    beforeRestore: '恢复前的版本',
+    beforeSync: '同步覆盖前的本机版本',
+  },
+  {
+    tailored: 'Tailored',
+    manual: 'Manual save',
+    auto: 'Auto-save',
+    beforeRestore: 'Before restore',
+    beforeSync: 'Local version before sync',
+  }
+)
+
+/** 派生版名称的默认后缀（未填公司 / 岗位时）：各语言版本 */
+export const TAILORED_SUFFIX: Record<Lang, string> = {
+  zh: M.zh.tailored,
+  en: M.en.tailored,
+}
+
+/** 派生版名称后缀：公司 / 岗位，都没有时按界面语言取默认词 */
+export const derivedSuffix = (t?: Partial<Target>) =>
+  t?.company || t?.role || tr(M).tailored
 
 export type SaveState = 'saved' | 'pending' | 'error'
 
@@ -143,7 +171,8 @@ export async function init(factory?: IDBFactory) {
           /* 旧数据无法识别：保持原样，不影响启动 */
         }
       }
-      if (docs.length === 0) docs = [createDoc({ sample: true })]
+      if (docs.length === 0)
+        docs = [createDoc({ sample: true, locale: getLang() })]
       await db.putDocs(docs)
       await db.setKv('legacy-checked', true)
     }
@@ -246,9 +275,15 @@ export function addDocs(docs: ResumeDoc[]): ResumeDoc[] {
     if (state.docs[doc.id]) return { ...doc, id: uid('r') }
     // 撤销删除：清掉墓碑，并让它比删除更新，同步时才不会再被删掉
     if (tombstones[doc.id]) {
+      // 同一毫秒内删除又撤销时也要严格更新（合并时时间相同按删除处理）
+      const at = Math.max(
+        Date.parse(now),
+        Date.parse(tombstones[doc.id]) + 1,
+        Date.parse(doc.updatedAt) + 1
+      )
       delete tombstones[doc.id]
       saveTombstones()
-      return { ...doc, updatedAt: now }
+      return { ...doc, updatedAt: new Date(at).toISOString() }
     }
     return doc
   })
@@ -273,8 +308,7 @@ export function derive(
   const doc = state.docs[id]
   if (!doc) return
   const t = { role: '', company: '', jd: '', ...target, baseId: id }
-  const suffix = t.company || t.role || '定制'
-  const copy = duplicateDoc(doc, `${doc.name} · ${suffix}`)
+  const copy = duplicateDoc(doc, `${doc.name} · ${derivedSuffix(t)}`)
   copy.target = t
   return addDocs([copy])[0]
 }
@@ -330,7 +364,7 @@ export async function saveSnapshot(docId: string, label: string, auto = false) {
     {
       id: uid('v'),
       docId,
-      label: label.trim() || '手动保存',
+      label: label.trim() || tr(M).manual,
       auto,
       createdAt: new Date().toISOString(),
       doc,
@@ -359,7 +393,7 @@ async function autoSnapshot(before: ResumeDoc) {
     {
       id: uid('v'),
       docId: before.id,
-      label: '自动保存',
+      label: tr(M).auto,
       auto: true,
       createdAt: new Date().toISOString(),
       doc: before,
@@ -376,7 +410,7 @@ export async function deleteSnapshot(docId: string, id: string) {
 
 /** 恢复快照：先保存当前版本，再整体替换内容（可撤销） */
 export async function restoreSnapshot(docId: string, snapshot: Snapshot) {
-  await saveSnapshot(docId, '恢复前的版本', true)
+  await saveSnapshot(docId, tr(M).beforeRestore, true)
   update(docId, (d) => {
     const { id, createdAt } = d
     Object.assign(d, structuredClone(snapshot.doc), { id, createdAt })
@@ -432,7 +466,7 @@ export async function applySync(plan: MergePlan) {
     .map((d) => ({
       id: uid('v'),
       docId: d.id,
-      label: '同步覆盖前的本机版本',
+      label: tr(M).beforeSync,
       auto: true,
       createdAt: new Date().toISOString(),
       doc: d,

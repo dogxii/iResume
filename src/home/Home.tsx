@@ -4,14 +4,16 @@ import {
   FilePlus2,
   GitBranchPlus,
   Github,
+  Languages,
   MoreHorizontal,
   Palette,
   Target,
   Trash2,
   Upload,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { download, safeFilename } from '../editor/print'
+import { defineMessages, type Lang, setLang, useLang, useT } from '../i18n'
 import { importAny, toBundle } from '../migrate'
 import { createDoc } from '../model/defaults'
 import type { ResumeDoc } from '../model/types'
@@ -27,7 +29,7 @@ import {
   useApp,
 } from '../store/store'
 import { isPristine } from '../theme/normalize'
-import { PRESETS, presetById } from '../theme/presets'
+import { PRESETS, presetBlurb, presetById, themeName } from '../theme/presets'
 import type { Theme } from '../theme/types'
 import { Button, Logo, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
@@ -35,6 +37,83 @@ import { ago } from '../ui/time'
 import { toast } from '../ui/toast'
 import { SyncButton } from './SyncPanel'
 import './home.css'
+
+const M = defineMessages(
+  {
+    importFailed: (file: string, reason?: string) =>
+      `「${file}」${reason ?? '无法导入'}`,
+    imported: (n: number) => `已导入 ${n} 份简历`,
+    import: '导入',
+    backupAll: '备份全部',
+    backupFile: (date: string) => `iresume-备份-${date}.json`,
+    switchLang: '切换到英文界面',
+    otherLang: 'English',
+    heroTitle: '直接在纸上写简历。',
+    heroSub: '所见即所得 · 一页适配 · 写作建议 · 数据只存在你的浏览器里',
+    incomingLabel: '收到的主题',
+    incomingKicker: '有人和你分享了一个主题',
+    incomingBody: (preset: string, tweaked: boolean) =>
+      `基于「${preset}」${tweaked ? '，调整过字体、颜色或间距' : ''}。保存后可以在任意简历的「主题」面板里使用。`,
+    savedTheme: (name: string) => `已保存主题「${name}」`,
+    saveTheme: '保存到我的主题',
+    useTheme: '用它新建简历',
+    dismiss: '忽略',
+    sampleName: (theme: string) => `示例 · ${theme}`,
+    myResumes: '我的简历',
+    docCount: (n: number) => `${n} 份 · 自动保存在本地`,
+    blank: '空白简历',
+    fromTheme: '从主题开始',
+    fromThemeHint: '示例内容本身就是一份「好简历」的写法参考',
+    footNote:
+      '简历数据保存在本机 IndexedDB，清理浏览器数据前请先「备份全部」。',
+    more: '更多',
+    duplicated: '已复制',
+    duplicate: '复制一份',
+    derive: '派生定制版…',
+    exportFile: '导出文件',
+    deleted: (name: string) => `已删除「${name}」`,
+    undo: '撤销',
+    delete: '删除',
+  },
+  {
+    importFailed: (file: string, reason?: string) =>
+      `“${file}”: ${reason ?? 'Couldn’t import'}`,
+    imported: (n: number) => `Imported ${n} ${n === 1 ? 'resume' : 'resumes'}`,
+    import: 'Import',
+    backupAll: 'Back up all',
+    backupFile: (date: string) => `iresume-backup-${date}.json`,
+    switchLang: 'Switch to Chinese',
+    otherLang: '中文',
+    heroTitle: 'Write your resume right on the page.',
+    heroSub:
+      'What you see is what you get · Fits on one page · Writing tips · Your data never leaves your browser',
+    incomingLabel: 'Shared theme',
+    incomingKicker: 'Someone shared a theme with you',
+    incomingBody: (preset: string, tweaked: boolean) =>
+      `Based on “${preset}”${tweaked ? ', with custom fonts, colors or spacing' : ''}. Once saved, it’s available in the Theme panel of any resume.`,
+    savedTheme: (name: string) => `Saved theme “${name}”`,
+    saveTheme: 'Save to my themes',
+    useTheme: 'New resume with this theme',
+    dismiss: 'Dismiss',
+    sampleName: (theme: string) => `Sample · ${theme}`,
+    myResumes: 'My resumes',
+    docCount: (n: number) =>
+      `${n} ${n === 1 ? 'resume' : 'resumes'} · Saved automatically on this device`,
+    blank: 'Blank resume',
+    fromTheme: 'Start from a theme',
+    fromThemeHint: 'Each sample doubles as a guide to writing a strong resume',
+    footNote:
+      'Resumes are stored in this browser’s IndexedDB. Use “Back up all” before clearing browser data.',
+    more: 'More',
+    duplicated: 'Duplicated',
+    duplicate: 'Duplicate',
+    derive: 'Create tailored version…',
+    exportFile: 'Export file',
+    deleted: (name: string) => `Deleted “${name}”`,
+    undo: 'Undo',
+    delete: 'Delete',
+  }
+)
 
 export function Home({
   onOpen,
@@ -48,7 +127,24 @@ export function Home({
 }) {
   const docs = useApp(selectDocList)
   const file = useRef<HTMLInputElement>(null)
-  const sample = useRef(createDoc({ sample: true }))
+  const lang = useLang()
+  const t = useT(M)
+  // 缩略图用与「新建」完全一致的示例文档（含英文的日期格式）
+  const presets = useMemo(
+    () =>
+      PRESETS.map((meta) => ({
+        meta,
+        preview: createDoc({ sample: true, locale: lang, theme: meta.theme }),
+      })),
+    [lang]
+  )
+  const incomingPreview = useMemo(
+    () =>
+      incoming
+        ? createDoc({ sample: true, locale: lang, theme: incoming })
+        : null,
+    [incoming, lang]
+  )
   const savedThemes = useApp((s) => s.themes)
 
   const create = (doc: ResumeDoc) => {
@@ -66,11 +162,14 @@ export function Home({
         count += imported.length
       } catch (error) {
         toast(
-          `「${f.name}」${error instanceof Error ? error.message : '无法导入'}`
+          t.importFailed(
+            f.name,
+            error instanceof Error ? error.message : undefined
+          )
         )
       }
     }
-    if (count) toast(`已导入 ${count} 份简历`)
+    if (count) toast(t.imported(count))
   }
 
   return (
@@ -83,20 +182,29 @@ export function Home({
         <nav className='h-top-actions'>
           <SyncButton />
           <Button onClick={() => file.current?.click()}>
-            <Upload size={15} /> 导入
+            <Upload size={15} /> <span className='h-label'>{t.import}</span>
           </Button>
           {docs.length > 0 && (
             <Button
               onClick={() =>
                 download(
-                  `iresume-备份-${new Date().toISOString().slice(0, 10)}.json`,
+                  t.backupFile(new Date().toISOString().slice(0, 10)),
                   JSON.stringify(toBundle(docs), null, 2)
                 )
               }
             >
-              <Download size={15} /> 备份全部
+              <Download size={15} />{' '}
+              <span className='h-label'>{t.backupAll}</span>
             </Button>
           )}
+          <Button
+            className='h-lang'
+            title={t.switchLang}
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+          >
+            <Languages size={15} />
+            <span lang={lang === 'zh' ? 'en' : 'zh-CN'}>{t.otherLang}</span>
+          </Button>
           <a
             className='u-icon-btn'
             href='https://github.com/dogxii/iresume'
@@ -123,38 +231,38 @@ export function Home({
 
       <main className='h-main'>
         <section className='h-hero'>
-          <h1>直接在纸上写简历。</h1>
-          <p>所见即所得 · 一页适配 · 写作建议 · 数据只存在你的浏览器里</p>
+          <h1>{t.heroTitle}</h1>
+          <p>{t.heroSub}</p>
         </section>
 
-        {incoming && (
-          <section className='h-incoming' aria-label='收到的主题'>
+        {incoming && incomingPreview && (
+          <section className='h-incoming' aria-label={t.incomingLabel}>
             <span className='h-thumb'>
               <span className='h-thumb-zoom' inert>
-                <Resume doc={{ ...sample.current, theme: incoming }} />
+                <Resume doc={incomingPreview} />
               </span>
             </span>
             <div>
               <span className='h-incoming-kicker'>
-                <Palette size={14} /> 有人和你分享了一个主题
+                <Palette size={14} /> {t.incomingKicker}
               </span>
-              <h2>{incoming.name}</h2>
+              <h2>{themeName(incoming, lang)}</h2>
               <p>
-                基于「
-                {presetById(incoming.preset)?.theme.name ?? incoming.preset}」
-                {isPristine(incoming) ? '' : '，调整过字体、颜色或间距'}
-                。保存后可以在任意简历的「主题」面板里使用。
+                {t.incomingBody(
+                  presetName(incoming.preset, lang),
+                  !isPristine(incoming)
+                )}
               </p>
               <div className='h-incoming-actions'>
                 <Button
                   variant='primary'
                   onClick={() => {
                     saveThemes([...savedThemes, incoming])
-                    toast(`已保存主题「${incoming.name}」`)
+                    toast(t.savedTheme(themeName(incoming, lang)))
                     onDismissIncoming?.()
                   }}
                 >
-                  保存到我的主题
+                  {t.saveTheme}
                 </Button>
                 <Button
                   onClick={() => {
@@ -162,15 +270,18 @@ export function Home({
                     create(
                       createDoc({
                         sample: true,
+                        locale: lang,
                         theme: incoming,
-                        name: `示例 · ${incoming.name}`,
+                        name: t.sampleName(themeName(incoming, lang)),
                       })
                     )
                   }}
                 >
-                  用它新建简历
+                  {t.useTheme}
                 </Button>
-                <Button onClick={() => onDismissIncoming?.()}>忽略</Button>
+                <Button onClick={() => onDismissIncoming?.()}>
+                  {t.dismiss}
+                </Button>
               </div>
             </div>
           </section>
@@ -178,18 +289,18 @@ export function Home({
 
         <section className='h-section'>
           <div className='h-section-head'>
-            <h2>我的简历</h2>
-            <span>{docs.length} 份 · 自动保存在本地</span>
+            <h2>{t.myResumes}</h2>
+            <span>{t.docCount(docs.length)}</span>
           </div>
           <div className='h-grid'>
             <button
               type='button'
               className='h-card is-new'
-              onClick={() => create(createDoc())}
+              onClick={() => create(createDoc({ locale: lang }))}
             >
               <span className='h-thumb is-blank'>
                 <FilePlus2 size={26} strokeWidth={1.5} />
-                <b>空白简历</b>
+                <b>{t.blank}</b>
               </span>
             </button>
             {docs.map((doc) => (
@@ -200,50 +311,60 @@ export function Home({
 
         <section className='h-section'>
           <div className='h-section-head'>
-            <h2>从主题开始</h2>
-            <span>示例内容本身就是一份「好简历」的写法参考</span>
+            <h2>{t.fromTheme}</h2>
+            <span>{t.fromThemeHint}</span>
           </div>
           <div className='h-grid is-themes'>
-            {PRESETS.map(({ theme, blurb }) => (
-              <button
-                key={theme.preset}
-                type='button'
-                className='h-card'
-                onClick={() =>
-                  create(
-                    createDoc({
-                      sample: true,
-                      theme,
-                      name: `示例 · ${theme.name}`,
-                    })
-                  )
-                }
-              >
-                <span className='h-thumb'>
-                  <span className='h-thumb-zoom' inert>
-                    <Resume doc={{ ...sample.current, theme }} />
+            {presets.map(({ meta, preview }) => {
+              const { theme } = meta
+              return (
+                <button
+                  key={theme.preset}
+                  type='button'
+                  className='h-card'
+                  onClick={() =>
+                    create(
+                      createDoc({
+                        sample: true,
+                        locale: lang,
+                        theme,
+                        name: t.sampleName(themeName(theme, lang)),
+                      })
+                    )
+                  }
+                >
+                  <span className='h-thumb'>
+                    <span className='h-thumb-zoom' inert>
+                      <Resume doc={preview} />
+                    </span>
                   </span>
-                </span>
-                <span className='h-card-meta'>
-                  <strong>{theme.name}</strong>
-                  <span>{blurb}</span>
-                </span>
-              </button>
-            ))}
+                  <span className='h-card-meta'>
+                    <strong>{themeName(theme, lang)}</strong>
+                    <span>{presetBlurb(meta, lang)}</span>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </section>
       </main>
       <footer className='h-foot'>
         <span>iResume 3 · MIT</span>
-        <span>
-          简历数据保存在本机 IndexedDB，清理浏览器数据前请先「备份全部」。
-        </span>
+        <span>{t.footNote}</span>
       </footer>
     </div>
   )
 }
 
+/** 分享主题所基于的预设名（界面语言） */
+function presetName(id: string, lang: Lang): string {
+  const meta = presetById(id)
+  return meta ? themeName(meta.theme, lang) : id
+}
+
 function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
+  const lang = useLang()
+  const t = useT(M)
   const more = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   return (
@@ -264,7 +385,7 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
         <button type='button' className='h-card-name' onClick={onOpen}>
           <strong>{doc.name}</strong>
           <span>
-            {ago(doc.updatedAt)} · {doc.theme.name}
+            {ago(doc.updatedAt)} · {themeName(doc.theme, lang)}
             {doc.tags.length > 0 && ` · ${doc.tags.join(' / ')}`}
             {doc.target && (doc.target.company || doc.target.role) && (
               <em className='h-target'>
@@ -277,7 +398,7 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
           ref={more}
           type='button'
           className='u-icon-btn is-sm'
-          aria-label='更多'
+          aria-label={t.more}
           onClick={() => setOpen((v) => !v)}
         >
           <MoreHorizontal size={16} />
@@ -295,10 +416,10 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
               onClick={() => {
                 setOpen(false)
                 duplicate(doc.id)
-                toast('已复制')
+                toast(t.duplicated)
               }}
             >
-              复制一份
+              {t.duplicate}
             </MenuItem>
             <MenuItem
               icon={<GitBranchPlus size={15} />}
@@ -308,7 +429,7 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
                 if (copy) window.location.hash = `/edit/${copy.id}#match`
               }}
             >
-              派生定制版…
+              {t.derive}
             </MenuItem>
             <MenuItem
               icon={<Download size={15} />}
@@ -320,7 +441,7 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
                 )
               }}
             >
-              导出文件
+              {t.exportFile}
             </MenuItem>
             <div className='u-menu-sep' />
             <MenuItem
@@ -331,13 +452,13 @@ function DocCard({ doc, onOpen }: { doc: ResumeDoc; onOpen(): void }) {
                 const backup = structuredClone(doc)
                 void remove(doc.id)
                 toast(
-                  `已删除「${doc.name}」`,
-                  { label: '撤销', run: () => addDocs([backup]) },
+                  t.deleted(doc.name),
+                  { label: t.undo, run: () => addDocs([backup]) },
                   6000
                 )
               }}
             >
-              删除
+              {t.delete}
             </MenuItem>
           </div>
         </Popover>

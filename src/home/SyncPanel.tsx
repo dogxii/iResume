@@ -134,7 +134,7 @@ export function SyncButton() {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        {icon} {label}
+        {icon} <span className='h-label'>{label}</span>
       </button>
       <Popover
         anchor={ref.current}

@@ -1,3 +1,4 @@
+import { defineMessages, tr } from '../i18n'
 import { DEFAULT_THEME } from '../theme/presets'
 import type { Theme } from '../theme/types'
 import { uid } from './ids'
@@ -206,6 +207,17 @@ export function newSection(
   }
 }
 
+/** 新建简历的默认名称，跟随简历自己的语言 */
+const DOC_NAMES: Record<Locale, { sample: string; blank: string }> = {
+  zh: { sample: '示例简历', blank: '未命名简历' },
+  en: { sample: 'Sample resume', blank: 'Untitled resume' },
+}
+
+const M = defineMessages(
+  { copyName: (name: string) => `${name} 副本` },
+  { copyName: (name: string) => `${name} copy` }
+)
+
 interface CreateOptions {
   name?: string
   locale?: Locale
@@ -220,11 +232,16 @@ export function createDoc(options: CreateOptions = {}): ResumeDoc {
   if (locale === 'en' && theme.date.present === '至今') {
     theme.date = { style: 'month-en', present: 'Present' }
   }
-  const content = options.sample ? sampleContent() : blankContent(locale)
+  const content = options.sample
+    ? locale === 'en'
+      ? sampleContentEn()
+      : sampleContent()
+    : blankContent(locale)
+  const names = DOC_NAMES[locale]
   return {
     id: uid('r'),
     schema: SCHEMA,
-    name: options.name ?? (options.sample ? '示例简历' : '未命名简历'),
+    name: options.name ?? (options.sample ? names.sample : names.blank),
     tags: [],
     createdAt: now,
     updatedAt: now,
@@ -346,12 +363,105 @@ function sampleContent(): Pick<ResumeDoc, 'profile' | 'sections'> {
   }
 }
 
+/** 英文示例，结构与中文示例一致 */
+function sampleContentEn(): Pick<ResumeDoc, 'profile' | 'sections'> {
+  return {
+    profile: {
+      name: 'Jordan Lee',
+      headline: 'Front-End Engineer · 3 years of experience',
+      photo: '',
+      contacts: [
+        newContact('phone', '(415) 555-0132'),
+        newContact('email', 'jordan.lee@email.com'),
+        newContact('github', 'github.com/jordanlee'),
+        newContact('location', 'San Francisco, CA'),
+      ],
+    },
+    sections: [
+      newSection('summary', 'en', {
+        items: [
+          newItem({
+            text: 'Front-end engineer focused on web performance and design systems. Led two B2B products from zero to launch, measures user experience with data, and builds reusable engineering foundations.',
+          }),
+        ],
+      }),
+      newSection('experience', 'en', {
+        items: [
+          newItem({
+            title: 'Starmap Analytics',
+            subtitle: 'Front-End Engineer · Data Platform',
+            location: 'San Francisco, CA',
+            start: '2023.07',
+            end: 'Present',
+            bullets: [
+              'Led a rebuild of the analytics dashboard, cutting first load from **3.2s to 1.1s** and lifting weekly active users by 18%',
+              'Built a shared component library (40+ components) and design tokens, shortening new-page delivery by ~30%',
+              'Drove adoption of TypeScript and unit testing, reducing production defects by 42% quarter over quarter',
+            ],
+          }),
+          newItem({
+            title: 'Sailcloud',
+            subtitle: 'Front-End Engineering Intern',
+            location: 'Seattle, WA',
+            start: '2022.07',
+            end: '2022.12',
+            bullets: [
+              'Shipped 12 pages of the internal operations console end to end, hitting 100% of delivery dates',
+              'Designed reusable table-filter and permission components adopted by 3 product teams',
+            ],
+          }),
+        ],
+      }),
+      newSection('projects', 'en', {
+        items: [
+          newItem({
+            title: 'Lumen Charts',
+            subtitle: 'Author · Open source',
+            start: '2024.01',
+            end: 'Present',
+            links: ['github.com/jordanlee/lumen'],
+            tags: 'TypeScript, Canvas, WebGL',
+            bullets: [
+              'Designed a declarative charting API at **12 KB** gzipped that renders 100k points at 60fps',
+              'Wrote full docs and an examples site, earning 1.2k GitHub stars and adoption in 30+ projects',
+            ],
+          }),
+        ],
+      }),
+      newSection('education', 'en', {
+        items: [
+          newItem({
+            title: 'Northfield University',
+            subtitle: 'B.S. in Computer Science',
+            start: '2019.09',
+            end: '2023.06',
+            bullets: ['GPA 3.7/4.0 (top 10%), University Merit Scholarship'],
+          }),
+        ],
+      }),
+      newSection('skills', 'en', {
+        items: [
+          newItem({
+            title: 'Languages',
+            text: 'TypeScript, JavaScript, HTML/CSS, Node.js',
+          }),
+          newItem({ title: 'Frameworks', text: 'React, Vue 3, Next.js, Vite' }),
+          newItem({
+            title: 'Engineering',
+            text: 'Performance, design systems, unit testing, CI/CD',
+          }),
+        ],
+      }),
+    ],
+  }
+}
+
 /** 复制一份简历：全部 id 重新生成。 */
 export function duplicateDoc(doc: ResumeDoc, name?: string): ResumeDoc {
   const now = new Date().toISOString()
   const copy = structuredClone(doc)
   copy.id = uid('r')
-  copy.name = name ?? `${doc.name} 副本`
+  copy.name = name ?? tr(M).copyName(doc.name)
   copy.createdAt = now
   copy.updatedAt = now
   copy.profile.contacts = copy.profile.contacts.map((c) => ({
