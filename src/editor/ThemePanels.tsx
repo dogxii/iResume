@@ -1,4 +1,12 @@
-import { Check, Download, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
+import {
+  Check,
+  Download,
+  Link2,
+  RotateCcw,
+  Save,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { type CSSProperties, useRef } from 'react'
 import type { DateStyle } from '../model/dates'
 import type { ResumeDoc } from '../model/types'
@@ -12,6 +20,7 @@ import {
   normalizeTheme,
 } from '../theme/normalize'
 import { ACCENTS, PRESETS, presetById } from '../theme/presets'
+import { themeLink } from '../theme/share'
 import type { Theme } from '../theme/types'
 import { Button, Segmented, Slider, Toggle } from '../ui/controls'
 import { toast } from '../ui/toast'
@@ -124,7 +133,23 @@ export function ThemeGallery({ doc, a }: P) {
         </Button>
         <Button
           size='sm'
+          title='复制主题分享链接'
+          aria-label='复制主题分享链接'
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(themeLink(doc.theme))
+              toast('已复制主题链接：对方打开即可保存这个主题（不含简历内容）')
+            } catch {
+              toast('无法访问剪贴板')
+            }
+          }}
+        >
+          <Link2 size={14} />
+        </Button>
+        <Button
+          size='sm'
           title='导出主题文件，可分享给他人'
+          aria-label='导出主题文件'
           onClick={() =>
             download(
               `${safeFilename(doc.theme.name)}.iresume-theme.json`,
@@ -141,6 +166,7 @@ export function ThemeGallery({ doc, a }: P) {
         <Button
           size='sm'
           title='导入主题文件'
+          aria-label='导入主题文件'
           onClick={() => file.current?.click()}
         >
           <Upload size={14} />

@@ -1,8 +1,9 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { Editor } from '../editor/Editor'
 import { Home } from '../home/Home'
 import { init, useApp } from '../store/store'
 import { initSync } from '../sync/controller'
+import { decodeTheme, THEME_ROUTE } from '../theme/share'
 import { Logo } from '../ui/controls'
 import { Toaster, toast } from '../ui/toast'
 
@@ -24,6 +25,13 @@ export function App() {
   const error = useApp((s) => s.error)
   const migrated = useApp((s) => s.migrated)
   const editId = hash.match(/^#\/edit\/([\w-]+)/)?.[1]
+  const incoming = useMemo(
+    () =>
+      hash.startsWith(THEME_ROUTE)
+        ? decodeTheme(hash.slice(THEME_ROUTE.length))
+        : null,
+    [hash]
+  )
   const doc = useApp((s) => (editId ? s.docs[editId] : undefined))
 
   useEffect(() => {
@@ -66,7 +74,11 @@ export function App() {
       {doc ? (
         <Editor key={doc.id} doc={doc} onExit={() => go('/')} />
       ) : (
-        <Home onOpen={(id) => go(`/edit/${id}`)} />
+        <Home
+          onOpen={(id) => go(`/edit/${id}`)}
+          incoming={incoming}
+          onDismissIncoming={() => go('/')}
+        />
       )}
       <Toaster />
     </>

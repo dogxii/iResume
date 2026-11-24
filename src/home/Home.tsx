@@ -5,6 +5,7 @@ import {
   GitBranchPlus,
   Github,
   MoreHorizontal,
+  Palette,
   Target,
   Trash2,
   Upload,
@@ -21,10 +22,13 @@ import {
   duplicate,
   importResult,
   remove,
+  saveThemes,
   selectDocList,
   useApp,
 } from '../store/store'
-import { PRESETS } from '../theme/presets'
+import { isPristine } from '../theme/normalize'
+import { PRESETS, presetById } from '../theme/presets'
+import type { Theme } from '../theme/types'
 import { Button, Logo, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { ago } from '../ui/time'
@@ -32,10 +36,20 @@ import { toast } from '../ui/toast'
 import { SyncButton } from './SyncPanel'
 import './home.css'
 
-export function Home({ onOpen }: { onOpen(id: string): void }) {
+export function Home({
+  onOpen,
+  incoming,
+  onDismissIncoming,
+}: {
+  onOpen(id: string): void
+  /** 通过分享链接收到的主题 */
+  incoming?: Theme | null
+  onDismissIncoming?(): void
+}) {
   const docs = useApp(selectDocList)
   const file = useRef<HTMLInputElement>(null)
   const sample = useRef(createDoc({ sample: true }))
+  const savedThemes = useApp((s) => s.themes)
 
   const create = (doc: ResumeDoc) => {
     const [added] = addDocs([doc])
@@ -112,6 +126,55 @@ export function Home({ onOpen }: { onOpen(id: string): void }) {
           <h1>直接在纸上写简历。</h1>
           <p>所见即所得 · 一页适配 · 写作建议 · 数据只存在你的浏览器里</p>
         </section>
+
+        {incoming && (
+          <section className='h-incoming' aria-label='收到的主题'>
+            <span className='h-thumb'>
+              <span className='h-thumb-zoom'>
+                <Resume doc={{ ...sample.current, theme: incoming }} />
+              </span>
+            </span>
+            <div>
+              <span className='h-incoming-kicker'>
+                <Palette size={14} /> 有人和你分享了一个主题
+              </span>
+              <h2>{incoming.name}</h2>
+              <p>
+                基于「
+                {presetById(incoming.preset)?.theme.name ?? incoming.preset}」
+                {isPristine(incoming) ? '' : '，调整过字体、颜色或间距'}
+                。保存后可以在任意简历的「主题」面板里使用。
+              </p>
+              <div className='h-incoming-actions'>
+                <Button
+                  variant='primary'
+                  onClick={() => {
+                    saveThemes([...savedThemes, incoming])
+                    toast(`已保存主题「${incoming.name}」`)
+                    onDismissIncoming?.()
+                  }}
+                >
+                  保存到我的主题
+                </Button>
+                <Button
+                  onClick={() => {
+                    saveThemes([...savedThemes, incoming])
+                    create(
+                      createDoc({
+                        sample: true,
+                        theme: incoming,
+                        name: `示例 · ${incoming.name}`,
+                      })
+                    )
+                  }}
+                >
+                  用它新建简历
+                </Button>
+                <Button onClick={() => onDismissIncoming?.()}>忽略</Button>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className='h-section'>
           <div className='h-section-head'>
