@@ -260,7 +260,7 @@ const isLatin = (text: string) => {
   return latin.length / letters.length > 0.7
 }
 
-export function isJsonResume(value: unknown): value is Rec {
+export function isJsonResume(value: unknown): boolean {
   return isRec(value) && isRec(value.basics)
 }
 
