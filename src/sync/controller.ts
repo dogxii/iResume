@@ -289,6 +289,7 @@ export function syncNow(): Promise<void> {
 async function run() {
   const s = settings
   if (!s?.key) return
+  if (!navigator.onLine) return ready('当前离线，联网后会自动同步')
   emit({ phase: 'busy', message: '正在同步…' })
   try {
     const outcome = await syncOnce(
@@ -344,6 +345,9 @@ function watch() {
     if (applying || !settings?.key) return
     clearTimeout(timer)
     timer = setTimeout(() => void syncNow(), AUTO_DELAY)
+  })
+  window.addEventListener('online', () => {
+    if (settings?.key) void syncNow()
   })
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible' || !settings?.key) return
