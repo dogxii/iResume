@@ -149,7 +149,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       const draft = structuredClone(theme)
       const step = FIT_STEPS.find((s) => s.apply(draft))
       if (!step) break
-      if (!changed.includes(step.label)) changed = [...changed, step.label]
+      if (!changed.includes(step.label.zh))
+        changed = [...changed, step.label.zh]
       flushSync(() => a.theme((t) => Object.assign(t, draft), 'fit'))
     }
     const after = getState().docs[doc.id].theme

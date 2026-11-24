@@ -1,3 +1,4 @@
+import type { Locale } from '../model/types'
 import type { Theme } from './types'
 
 const base: Theme = {
@@ -176,6 +177,62 @@ export const PRESETS: PresetMeta[] = [
 ]
 
 export const DEFAULT_THEME = base
+
+/** 预设的英文名称与说明（中文写在 PRESETS 里） */
+const PRESET_EN: Record<string, { name: string; blurb: string }> = {
+  clean: {
+    name: 'Clean',
+    blurb: 'Single column with hairline headings. The safest default.',
+  },
+  classic: {
+    name: 'Classic',
+    blurb: 'Centered header and serif type. For finance, law and academia.',
+  },
+  margin: {
+    name: 'Margin',
+    blurb: 'Headings sit in the left margin. Airy, with a clear hierarchy.',
+  },
+  sidebar: {
+    name: 'Sidebar',
+    blurb:
+      'Skills and education in a sidebar. Dense, but some ATS parse it poorly.',
+  },
+  modern: {
+    name: 'Modern',
+    blurb: 'Large name and accent bars. For tech and design roles.',
+  },
+  compact: {
+    name: 'Compact',
+    blurb:
+      'Smaller type and tighter margins to fit a long history on one page.',
+  },
+  timeline: {
+    name: 'Timeline',
+    blurb:
+      'Dates in a left column joined by a timeline. Shows your trajectory.',
+  },
+  editorial: {
+    name: 'Editorial',
+    blurb: 'Serif headings over a humanist body. Warm and bookish.',
+  },
+}
+
+/** 预设说明（界面语言） */
+export const presetBlurb = (meta: PresetMeta, lang: Locale) =>
+  lang === 'en'
+    ? (PRESET_EN[meta.theme.preset]?.blurb ?? meta.blurb)
+    : meta.blurb
+
+/**
+ * 主题的显示名称。名字没被改过的预设主题显示界面语言的预设名；
+ * 用户自己命名的主题原样显示。
+ */
+export function themeName(theme: Theme, lang: Locale): string {
+  if (lang !== 'en') return theme.name
+  const meta = presetById(theme.preset)
+  const en = PRESET_EN[theme.preset]
+  return meta && en && theme.name === meta.theme.name ? en.name : theme.name
+}
 
 export function presetById(id: string): PresetMeta | undefined {
   return PRESETS.find((preset) => preset.theme.preset === id)

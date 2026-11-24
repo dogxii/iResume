@@ -15,57 +15,91 @@ import {
 
 export const KIND_META: Record<
   SectionKind,
-  { zh: string; en: string; layout: SectionLayout; hint: string }
+  {
+    zh: string
+    en: string
+    layout: SectionLayout
+    hint: Record<Locale, string>
+  }
 > = {
   summary: {
     zh: '个人简介',
     en: 'Summary',
     layout: 'text',
-    hint: '两三句话说明你是谁、擅长什么、想做什么',
+    hint: {
+      zh: '两三句话说明你是谁、擅长什么、想做什么',
+      en: 'Two or three sentences: who you are, what you’re good at, what you want next',
+    },
   },
   experience: {
     zh: '工作经历',
     en: 'Experience',
     layout: 'entries',
-    hint: '倒序排列，每段 3–5 条要点',
+    hint: {
+      zh: '倒序排列，每段 3–5 条要点',
+      en: 'Most recent first, 3–5 bullets each',
+    },
   },
   projects: {
     zh: '项目经历',
     en: 'Projects',
     layout: 'entries',
-    hint: '写清你的角色和可衡量的结果',
+    hint: {
+      zh: '写清你的角色和可衡量的结果',
+      en: 'Make your role and measurable results clear',
+    },
   },
   education: {
     zh: '教育背景',
     en: 'Education',
     layout: 'entries',
-    hint: '学校、专业、学位与时间',
+    hint: {
+      zh: '学校、专业、学位与时间',
+      en: 'School, major, degree and dates',
+    },
   },
   skills: {
     zh: '专业技能',
     en: 'Skills',
     layout: 'rows',
-    hint: '按类别分组，只写真正熟练的',
+    hint: {
+      zh: '按类别分组，只写真正熟练的',
+      en: 'Group by category; list only what you’re genuinely good at',
+    },
   },
   awards: {
     zh: '荣誉奖项',
     en: 'Awards',
     layout: 'entries',
-    hint: '只保留与岗位相关、含金量高的',
+    hint: {
+      zh: '只保留与岗位相关、含金量高的',
+      en: 'Keep only relevant, meaningful ones',
+    },
   },
   activities: {
     zh: '校园经历',
     en: 'Activities',
     layout: 'entries',
-    hint: '社团、志愿、竞赛等',
+    hint: {
+      zh: '社团、志愿、竞赛等',
+      en: 'Clubs, volunteering, competitions',
+    },
   },
   publications: {
     zh: '论文发表',
     en: 'Publications',
     layout: 'entries',
-    hint: '作者、题目、会议 / 期刊',
+    hint: {
+      zh: '作者、题目、会议 / 期刊',
+      en: 'Authors, title, venue',
+    },
   },
-  custom: { zh: '自定义', en: 'Section', layout: 'entries', hint: '' },
+  custom: {
+    zh: '自定义',
+    en: 'Section',
+    layout: 'entries',
+    hint: { zh: '', en: '' },
+  },
 }
 
 export const ADDABLE_KINDS: SectionKind[] = [
@@ -82,16 +116,46 @@ export const ADDABLE_KINDS: SectionKind[] = [
 
 export const CONTACT_META: Record<
   ContactKind,
-  { label: string; placeholder: string }
+  { label: Record<Locale, string>; placeholder: Record<Locale, string> }
 > = {
-  email: { label: '邮箱', placeholder: 'name@example.com' },
-  phone: { label: '电话', placeholder: '138 0000 0000' },
-  location: { label: '城市', placeholder: '上海' },
-  website: { label: '网站', placeholder: 'yourname.dev' },
-  github: { label: 'GitHub', placeholder: 'github.com/yourname' },
-  linkedin: { label: 'LinkedIn', placeholder: 'linkedin.com/in/yourname' },
-  wechat: { label: '微信', placeholder: '微信号' },
-  text: { label: '其他', placeholder: '求职意向 / 到岗时间' },
+  email: {
+    label: { zh: '邮箱', en: 'Email' },
+    placeholder: { zh: 'name@example.com', en: 'name@example.com' },
+  },
+  phone: {
+    label: { zh: '电话', en: 'Phone' },
+    placeholder: { zh: '138 0000 0000', en: '+1 555 010 0000' },
+  },
+  location: {
+    label: { zh: '城市', en: 'Location' },
+    placeholder: { zh: '上海', en: 'City' },
+  },
+  website: {
+    label: { zh: '网站', en: 'Website' },
+    placeholder: { zh: 'yourname.dev', en: 'yourname.dev' },
+  },
+  github: {
+    label: { zh: 'GitHub', en: 'GitHub' },
+    placeholder: { zh: 'github.com/yourname', en: 'github.com/yourname' },
+  },
+  linkedin: {
+    label: { zh: 'LinkedIn', en: 'LinkedIn' },
+    placeholder: {
+      zh: 'linkedin.com/in/yourname',
+      en: 'linkedin.com/in/yourname',
+    },
+  },
+  wechat: {
+    label: { zh: '微信', en: 'WeChat' },
+    placeholder: { zh: '微信号', en: 'WeChat ID' },
+  },
+  text: {
+    label: { zh: '其他', en: 'Other' },
+    placeholder: {
+      zh: '求职意向 / 到岗时间',
+      en: 'Target role / availability',
+    },
+  },
 }
 
 /** 根据内容推断联系方式类型 */

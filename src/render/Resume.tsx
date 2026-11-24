@@ -154,7 +154,7 @@ function Contacts({ doc }: { doc: ResumeDoc }) {
             <Field
               fkey={`contact:${c.id}`}
               value={c.value}
-              placeholder={CONTACT_META[c.kind].placeholder}
+              placeholder={CONTACT_META[c.kind].placeholder.zh}
               target={{ itemId: 'profile' }}
               onChange={(v) =>
                 edit.update((d) => {
@@ -500,7 +500,7 @@ function TextBlock({ section, item, index, tools }: Omit<ItemProps, 'theme'>) {
           fkey={k('text')}
           value={item.text}
           rich
-          placeholder={KIND_META[section.kind].hint || '写点什么…'}
+          placeholder={KIND_META[section.kind].hint.zh || '写点什么…'}
           target={target}
           onChange={(v) =>
             set((i) => {

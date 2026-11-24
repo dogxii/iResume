@@ -1,3 +1,4 @@
+import type { Locale } from '../model/types'
 import { MM_TO_PX, PAGE_MM } from '../theme/css'
 import type { Theme } from '../theme/types'
 
@@ -186,12 +187,30 @@ export function paginate(
 export const FIT_TARGET = 0.985
 
 /** 「适配一页」的压缩步骤，按对阅读体验影响从小到大排列 */
-export const FIT_STEPS: { label: string; apply(t: Theme): boolean }[] = [
-  { label: '行高', apply: (t) => dec(t.font, 'leading', 0.05, 1.3) },
-  { label: '区块间距', apply: (t) => dec(t.space, 'section', 0.1, 0.7) },
-  { label: '条目间距', apply: (t) => dec(t.space, 'entry', 0.1, 0.35) },
-  { label: '页边距', apply: (t) => dec(t.space, 'margin', 1, 10) },
-  { label: '字号', apply: (t) => dec(t.font, 'size', 0.25, 9) },
+export const FIT_STEPS: {
+  label: Record<Locale, string>
+  apply(t: Theme): boolean
+}[] = [
+  {
+    label: { zh: '行高', en: 'line height' },
+    apply: (t) => dec(t.font, 'leading', 0.05, 1.3),
+  },
+  {
+    label: { zh: '区块间距', en: 'section spacing' },
+    apply: (t) => dec(t.space, 'section', 0.1, 0.7),
+  },
+  {
+    label: { zh: '条目间距', en: 'entry spacing' },
+    apply: (t) => dec(t.space, 'entry', 0.1, 0.35),
+  },
+  {
+    label: { zh: '页边距', en: 'margins' },
+    apply: (t) => dec(t.space, 'margin', 1, 10),
+  },
+  {
+    label: { zh: '字号', en: 'font size' },
+    apply: (t) => dec(t.font, 'size', 0.25, 9),
+  },
 ]
 
 function dec<T extends Record<K, number>, K extends string>(

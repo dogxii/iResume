@@ -226,7 +226,7 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
                 setOpen(false)
               }}
             >
-              {CONTACT_META[k].label}
+              {CONTACT_META[k].label.zh}
             </MenuItem>
           ))}
           {doc.profile.contacts.length > 0 && <div className='u-menu-sep' />}
@@ -239,7 +239,7 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
               icon={<X size={14} />}
               onClick={() => a.removeContact(c.id)}
             >
-              {c.value || `（空的${CONTACT_META[c.kind].label}）`}
+              {c.value || `（空的${CONTACT_META[c.kind].label.zh}）`}
             </MenuItem>
           ))}
           {empty.length > 0 && (

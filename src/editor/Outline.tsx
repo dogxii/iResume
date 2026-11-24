@@ -128,7 +128,9 @@ export function AddSection({
             >
               <b>{KIND_META[kind].zh}</b>
               {used.has(kind) && kind !== 'custom' ? <em> · 已有</em> : null}
-              {KIND_META[kind].hint && <small>{KIND_META[kind].hint}</small>}
+              {KIND_META[kind].hint.zh && (
+                <small>{KIND_META[kind].hint.zh}</small>
+              )}
             </MenuItem>
           ))}
         </div>

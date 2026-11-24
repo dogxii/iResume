@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { defineMessages, tr } from '../i18n'
 import { importAny } from '../migrate'
 import {
   applySync,
@@ -55,6 +56,52 @@ interface Settings {
   /** 2.x 的旧同步密钥（从旧版本地设置中带过来） */
   legacyKey?: string
 }
+
+const M = defineMessages(
+  {
+    offline: '当前离线，联网后会自动同步',
+    oauthMismatch: 'GitHub 登录校验失败，请重新连接',
+    connecting: '正在连接 GitHub…',
+    oauthFailed: 'GitHub 登录失败',
+    verifying: '正在验证 GitHub 账号…',
+    probing: '正在查找云端数据…',
+    deriving: '正在生成密钥…（需要几秒）',
+    wrongPass: '口令不正确，请输入你在其他设备上设置的同步口令',
+    syncing: '正在同步…',
+    received: (n: number) => `已从云端收到 ${n} 处更新`,
+    passChanged: '云端数据的口令已变化，请重新输入同步口令',
+    failed: (why: string) => `同步失败：${why}`,
+    readingLegacy: '正在读取 2.x 云端数据…',
+    noLegacy: '没有找到 2.x 的云端数据',
+    noLegacyKey: '无法取得旧版同步密钥',
+    importedKept: (n: number) =>
+      `已导入 ${n} 份 2.x 云端简历（旧数据保持不变）`,
+    imported: (n: number) => `已导入 ${n} 份 2.x 云端简历`,
+  },
+  {
+    offline: 'You’re offline. Sync resumes when you reconnect.',
+    oauthMismatch: 'GitHub sign-in check failed. Please connect again.',
+    connecting: 'Connecting to GitHub…',
+    oauthFailed: 'GitHub sign-in failed',
+    verifying: 'Verifying your GitHub account…',
+    probing: 'Looking for cloud data…',
+    deriving: 'Generating key… (takes a few seconds)',
+    wrongPass: 'Wrong passphrase. Enter the one you set on your other device.',
+    syncing: 'Syncing…',
+    received: (n: number) =>
+      `Received ${n} ${n === 1 ? 'update' : 'updates'} from the cloud`,
+    passChanged:
+      'The cloud passphrase has changed. Enter the new sync passphrase.',
+    failed: (why: string) => `Sync failed: ${why}`,
+    readingLegacy: 'Reading iResume 2.x cloud data…',
+    noLegacy: 'No iResume 2.x cloud data found',
+    noLegacyKey: 'Couldn’t get the legacy sync key',
+    importedKept: (n: number) =>
+      `Imported ${n} resume${n === 1 ? '' : 's'} from 2.x cloud (original data untouched)`,
+    imported: (n: number) =>
+      `Imported ${n} resume${n === 1 ? '' : 's'} from 2.x cloud`,
+  }
+)
 
 const KV = 'sync'
 const OAUTH_STATE = 'iresume-oauth-state'
@@ -164,12 +211,12 @@ async function completeOAuth(): Promise<boolean> {
   if (!expected || expected !== state) {
     emit({
       phase: 'off',
-      message: 'GitHub 登录校验失败，请重新连接',
+      message: tr(M).oauthMismatch,
       messageKind: 'error',
     })
     return true
   }
-  emit({ phase: 'busy', message: '正在连接 GitHub…' })
+  emit({ phase: 'busy', message: tr(M).connecting })
   try {
     const res = await fetch('/api/github/oauth', {
       method: 'POST',
@@ -184,7 +231,7 @@ async function completeOAuth(): Promise<boolean> {
       message?: string
     }
     if (!res.ok || !body.accessToken)
-      throw new Error(body.message ?? 'GitHub 登录失败')
+      throw new Error(body.message ?? tr(M).oauthFailed)
     await connect(body.accessToken)
   } catch (e) {
     emit({ phase: 'off', message: errorText(e), messageKind: 'error' })
@@ -194,7 +241,7 @@ async function completeOAuth(): Promise<boolean> {
 
 /** 用访问令牌（OAuth 或手动粘贴）连接 */
 export async function connect(token: string, legacyKey?: string) {
-  emit({ phase: 'busy', message: '正在验证 GitHub 账号…' })
+  emit({ phase: 'busy', message: tr(M).verifying })
   try {
     const user = await gistClient(token.trim()).user()
     settings = {
@@ -218,7 +265,7 @@ async function prepareKey() {
     phase: 'busy',
     login: settings.login,
     avatarUrl: settings.avatarUrl,
-    message: '正在查找云端数据…',
+    message: tr(M).probing,
   })
   try {
     const c = client()
@@ -244,7 +291,7 @@ async function prepareKey() {
 
 export async function setPassphrase(passphrase: string) {
   if (!settings) return
-  emit({ phase: 'busy', unlocking: true, message: '正在生成密钥…（需要几秒）' })
+  emit({ phase: 'busy', unlocking: true, message: tr(M).deriving })
   try {
     const key = remoteKdf
       ? await deriveKey(passphrase, remoteKdf.salt, remoteKdf.iterations)
@@ -260,10 +307,7 @@ export async function setPassphrase(passphrase: string) {
     emit({
       unlocking: false,
       phase: 'needs-key',
-      message:
-        e instanceof WrongPassphrase
-          ? '口令不正确，请输入你在其他设备上设置的同步口令'
-          : errorText(e),
+      message: e instanceof WrongPassphrase ? tr(M).wrongPass : errorText(e),
       messageKind: 'error',
     })
   }
@@ -298,8 +342,8 @@ export function syncNow(): Promise<void> {
 async function run() {
   const s = settings
   if (!s?.key) return
-  if (!navigator.onLine) return ready('当前离线，联网后会自动同步')
-  emit({ phase: 'busy', message: '正在同步…' })
+  if (!navigator.onLine) return ready(tr(M).offline)
+  emit({ phase: 'busy', message: tr(M).syncing })
   try {
     const outcome = await syncOnce(
       client(),
@@ -316,7 +360,7 @@ async function run() {
     s.lastSyncAt = new Date().toISOString()
     await save()
     const got = (applied?.put ?? 0) + (applied?.removed ?? 0)
-    ready(got ? `已从云端收到 ${got} 处更新` : undefined, 'ok')
+    ready(got ? tr(M).received(got) : undefined, 'ok')
   } catch (e) {
     if (e instanceof WrongPassphrase) {
       // 云端换了口令（例如在另一台设备重新设置）：需要重新输入
@@ -324,7 +368,7 @@ async function run() {
       await save()
       await prepareKey()
       emit({
-        message: '云端数据的口令已变化，请重新输入同步口令',
+        message: tr(M).passChanged,
         messageKind: 'error',
       })
       return
@@ -333,7 +377,7 @@ async function run() {
       emit({ phase: 'error', message: errorText(e), messageKind: 'error' })
       return
     }
-    ready(`同步失败：${errorText(e)}`, 'error')
+    ready(tr(M).failed(errorText(e)), 'error')
   }
 }
 
@@ -369,12 +413,12 @@ function watch() {
 
 export async function importLegacyCloud() {
   if (!settings) return
-  emit({ phase: 'busy', message: '正在读取 2.x 云端数据…' })
+  emit({ phase: 'busy', message: tr(M).readingLegacy })
   try {
     const c = client()
     const gist = await c.find(LEGACY_FILE)
     const content = gist && (await c.read(gist.id, LEGACY_FILE))
-    if (!content) throw new Error('没有找到 2.x 的云端数据')
+    if (!content) throw new Error(tr(M).noLegacy)
     let key = settings.legacyKey
     if (!key) {
       const res = await fetch('/api/github/sync-key', {
@@ -383,17 +427,16 @@ export async function importLegacyCloud() {
       })
       const body = (await res.json()) as { syncKey?: string; message?: string }
       if (!res.ok || !body.syncKey)
-        throw new Error(body.message ?? '无法取得旧版同步密钥')
+        throw new Error(body.message ?? tr(M).noLegacyKey)
       key = body.syncKey
     }
     const added = await importResult(importAny(await openLegacy(content, key)))
     emit({ legacy: false })
-    if (settings.key)
-      ready(`已导入 ${added.length} 份 2.x 云端简历（旧数据保持不变）`, 'ok')
+    if (settings.key) ready(tr(M).importedKept(added.length), 'ok')
     else
       emit({
         phase: 'needs-key',
-        message: `已导入 ${added.length} 份 2.x 云端简历`,
+        message: tr(M).imported(added.length),
         messageKind: 'ok',
       })
   } catch (e) {
