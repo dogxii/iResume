@@ -8,6 +8,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { type CSSProperties, useRef } from 'react'
+import { defineMessages, useLang, useT } from '../i18n'
 import type { DateStyle } from '../model/dates'
 import type { ResumeDoc } from '../model/types'
 import { Resume } from '../render/Resume'
@@ -19,13 +20,194 @@ import {
   LIMITS,
   normalizeTheme,
 } from '../theme/normalize'
-import { ACCENTS, PRESETS, presetById } from '../theme/presets'
+import {
+  ACCENTS,
+  PRESETS,
+  presetBlurb,
+  presetById,
+  themeName,
+} from '../theme/presets'
 import { themeLink } from '../theme/share'
 import type { Theme } from '../theme/types'
 import { Button, Segmented, Slider, Toggle } from '../ui/controls'
 import { toast } from '../ui/toast'
 import type { Actions } from './actions'
 import { download, safeFilename } from './print'
+
+const M = defineMessages(
+  {
+    ats: '单栏、标准标题，适合 ATS 自动解析',
+    deleteTheme: '删除这个主题',
+    current: (name: string) => `当前：${name}`,
+    customized: ' · 已自定义',
+    reset: '恢复',
+    namePrompt: '给这个主题起个名字',
+    copyName: (name: string) => `${name} 改`,
+    myTheme: '我的主题',
+    saved: (name: string) => `已保存主题「${name}」`,
+    saveAs: '另存为',
+    copyLink: '复制主题分享链接',
+    linkCopied: '已复制主题链接：对方打开即可保存这个主题（不含简历内容）',
+    noClipboard: '无法访问剪贴板',
+    exportTip: '导出主题文件，可分享给他人',
+    exportLabel: '导出主题文件',
+    importLabel: '导入主题文件',
+    imported: (name: string) => `已导入主题「${name}」`,
+    importFailed: '无法读取这个主题文件',
+
+    layout: '版式',
+    layoutSingle: '单栏',
+    layoutSideHeadings: '侧标题',
+    layoutAsideLeft: '左侧栏',
+    layoutAsideRight: '右侧栏',
+    aside: '侧栏',
+    header: '页眉',
+    alignLeft: '左对齐',
+    alignCenter: '居中',
+    alignSplit: '两端',
+    contacts: '联系方式',
+    contactsInline: '一行',
+    contactsStacked: '竖排',
+    photo: '照片',
+    photoNone: '不显示',
+    photoRounded: '圆角',
+    photoCircle: '圆形',
+    heading: '区块标题',
+    headingRule: '细线',
+    headingUnderline: '短线',
+    headingBar: '色条',
+    headingBand: '底色',
+    none: '无',
+    caps: '标题大写 + 字距（英文简历常用）',
+    datePos: '日期位置',
+    dateRight: '右侧',
+    dateBelow: '标题下',
+    dateGutter: '左列',
+    timeline: '时间轴',
+    sub: '职位 / 专业',
+    subInline: '同一行',
+    subBelow: '另起一行',
+    bullet: '要点符号',
+    skills: '技能',
+    skillsRows: '对齐列',
+    skillsInline: '行内',
+    skillsTags: '标签',
+
+    bodyFont: '正文字体',
+    headingFont: '标题字体',
+    bodySize: '正文字号',
+    leading: '行高',
+    nameSize: '姓名大小',
+    titleSize: '标题大小',
+
+    accent: '强调色',
+    customColor: '自定义颜色',
+    useOn: '用在',
+    onName: '姓名',
+    onHeadings: '区块标题',
+    onRules: '线条',
+    onLinks: '链接',
+    ink: '正文',
+    muted: '次要文字',
+    rule: '线条',
+    asideColor: '侧栏 / 底色',
+    colorHint: '克制一点更专业：整份简历只用一种强调色，正文保持深灰或黑色。',
+
+    margin: '页边距',
+    sectionSpace: '区块间距',
+    entrySpace: '条目间距',
+    page: '纸张',
+    letter: 'Letter（美国）',
+    dateStyle: '日期写法',
+  },
+  {
+    ats: 'Single column with standard headings. Parses cleanly in ATS.',
+    deleteTheme: 'Delete this theme',
+    current: (name: string) => `Current: ${name}`,
+    customized: ' · Customized',
+    reset: 'Reset',
+    namePrompt: 'Name this theme',
+    copyName: (name: string) => `${name} (edited)`,
+    myTheme: 'My theme',
+    saved: (name: string) => `Saved theme “${name}”`,
+    saveAs: 'Save as…',
+    copyLink: 'Copy theme share link',
+    linkCopied:
+      'Theme link copied. Anyone who opens it can save this theme — your resume content isn’t included.',
+    noClipboard: 'Couldn’t access the clipboard',
+    exportTip: 'Export a theme file to share with others',
+    exportLabel: 'Export theme file',
+    importLabel: 'Import theme file',
+    imported: (name: string) => `Imported theme “${name}”`,
+    importFailed: 'Couldn’t read this theme file',
+
+    layout: 'Layout',
+    layoutSingle: 'Single',
+    layoutSideHeadings: 'Side headings',
+    layoutAsideLeft: 'Left sidebar',
+    layoutAsideRight: 'Right sidebar',
+    aside: 'Sidebar',
+    header: 'Header',
+    alignLeft: 'Left',
+    alignCenter: 'Center',
+    alignSplit: 'Split',
+    contacts: 'Contacts',
+    contactsInline: 'Inline',
+    contactsStacked: 'Stacked',
+    photo: 'Photo',
+    photoNone: 'Hidden',
+    photoRounded: 'Rounded',
+    photoCircle: 'Circle',
+    heading: 'Headings',
+    headingRule: 'Rule',
+    headingUnderline: 'Underline',
+    headingBar: 'Bar',
+    headingBand: 'Band',
+    none: 'None',
+    caps: 'All-caps headings with letter spacing (common in English resumes)',
+    datePos: 'Dates',
+    dateRight: 'Right',
+    dateBelow: 'Below title',
+    dateGutter: 'Left column',
+    timeline: 'Timeline',
+    sub: 'Role / degree',
+    subInline: 'Same line',
+    subBelow: 'New line',
+    bullet: 'Bullets',
+    skills: 'Skills',
+    skillsRows: 'Columns',
+    skillsInline: 'Inline',
+    skillsTags: 'Tags',
+
+    bodyFont: 'Body font',
+    headingFont: 'Heading font',
+    bodySize: 'Body size',
+    leading: 'Line height',
+    nameSize: 'Name size',
+    titleSize: 'Heading size',
+
+    accent: 'Accent',
+    customColor: 'Custom color',
+    useOn: 'Apply to',
+    onName: 'Name',
+    onHeadings: 'Headings',
+    onRules: 'Rules',
+    onLinks: 'Links',
+    ink: 'Body text',
+    muted: 'Secondary text',
+    rule: 'Rules',
+    asideColor: 'Sidebar / fill',
+    colorHint:
+      'Restraint looks more professional: use a single accent color and keep body text dark gray or black.',
+
+    margin: 'Margins',
+    sectionSpace: 'Section spacing',
+    entrySpace: 'Entry spacing',
+    page: 'Paper',
+    letter: 'Letter (US)',
+    dateStyle: 'Date format',
+  }
+)
 
 interface P {
   doc: ResumeDoc
@@ -52,14 +234,18 @@ function Thumb({ doc, theme }: { doc: ResumeDoc; theme: Theme }) {
 }
 
 export function ThemeGallery({ doc, a }: P) {
+  const t = useT(M)
+  const lang = useLang()
   const saved = useApp((s) => s.themes)
   const file = useRef<HTMLInputElement>(null)
   const pristine = isPristine(doc.theme)
   const current = doc.theme.preset
+  const currentPreset = presetById(current)
   return (
     <div className='e-panel is-gallery'>
       <div className='e-gallery'>
-        {PRESETS.map(({ theme, blurb, ats }) => {
+        {PRESETS.map((meta) => {
+          const { theme, ats } = meta
           const on = current === theme.preset && pristine
           return (
             <button
@@ -67,12 +253,12 @@ export function ThemeGallery({ doc, a }: P) {
               type='button'
               className={`e-gallery-item ${on ? 'is-on' : ''}`}
               onClick={() => a.setTheme(adopt(theme, doc.theme))}
-              title={blurb}
+              title={presetBlurb(meta, lang)}
             >
               <Thumb doc={doc} theme={adopt(theme, doc.theme)} />
               <span className='e-gallery-name'>
-                {theme.name}
-                {ats && <em title='单栏、标准标题，适合 ATS 自动解析'>ATS</em>}
+                {themeName(theme, lang)}
+                {ats && <em title={t.ats}>ATS</em>}
               </span>
             </button>
           )
@@ -87,12 +273,12 @@ export function ThemeGallery({ doc, a }: P) {
               onClick={() => a.setTheme(adopt(theme, doc.theme))}
             >
               <Thumb doc={doc} theme={adopt(theme, doc.theme)} />
-              <span className='e-gallery-name'>{theme.name}</span>
+              <span className='e-gallery-name'>{themeName(theme, lang)}</span>
             </button>
             <button
               type='button'
               className='e-gallery-del'
-              title='删除这个主题'
+              title={t.deleteTheme}
               onClick={() => saveThemes(saved.filter((_, i) => i !== index))}
             >
               <Trash2 size={12} />
@@ -102,45 +288,47 @@ export function ThemeGallery({ doc, a }: P) {
       </div>
       <div className='e-panel-foot'>
         <span className='e-muted'>
-          当前：{presetById(current)?.theme.name ?? current}
-          {pristine ? '' : ' · 已自定义'}
+          {t.current(
+            currentPreset ? themeName(currentPreset.theme, lang) : current
+          )}
+          {pristine ? '' : t.customized}
         </span>
         <span className='e-spacer' />
         {!pristine && (
           <Button
             size='sm'
             onClick={() => {
-              const p = presetById(current)
-              if (p) a.setTheme(adopt(p.theme, doc.theme))
+              if (currentPreset)
+                a.setTheme(adopt(currentPreset.theme, doc.theme))
             }}
           >
-            <RotateCcw size={14} /> 恢复
+            <RotateCcw size={14} /> {t.reset}
           </Button>
         )}
         <Button
           size='sm'
           onClick={() => {
             const name = window.prompt(
-              '给这个主题起个名字',
-              pristine ? `${doc.theme.name} 改` : '我的主题'
+              t.namePrompt,
+              pristine ? t.copyName(themeName(doc.theme, lang)) : t.myTheme
             )
             if (!name) return
             saveThemes([...saved, { ...structuredClone(doc.theme), name }])
-            toast(`已保存主题「${name}」`)
+            toast(t.saved(name))
           }}
         >
-          <Save size={14} /> 另存为
+          <Save size={14} /> {t.saveAs}
         </Button>
         <Button
           size='sm'
-          title='复制主题分享链接'
-          aria-label='复制主题分享链接'
+          title={t.copyLink}
+          aria-label={t.copyLink}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(themeLink(doc.theme))
-              toast('已复制主题链接：对方打开即可保存这个主题（不含简历内容）')
+              toast(t.linkCopied)
             } catch {
-              toast('无法访问剪贴板')
+              toast(t.noClipboard)
             }
           }}
         >
@@ -148,11 +336,11 @@ export function ThemeGallery({ doc, a }: P) {
         </Button>
         <Button
           size='sm'
-          title='导出主题文件，可分享给他人'
-          aria-label='导出主题文件'
+          title={t.exportTip}
+          aria-label={t.exportLabel}
           onClick={() =>
             download(
-              `${safeFilename(doc.theme.name)}.iresume-theme.json`,
+              `${safeFilename(themeName(doc.theme, lang))}.iresume-theme.json`,
               JSON.stringify(
                 { format: 'iresume-theme', theme: doc.theme },
                 null,
@@ -165,8 +353,8 @@ export function ThemeGallery({ doc, a }: P) {
         </Button>
         <Button
           size='sm'
-          title='导入主题文件'
-          aria-label='导入主题文件'
+          title={t.importLabel}
+          aria-label={t.importLabel}
           onClick={() => file.current?.click()}
         >
           <Upload size={14} />
@@ -185,9 +373,9 @@ export function ThemeGallery({ doc, a }: P) {
               const theme = normalizeTheme(raw?.theme ?? raw)
               saveThemes([...saved, theme])
               a.setTheme(adopt(theme, doc.theme))
-              toast(`已导入主题「${theme.name}」`)
+              toast(t.imported(theme.name))
             } catch {
-              toast('无法读取这个主题文件')
+              toast(t.importFailed)
             }
           }}
         />
@@ -197,11 +385,12 @@ export function ThemeGallery({ doc, a }: P) {
 }
 
 export function LayoutPanel({ doc, a }: P) {
+  const m = useT(M)
   const t = doc.theme
   const set = (fn: (t: Theme) => void) => a.theme(fn)
   return (
     <div className='e-panel'>
-      <Row label='版式'>
+      <Row label={m.layout}>
         <Segmented
           value={t.layout}
           onChange={(v) =>
@@ -212,15 +401,15 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'single', label: '单栏' },
-            { value: 'side-headings', label: '侧标题' },
-            { value: 'aside-left', label: '左侧栏' },
-            { value: 'aside-right', label: '右侧栏' },
+            { value: 'single', label: m.layoutSingle },
+            { value: 'side-headings', label: m.layoutSideHeadings },
+            { value: 'aside-left', label: m.layoutAsideLeft },
+            { value: 'aside-right', label: m.layoutAsideRight },
           ]}
         />
       </Row>
       {t.layout.startsWith('aside') && (
-        <Row label='侧栏'>
+        <Row label={m.aside}>
           <div className='e-chips'>
             {doc.sections.map((s) => (
               <button
@@ -241,7 +430,7 @@ export function LayoutPanel({ doc, a }: P) {
           </div>
         </Row>
       )}
-      <Row label='页眉'>
+      <Row label={m.header}>
         <Segmented
           value={t.header.align}
           onChange={(v) =>
@@ -250,13 +439,13 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'left', label: '左对齐' },
-            { value: 'center', label: '居中' },
-            { value: 'split', label: '两端' },
+            { value: 'left', label: m.alignLeft },
+            { value: 'center', label: m.alignCenter },
+            { value: 'split', label: m.alignSplit },
           ]}
         />
       </Row>
-      <Row label='联系方式'>
+      <Row label={m.contacts}>
         <Segmented
           value={t.header.contacts}
           onChange={(v) =>
@@ -265,12 +454,12 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'inline', label: '一行' },
-            { value: 'stacked', label: '竖排' },
+            { value: 'inline', label: m.contactsInline },
+            { value: 'stacked', label: m.contactsStacked },
           ]}
         />
       </Row>
-      <Row label='照片'>
+      <Row label={m.photo}>
         <Segmented
           value={t.header.photo}
           onChange={(v) =>
@@ -279,13 +468,13 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'none', label: '不显示' },
-            { value: 'rounded', label: '圆角' },
-            { value: 'circle', label: '圆形' },
+            { value: 'none', label: m.photoNone },
+            { value: 'rounded', label: m.photoRounded },
+            { value: 'circle', label: m.photoCircle },
           ]}
         />
       </Row>
-      <Row label='区块标题'>
+      <Row label={m.heading}>
         <Segmented
           value={t.heading.style}
           onChange={(v) =>
@@ -294,17 +483,17 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'rule', label: '细线' },
-            { value: 'underline', label: '短线' },
-            { value: 'bar', label: '色条' },
-            { value: 'band', label: '底色' },
-            { value: 'plain', label: '无' },
+            { value: 'rule', label: m.headingRule },
+            { value: 'underline', label: m.headingUnderline },
+            { value: 'bar', label: m.headingBar },
+            { value: 'band', label: m.headingBand },
+            { value: 'plain', label: m.none },
           ]}
         />
       </Row>
       <Row label=''>
         <Toggle
-          label='标题大写 + 字距（英文简历常用）'
+          label={m.caps}
           checked={t.heading.caps}
           onChange={(v) =>
             set((x) => {
@@ -313,7 +502,7 @@ export function LayoutPanel({ doc, a }: P) {
           }
         />
       </Row>
-      <Row label='日期位置'>
+      <Row label={m.datePos}>
         <Segmented
           value={t.entry.date}
           onChange={(v) =>
@@ -322,16 +511,16 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'right', label: '右侧' },
-            { value: 'below', label: '标题下' },
-            { value: 'gutter', label: '左列' },
+            { value: 'right', label: m.dateRight },
+            { value: 'below', label: m.dateBelow },
+            { value: 'gutter', label: m.dateGutter },
           ]}
         />
       </Row>
       {t.entry.date === 'gutter' && (
         <Row label=''>
           <Toggle
-            label='时间轴'
+            label={m.timeline}
             checked={t.entry.timeline}
             onChange={(v) =>
               set((x) => {
@@ -341,7 +530,7 @@ export function LayoutPanel({ doc, a }: P) {
           />
         </Row>
       )}
-      <Row label='职位 / 专业'>
+      <Row label={m.sub}>
         <Segmented
           value={t.entry.sub}
           onChange={(v) =>
@@ -350,12 +539,12 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'inline', label: '同一行' },
-            { value: 'below', label: '另起一行' },
+            { value: 'inline', label: m.subInline },
+            { value: 'below', label: m.subBelow },
           ]}
         />
       </Row>
-      <Row label='要点符号'>
+      <Row label={m.bullet}>
         <Segmented
           value={t.bullet}
           onChange={(v) =>
@@ -367,11 +556,11 @@ export function LayoutPanel({ doc, a }: P) {
             { value: 'dot', label: '•' },
             { value: 'dash', label: '–' },
             { value: 'square', label: '▪' },
-            { value: 'none', label: '无' },
+            { value: 'none', label: m.none },
           ]}
         />
       </Row>
-      <Row label='技能'>
+      <Row label={m.skills}>
         <Segmented
           value={t.skills}
           onChange={(v) =>
@@ -380,9 +569,9 @@ export function LayoutPanel({ doc, a }: P) {
             })
           }
           options={[
-            { value: 'rows', label: '对齐列' },
-            { value: 'inline', label: '行内' },
-            { value: 'tags', label: '标签' },
+            { value: 'rows', label: m.skillsRows },
+            { value: 'inline', label: m.skillsInline },
+            { value: 'tags', label: m.skillsTags },
           ]}
         />
       </Row>
@@ -391,6 +580,8 @@ export function LayoutPanel({ doc, a }: P) {
 }
 
 export function TypePanel({ doc, a }: P) {
+  const m = useT(M)
+  const lang = useLang()
   const t = doc.theme
   const set = (fn: (t: Theme) => void, key?: string) => a.theme(fn, key)
   const fontPicker = (which: 'body' | 'heading') => (
@@ -407,18 +598,18 @@ export function TypePanel({ doc, a }: P) {
             })
           }
         >
-          <span>Aa 简</span>
-          <small>{FONT_LABELS[f]}</small>
+          <span>{doc.locale === 'en' ? 'Aa' : 'Aa 简'}</span>
+          <small>{FONT_LABELS[f][lang]}</small>
         </button>
       ))}
     </div>
   )
   return (
     <div className='e-panel'>
-      <Row label='正文字体'>{fontPicker('body')}</Row>
-      <Row label='标题字体'>{fontPicker('heading')}</Row>
+      <Row label={m.bodyFont}>{fontPicker('body')}</Row>
+      <Row label={m.headingFont}>{fontPicker('heading')}</Row>
       <Slider
-        label='正文字号'
+        label={m.bodySize}
         value={t.font.size}
         min={LIMITS.size[0]}
         max={LIMITS.size[1]}
@@ -431,7 +622,7 @@ export function TypePanel({ doc, a }: P) {
         }
       />
       <Slider
-        label='行高'
+        label={m.leading}
         value={t.font.leading}
         min={LIMITS.leading[0]}
         max={LIMITS.leading[1]}
@@ -444,7 +635,7 @@ export function TypePanel({ doc, a }: P) {
         }
       />
       <Slider
-        label='姓名大小'
+        label={m.nameSize}
         value={t.font.name}
         min={LIMITS.name[0]}
         max={LIMITS.name[1]}
@@ -457,7 +648,7 @@ export function TypePanel({ doc, a }: P) {
         }
       />
       <Slider
-        label='标题大小'
+        label={m.titleSize}
         value={t.font.title}
         min={LIMITS.title[0]}
         max={LIMITS.title[1]}
@@ -474,11 +665,12 @@ export function TypePanel({ doc, a }: P) {
 }
 
 export function ColorPanel({ doc, a }: P) {
+  const m = useT(M)
   const t = doc.theme
   const set = (fn: (t: Theme) => void, key?: string) => a.theme(fn, key)
   return (
     <div className='e-panel'>
-      <Row label='强调色'>
+      <Row label={m.accent}>
         <div className='e-swatches'>
           {ACCENTS.map((c) => (
             <button
@@ -496,7 +688,7 @@ export function ColorPanel({ doc, a }: P) {
               {t.color.accent === c && <Check size={13} />}
             </button>
           ))}
-          <label className='e-swatch-custom' title='自定义颜色'>
+          <label className='e-swatch-custom' title={m.customColor}>
             <input
               type='color'
               value={t.color.accent}
@@ -510,14 +702,14 @@ export function ColorPanel({ doc, a }: P) {
           </label>
         </div>
       </Row>
-      <Row label='用在'>
+      <Row label={m.useOn}>
         <div className='e-chips'>
           {(
             [
-              ['onName', '姓名'],
-              ['onHeadings', '区块标题'],
-              ['onRules', '线条'],
-              ['onLinks', '链接'],
+              ['onName', m.onName],
+              ['onHeadings', m.onHeadings],
+              ['onRules', m.onRules],
+              ['onLinks', m.onLinks],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -538,10 +730,10 @@ export function ColorPanel({ doc, a }: P) {
       <div className='e-color-grid'>
         {(
           [
-            ['ink', '正文'],
-            ['muted', '次要文字'],
-            ['rule', '线条'],
-            ['aside', '侧栏 / 底色'],
+            ['ink', m.ink],
+            ['muted', m.muted],
+            ['rule', m.rule],
+            ['aside', m.asideColor],
           ] as const
         ).map(([key, label]) => (
           <label key={key} className='e-color-input'>
@@ -559,20 +751,19 @@ export function ColorPanel({ doc, a }: P) {
           </label>
         ))}
       </div>
-      <p className='e-hint'>
-        克制一点更专业：整份简历只用一种强调色，正文保持深灰或黑色。
-      </p>
+      <p className='e-hint'>{m.colorHint}</p>
     </div>
   )
 }
 
 export function SpacePanel({ doc, a }: P) {
+  const m = useT(M)
   const t = doc.theme
   const set = (fn: (t: Theme) => void, key?: string) => a.theme(fn, key)
   return (
     <div className='e-panel'>
       <Slider
-        label='页边距'
+        label={m.margin}
         value={t.space.margin}
         min={LIMITS.margin[0]}
         max={LIMITS.margin[1]}
@@ -585,7 +776,7 @@ export function SpacePanel({ doc, a }: P) {
         }
       />
       <Slider
-        label='区块间距'
+        label={m.sectionSpace}
         value={t.space.section}
         min={LIMITS.section[0]}
         max={LIMITS.section[1]}
@@ -598,7 +789,7 @@ export function SpacePanel({ doc, a }: P) {
         }
       />
       <Slider
-        label='条目间距'
+        label={m.entrySpace}
         value={t.space.entry}
         min={LIMITS.entry[0]}
         max={LIMITS.entry[1]}
@@ -610,7 +801,7 @@ export function SpacePanel({ doc, a }: P) {
           }, 'space.entry')
         }
       />
-      <Row label='纸张'>
+      <Row label={m.page}>
         <Segmented
           value={t.page}
           onChange={(v) =>
@@ -620,11 +811,11 @@ export function SpacePanel({ doc, a }: P) {
           }
           options={[
             { value: 'A4', label: 'A4' },
-            { value: 'Letter', label: 'Letter（美国）' },
+            { value: 'Letter', label: m.letter },
           ]}
         />
       </Row>
-      <Row label='日期写法'>
+      <Row label={m.dateStyle}>
         <Segmented<DateStyle>
           value={t.date.style}
           onChange={(v) =>

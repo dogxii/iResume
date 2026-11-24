@@ -1,6 +1,20 @@
 import { Check } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
+import { defineMessages, useT } from '../i18n'
 import type { Suggestion } from '../lint'
+
+const M = defineMessages(
+  {
+    dismissThis: '忽略这条建议',
+    dismiss: '忽略',
+    empty: '没有建议了，写得不错。',
+  },
+  {
+    dismissThis: 'Dismiss this suggestion',
+    dismiss: 'Dismiss',
+    empty: 'No suggestions left. Nicely done.',
+  }
+)
 
 interface Props {
   notes: Suggestion[]
@@ -39,6 +53,7 @@ export function MarginNotes({
   onDismiss,
   onOpen,
 }: Props) {
+  const t = useT(M)
   const ref = useRef<HTMLDivElement>(null)
   const [tops, setTops] = useState<Record<string, number>>({})
 
@@ -103,7 +118,7 @@ export function MarginNotes({
           <button
             type='button'
             className='e-note-ok'
-            title='忽略这条建议'
+            title={t.dismissThis}
             onClick={() => {
               highlight(n.target, false)
               onDismiss(n.id)
@@ -122,8 +137,8 @@ export function NotesList({
   onDismiss,
   onOpen,
 }: Pick<Props, 'notes' | 'onDismiss' | 'onOpen'>) {
-  if (notes.length === 0)
-    return <div className='e-notes-empty'>没有建议了，写得不错。</div>
+  const t = useT(M)
+  if (notes.length === 0) return <div className='e-notes-empty'>{t.empty}</div>
   return (
     <div className='e-notes-list'>
       {notes.map((n) => (
@@ -139,7 +154,7 @@ export function NotesList({
           <button
             type='button'
             className='e-note-ok'
-            title='忽略'
+            title={t.dismiss}
             onClick={() => onDismiss(n.id)}
           >
             <Check size={13} />

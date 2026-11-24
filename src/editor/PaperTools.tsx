@@ -11,14 +11,77 @@ import {
   X,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { defineMessages, useLang, useT } from '../i18n'
 import { CONTACT_META, KIND_META } from '../model/defaults'
-import type { ContactKind, Item, ResumeDoc, Section } from '../model/types'
+import type {
+  ContactKind,
+  Item,
+  Locale,
+  ResumeDoc,
+  Section,
+} from '../model/types'
 import type { Tools } from '../render/Resume'
 import { undo } from '../store/store'
 import { MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import type { Actions } from './actions'
+
+const M = defineMessages(
+  {
+    deleted: (title: string) => `已删除「${title}」`,
+    undo: '撤销',
+    add: (row: boolean) => `添加${row ? '一行' : '一条'}`,
+    more: '更多',
+    layout: '排版',
+    entries: '经历条目',
+    rows: '分类行（技能）',
+    text: '段落 / 列表',
+    hideSection: '在简历中隐藏',
+    deleteSection: '删除区块',
+    moveUp: '上移',
+    moveDown: '下移',
+    insertBelow: '在下方插入',
+    showItem: (row: boolean) => `在简历中显示${row ? '这一行' : '这一条'}`,
+    hideItem: (row: boolean) => `隐藏${row ? '这一行' : '这一条'}（保留内容）`,
+    deleteItem: (row: boolean) => `删除${row ? '这一行' : '这一条'}`,
+    contacts: '联系方式',
+    photo: '照片',
+    changePhoto: '更换照片',
+    removePhoto: '移除照片',
+    addLabel: '添加',
+    removeLabel: '移除',
+    emptyContact: (label: string) => `（空的${label}）`,
+    emptyHint: '空的联系方式不会出现在导出的简历里。',
+  },
+  {
+    deleted: (title: string) => `Deleted “${title}”`,
+    undo: 'Undo',
+    add: (row: boolean) => `Add ${row ? 'row' : 'entry'}`,
+    more: 'More',
+    layout: 'Layout',
+    entries: 'Entries',
+    rows: 'Grouped rows (skills)',
+    text: 'Paragraph / list',
+    hideSection: 'Hide from resume',
+    deleteSection: 'Delete section',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    insertBelow: 'Insert below',
+    showItem: (row: boolean) => `Show this ${row ? 'row' : 'entry'} on resume`,
+    hideItem: (row: boolean) =>
+      `Hide this ${row ? 'row' : 'entry'} (content is kept)`,
+    deleteItem: (row: boolean) => `Delete this ${row ? 'row' : 'entry'}`,
+    contacts: 'Contacts',
+    photo: 'Photo',
+    changePhoto: 'Change photo',
+    removePhoto: 'Remove photo',
+    addLabel: 'Add',
+    removeLabel: 'Remove',
+    emptyContact: (label: string) => `(${label}, empty)`,
+    emptyHint: 'Empty contacts won’t appear in the exported resume.',
+  }
+)
 
 const keep = (e: React.MouseEvent) => e.preventDefault()
 
@@ -42,12 +105,14 @@ function SectionTools({
   section: Section
   a: Actions
 }) {
+  const t = useT(M)
+  const lang = useLang()
   const more = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const removed = () => {
     a.removeSection(section.id)
-    toast(`已删除「${section.title}」`, {
-      label: '撤销',
+    toast(t.deleted(sectionLabel(section, lang)), {
+      label: t.undo,
       run: () => undo(doc.id),
     })
   }
@@ -55,7 +120,7 @@ function SectionTools({
     <div className='e-sec-tools' onMouseDown={keep} contentEditable={false}>
       <button
         type='button'
-        title={`添加${section.layout === 'rows' ? '一行' : '一条'}`}
+        title={t.add(section.layout === 'rows')}
         onClick={() => a.addItem(section.id)}
       >
         <Plus size={14} />
@@ -63,7 +128,7 @@ function SectionTools({
       <button
         ref={more}
         type='button'
-        title='更多'
+        title={t.more}
         onClick={() => setOpen((v) => !v)}
       >
         <MoreHorizontal size={14} />
@@ -75,7 +140,7 @@ function SectionTools({
         title={section.title}
       >
         <div className='u-menu' role='menu'>
-          <div className='u-menu-label'>排版</div>
+          <div className='u-menu-label'>{t.layout}</div>
           {(['entries', 'rows', 'text'] as const).map((layout) => (
             <MenuItem
               key={layout}
@@ -85,13 +150,7 @@ function SectionTools({
                 setOpen(false)
               }}
             >
-              {
-                {
-                  entries: '经历条目',
-                  rows: '分类行（技能）',
-                  text: '段落 / 列表',
-                }[layout]
-              }
+              {t[layout]}
               {section.layout === layout ? ' ✓' : ''}
             </MenuItem>
           ))}
@@ -103,7 +162,7 @@ function SectionTools({
               setOpen(false)
             }}
           >
-            在简历中隐藏
+            {t.hideSection}
           </MenuItem>
           <MenuItem
             icon={<Trash2 size={15} />}
@@ -113,7 +172,7 @@ function SectionTools({
               removed()
             }}
           >
-            删除区块
+            {t.deleteSection}
           </MenuItem>
         </div>
       </Popover>
@@ -133,13 +192,14 @@ function ItemTools({
   index: number
   a: Actions
 }) {
+  const t = useT(M)
   const last = index === section.items.length - 1
-  const what = section.layout === 'rows' ? '这一行' : '这一条'
+  const row = section.layout === 'rows'
   return (
     <div className='e-item-tools' onMouseDown={keep} contentEditable={false}>
       <button
         type='button'
-        title='上移'
+        title={t.moveUp}
         disabled={index === 0}
         onClick={() => a.moveItem(section.id, item.id, -1)}
       >
@@ -147,7 +207,7 @@ function ItemTools({
       </button>
       <button
         type='button'
-        title='下移'
+        title={t.moveDown}
         disabled={last}
         onClick={() => a.moveItem(section.id, item.id, 1)}
       >
@@ -155,14 +215,14 @@ function ItemTools({
       </button>
       <button
         type='button'
-        title='在下方插入'
+        title={t.insertBelow}
         onClick={() => a.addItem(section.id, section.items.indexOf(item) + 1)}
       >
         <Plus size={13} />
       </button>
       <button
         type='button'
-        title={item.hidden ? `在简历中显示${what}` : `隐藏${what}（保留内容）`}
+        title={item.hidden ? t.showItem(row) : t.hideItem(row)}
         onClick={() => a.toggleItem(section.id, item.id)}
       >
         {item.hidden ? <Eye size={13} /> : <EyeOff size={13} />}
@@ -170,7 +230,7 @@ function ItemTools({
       <button
         type='button'
         className='is-danger'
-        title={`删除${what}`}
+        title={t.deleteItem(row)}
         onClick={() => a.removeItem(section.id, item.id)}
       >
         <Trash2 size={13} />
@@ -182,6 +242,8 @@ function ItemTools({
 const CONTACT_KINDS = Object.keys(CONTACT_META) as ContactKind[]
 
 function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
+  const t = useT(M)
+  const lang = useLang()
   const btn = useRef<HTMLButtonElement>(null)
   const file = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -189,13 +251,17 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
   return (
     <div className='e-head-tools' onMouseDown={keep} contentEditable={false}>
       <button ref={btn} type='button' onClick={() => setOpen((v) => !v)}>
-        <AtSign size={13} /> 联系方式
+        <AtSign size={13} /> {t.contacts}
       </button>
       <button type='button' onClick={() => file.current?.click()}>
-        <ImagePlus size={13} /> {doc.profile.photo ? '更换照片' : '照片'}
+        <ImagePlus size={13} /> {doc.profile.photo ? t.changePhoto : t.photo}
       </button>
       {doc.profile.photo && (
-        <button type='button' title='移除照片' onClick={() => a.setPhoto('')}>
+        <button
+          type='button'
+          title={t.removePhoto}
+          onClick={() => a.setPhoto('')}
+        >
           <X size={13} />
         </button>
       )}
@@ -214,10 +280,10 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
         anchor={btn.current}
         open={open}
         onClose={() => setOpen(false)}
-        title='联系方式'
+        title={t.contacts}
       >
         <div className='u-menu' role='menu'>
-          <div className='u-menu-label'>添加</div>
+          <div className='u-menu-label'>{t.addLabel}</div>
           {CONTACT_KINDS.map((k) => (
             <MenuItem
               key={k}
@@ -226,12 +292,12 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
                 setOpen(false)
               }}
             >
-              {CONTACT_META[k].label.zh}
+              {CONTACT_META[k].label[lang]}
             </MenuItem>
           ))}
           {doc.profile.contacts.length > 0 && <div className='u-menu-sep' />}
           {doc.profile.contacts.length > 0 && (
-            <div className='u-menu-label'>移除</div>
+            <div className='u-menu-label'>{t.removeLabel}</div>
           )}
           {doc.profile.contacts.map((c) => (
             <MenuItem
@@ -239,14 +305,10 @@ function HeaderTools({ doc, a }: { doc: ResumeDoc; a: Actions }) {
               icon={<X size={14} />}
               onClick={() => a.removeContact(c.id)}
             >
-              {c.value || `（空的${CONTACT_META[c.kind].label.zh}）`}
+              {c.value || t.emptyContact(CONTACT_META[c.kind].label[lang])}
             </MenuItem>
           ))}
-          {empty.length > 0 && (
-            <div className='u-menu-hint'>
-              空的联系方式不会出现在导出的简历里。
-            </div>
-          )}
+          {empty.length > 0 && <div className='u-menu-hint'>{t.emptyHint}</div>}
         </div>
       </Popover>
     </div>
@@ -264,5 +326,5 @@ async function downscale(file: File): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.86)
 }
 
-export const sectionLabel = (s: Section) =>
-  s.title.trim() || KIND_META[s.kind].zh
+export const sectionLabel = (s: Section, lang: Locale) =>
+  s.title.trim() || KIND_META[s.kind][lang]

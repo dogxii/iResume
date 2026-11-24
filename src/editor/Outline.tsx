@@ -1,11 +1,37 @@
 import { Eye, EyeOff, GripVertical, Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { defineMessages, useLang, useT } from '../i18n'
 import { ADDABLE_KINDS, KIND_META } from '../model/defaults'
 import type { ResumeDoc } from '../model/types'
 import { MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import type { Actions } from './actions'
 import { sectionLabel } from './PaperTools'
+
+const M = defineMessages(
+  {
+    outline: '大纲',
+    profile: '个人信息',
+    show: '在简历中显示',
+    hide: '在简历中隐藏',
+    showNamed: (name: string) => `显示${name}`,
+    hideNamed: (name: string) => `隐藏${name}`,
+    sectionShort: '区块',
+    addSection: '添加区块',
+    added: '已有',
+  },
+  {
+    outline: 'Outline',
+    profile: 'Personal info',
+    show: 'Show on resume',
+    hide: 'Hide from resume',
+    showNamed: (name: string) => `Show ${name}`,
+    hideNamed: (name: string) => `Hide ${name}`,
+    sectionShort: 'Section',
+    addSection: 'Add section',
+    added: 'Added',
+  }
+)
 
 interface Props {
   doc: ResumeDoc
@@ -16,10 +42,12 @@ interface Props {
 
 /** 纯文字大纲：跳转、拖动排序、显示 / 隐藏、添加区块 */
 export function Outline({ doc, a, active, onJump }: Props) {
+  const t = useT(M)
+  const lang = useLang()
   const [drag, setDrag] = useState<{ id: string; over: number } | null>(null)
   return (
-    <nav className='e-outline' aria-label='大纲'>
-      <div className='e-outline-label'>大纲</div>
+    <nav className='e-outline' aria-label={t.outline}>
+      <div className='e-outline-label'>{t.outline}</div>
       <ol>
         <li>
           <button
@@ -27,7 +55,7 @@ export function Outline({ doc, a, active, onJump }: Props) {
             className={`e-outline-row ${active === 'profile' ? 'is-active' : ''}`}
             onClick={() => onJump('profile')}
           >
-            <span className='e-outline-name'>个人信息</span>
+            <span className='e-outline-name'>{t.profile}</span>
           </button>
         </li>
         {doc.sections.map((s, index) => (
@@ -67,14 +95,16 @@ export function Outline({ doc, a, active, onJump }: Props) {
                 className='e-outline-name'
                 onClick={() => onJump(s.id)}
               >
-                {sectionLabel(s)}
+                {sectionLabel(s, lang)}
               </button>
               <button
                 type='button'
                 className='e-outline-eye'
-                title={s.hidden ? '在简历中显示' : '在简历中隐藏'}
+                title={s.hidden ? t.show : t.hide}
                 aria-label={
-                  s.hidden ? `显示${sectionLabel(s)}` : `隐藏${sectionLabel(s)}`
+                  s.hidden
+                    ? t.showNamed(sectionLabel(s, lang))
+                    : t.hideNamed(sectionLabel(s, lang))
                 }
                 onClick={() => a.toggleSection(s.id)}
               >
@@ -98,6 +128,8 @@ export function AddSection({
   a: Actions
   compact?: boolean
 }) {
+  const t = useT(M)
+  const lang = useLang()
   const ref = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const used = new Set(doc.sections.map((s) => s.kind))
@@ -109,13 +141,13 @@ export function AddSection({
         className='e-add-section'
         onClick={() => setOpen((v) => !v)}
       >
-        <Plus size={14} /> {compact ? '区块' : '添加区块'}
+        <Plus size={14} /> {compact ? t.sectionShort : t.addSection}
       </button>
       <Popover
         anchor={ref.current}
         open={open}
         onClose={() => setOpen(false)}
-        title='添加区块'
+        title={t.addSection}
       >
         <div className='u-menu is-wide' role='menu'>
           {ADDABLE_KINDS.map((kind) => (
@@ -126,10 +158,12 @@ export function AddSection({
                 setOpen(false)
               }}
             >
-              <b>{KIND_META[kind].zh}</b>
-              {used.has(kind) && kind !== 'custom' ? <em> · 已有</em> : null}
-              {KIND_META[kind].hint.zh && (
-                <small>{KIND_META[kind].hint.zh}</small>
+              <b>{KIND_META[kind][lang]}</b>
+              {used.has(kind) && kind !== 'custom' ? (
+                <em> · {t.added}</em>
+              ) : null}
+              {KIND_META[kind].hint[lang] && (
+                <small>{KIND_META[kind].hint[lang]}</small>
               )}
             </MenuItem>
           ))}

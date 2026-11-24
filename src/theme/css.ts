@@ -1,3 +1,4 @@
+import type { Locale } from '../model/types'
 import type { FontId, PageSize, Theme } from './types'
 
 export const FONT_STACKS: Record<FontId, string> = {
@@ -12,13 +13,14 @@ export const FONT_STACKS: Record<FontId, string> = {
   kai: '"LXGW WenKai", "Kaiti SC", STKaiti, KaiTi, "Iowan Old Style", Georgia, serif',
 }
 
-export const FONT_LABELS: Record<FontId, string> = {
-  sans: '无衬线',
-  serif: '衬线',
-  humanist: '人文',
-  rounded: '圆体',
-  mono: '等宽',
-  kai: '楷体',
+/** 字体的显示名称（界面语言） */
+export const FONT_LABELS: Record<FontId, Record<Locale, string>> = {
+  sans: { zh: '无衬线', en: 'Sans' },
+  serif: { zh: '衬线', en: 'Serif' },
+  humanist: { zh: '人文', en: 'Humanist' },
+  rounded: { zh: '圆体', en: 'Rounded' },
+  mono: { zh: '等宽', en: 'Mono' },
+  kai: { zh: '楷体', en: 'Kaiti' },
 }
 
 /** 纸张尺寸，单位 mm */
