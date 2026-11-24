@@ -1,9 +1,12 @@
 import {
   ArrowLeft,
+  Braces,
+  ClipboardCopy,
   Columns3,
   Download,
   Eye,
   FileJson,
+  FileText,
   Lightbulb,
   Palette,
   Printer,
@@ -23,6 +26,8 @@ import {
   useState,
 } from 'react'
 import { createPortal, flushSync } from 'react-dom'
+import { toJsonResume } from '../export/jsonresume'
+import { toMarkdown, toPlainText } from '../export/markdown'
 import { lint } from '../lint'
 import { toBundle } from '../migrate'
 import type { ResumeDoc } from '../model/types'
@@ -159,6 +164,26 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       `${safeFilename(doc.name)}.iresume.json`,
       JSON.stringify(toBundle([doc]), null, 2)
     )
+  }
+  const exportMarkdown = () => {
+    setPanel(null)
+    download(`${safeFilename(doc.name)}.md`, toMarkdown(doc), 'text/markdown')
+  }
+  const exportJsonResume = () => {
+    setPanel(null)
+    download(
+      `${safeFilename(doc.name)}.resume.json`,
+      JSON.stringify(toJsonResume(doc), null, 2)
+    )
+  }
+  const copyText = async () => {
+    setPanel(null)
+    try {
+      await navigator.clipboard.writeText(toPlainText(doc))
+      toast('纯文本已复制，可直接粘贴到网申表单')
+    } catch {
+      download(`${safeFilename(doc.name)}.txt`, toPlainText(doc), 'text/plain')
+    }
   }
 
   // —— 快捷键 ——
@@ -326,6 +351,25 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
                 <MenuItem icon={<FileJson size={16} />} onClick={exportJson}>
                   <b>iResume 文件（JSON）</b>
                   <small>完整备份内容与主题，可在任何设备导入</small>
+                </MenuItem>
+                <div className='u-menu-sep' />
+                <MenuItem icon={<ClipboardCopy size={16} />} onClick={copyText}>
+                  <b>复制纯文本</b>
+                  <small>粘贴到网申系统的「简历正文」文本框</small>
+                </MenuItem>
+                <MenuItem
+                  icon={<FileText size={16} />}
+                  onClick={exportMarkdown}
+                >
+                  <b>Markdown</b>
+                  <small>保留粗体与链接，适合邮件正文或个人主页</small>
+                </MenuItem>
+                <MenuItem
+                  icon={<Braces size={16} />}
+                  onClick={exportJsonResume}
+                >
+                  <b>JSON Resume</b>
+                  <small>通用开放格式，可在其他简历工具中使用</small>
                 </MenuItem>
               </div>
             </Popover>

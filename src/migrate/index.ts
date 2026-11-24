@@ -1,3 +1,4 @@
+import { fromJsonResume, isJsonResume } from '../export/jsonresume'
 import type { ResumeDoc } from '../model/types'
 import { isRec, normalizeDoc } from './normalize'
 import { convertV2Document } from './v2'
@@ -30,6 +31,7 @@ export type ImportSource =
   | 'v2-library'
   | 'v2-backup'
   | 'v2-data'
+  | 'json-resume'
 
 export interface ImportResult {
   source: ImportSource
@@ -45,6 +47,9 @@ export function importAny(value: unknown): ImportResult {
 
   if (value.format === BUNDLE_FORMAT && Array.isArray(value.docs)) {
     return { source: 'v3-bundle', docs: value.docs.map(normalizeDoc) }
+  }
+  if (isJsonResume(value)) {
+    return { source: 'json-resume', docs: [fromJsonResume(value)] }
   }
   if (value.schema === 3) {
     return { source: 'v3-doc', docs: [normalizeDoc(value)] }
