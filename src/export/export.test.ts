@@ -56,7 +56,13 @@ describe('json resume', () => {
   })
 
   it('exports the standard shape', () => {
-    const json = toJsonResume(sample()) as Record<string, any>
+    type Rec = Record<string, unknown>
+    const json = toJsonResume(sample()) as {
+      basics: Rec & { summary: string }
+      work: Rec[]
+      skills: Rec[]
+      projects: (Rec & { keywords: string[] })[]
+    }
     expect(json.basics).toMatchObject({
       name: '林小明',
       email: 'linxiaoming@email.com',

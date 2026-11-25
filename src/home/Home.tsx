@@ -126,6 +126,8 @@ export function Home({
   onDismissIncoming?(): void
 }) {
   const docs = useApp(selectDocList)
+  const returning =
+    docs.length > 1 || docs.some((d) => d.updatedAt !== d.createdAt)
   const file = useRef<HTMLInputElement>(null)
   const lang = useLang()
   const t = useT(M)
@@ -230,10 +232,15 @@ export function Home({
       </header>
 
       <main className='h-main'>
-        <section className='h-hero'>
-          <h1>{t.heroTitle}</h1>
-          <p>{t.heroSub}</p>
-        </section>
+        {/* 老用户直接看到自己的简历，介绍只给第一次来的人 */}
+        {returning ? (
+          <div className='h-hero-gap' />
+        ) : (
+          <section className='h-hero'>
+            <h1>{t.heroTitle}</h1>
+            <p>{t.heroSub}</p>
+          </section>
+        )}
 
         {incoming && incomingPreview && (
           <section className='h-incoming' aria-label={t.incomingLabel}>

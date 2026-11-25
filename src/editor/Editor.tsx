@@ -10,6 +10,8 @@ import {
   History,
   Lightbulb,
   Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   Printer,
   Redo2,
   Ruler,
@@ -38,7 +40,7 @@ import { type EditApi, EditContext } from '../render/Field'
 import { Resume } from '../render/Resume'
 import { flushNow, getState, redo, undo, useApp } from '../store/store'
 import { pagePx } from '../theme/css'
-import { IconButton, Logo, MenuItem } from '../ui/controls'
+import { IconButton, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
@@ -88,6 +90,8 @@ const M = defineMessages(
     undo: '撤销 (⌘Z)',
     redo: '重做 (⇧⌘Z)',
     preview: '预览',
+    hideOutline: '收起大纲 (⌘\\)',
+    showOutline: '展开大纲 (⌘\\)',
     pdfHint: '在打印对话框中选择「存储为 PDF」，文字可选中、可被 ATS 解析',
     jsonTitle: 'iResume 文件（JSON）',
     jsonHint: '完整备份内容与主题，可在任何设备导入',
@@ -135,6 +139,8 @@ const M = defineMessages(
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     preview: 'Preview',
+    hideOutline: 'Hide outline (⌘\\)',
+    showOutline: 'Show outline (⌘\\)',
     pdfHint:
       'Choose “Save as PDF” in the print dialog — text stays selectable and ATS-readable',
     jsonTitle: 'iResume file (JSON)',
@@ -169,6 +175,25 @@ type PanelId =
   | 'versions'
   | 'match'
 
+const OUTLINE_KEY = 'iresume-outline'
+/** 大纲默认在大屏展开、笔记本尺寸收起；用户的选择会被记住 */
+function readOutlinePref() {
+  try {
+    const saved = localStorage.getItem(OUTLINE_KEY)
+    if (saved === '1' || saved === '0') return saved === '1'
+  } catch {
+    /* 忽略 */
+  }
+  return window.innerWidth >= 1440
+}
+function writeOutlinePref(open: boolean) {
+  try {
+    localStorage.setItem(OUTLINE_KEY, open ? '1' : '0')
+  } catch {
+    /* 忽略 */
+  }
+}
+
 export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const t = useT(M)
   const lang = useLang()
@@ -186,6 +211,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const [measure, setMeasure] = useState<Measure | null>(null)
   const [deskW, setDeskW] = useState(1000)
   const [printing, setPrinting] = useState(false)
+  const [outlineOpen, setOutlineOpen] = useState(readOutlinePref)
+  const [scrolled, setScrolled] = useState(false)
   const paperRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const deskRef = useRef<HTMLDivElement>(null)
@@ -203,7 +230,14 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     )
     setPanel('match')
   }, [])
-  const showMarginNotes = wide && !mobile && !preview && notes.length > 0
+  // 宽屏常驻批注列：列宽固定，出现 / 消失批注时纸面不会忽大忽小
+  const showMarginNotes = wide && !mobile && !preview
+  const outline = wide && !preview && outlineOpen
+  const toggleOutline = () =>
+    setOutlineOpen((v) => {
+      writeOutlinePref(!v)
+      return !v
+    })
 
   const editApi = useMemo<EditApi>(
     () => ({ update: a.update, focus: (t) => setActive(t) }),
@@ -211,7 +245,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   )
   const tools = useMemo(() => paperTools(doc, a), [doc, a])
 
-  // —— 缩放：纸面适应可用宽度 ——
+  // —— 缩放：纸面适应可用宽度（大纲收起 / 展开时宽度会变化） ——
   useLayoutEffect(() => {
     const el = deskRef.current
     if (!el) return
@@ -322,6 +356,9 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       } else if (mod && e.key.toLowerCase() === 's') {
         e.preventDefault()
         void flushNow().then(() => toast(t.savedLocal))
+      } else if (mod && e.key === '\\' && wide && !preview) {
+        e.preventDefault()
+        toggleOutline()
       } else if (e.key === 'Escape' && preview) {
         setPreview(false)
       }
@@ -398,12 +435,24 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       className={`e-app ${preview ? 'is-preview' : ''} ${mobile ? 'is-mobile' : ''}`}
     >
       {!preview && (
-        <header className='e-top'>
+        <header className={`e-top ${scrolled ? 'is-scrolled' : ''}`}>
           <div className='e-top-left'>
             <IconButton label={t.back} onClick={onExit}>
               <ArrowLeft size={18} />
             </IconButton>
-            {!mobile && <Logo size={22} />}
+            {wide && (
+              <IconButton
+                label={outlineOpen ? t.hideOutline : t.showOutline}
+                aria-pressed={outlineOpen}
+                onClick={toggleOutline}
+              >
+                {outlineOpen ? (
+                  <PanelLeftClose size={17} />
+                ) : (
+                  <PanelLeftOpen size={17} />
+                )}
+              </IconButton>
+            )}
             <input
               className='e-docname'
               value={doc.name}
@@ -429,13 +478,15 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
             >
               <Undo2 size={17} />
             </IconButton>
-            <IconButton
-              label={t.redo}
-              disabled={!hist?.redo}
-              onClick={() => redo(doc.id)}
-            >
-              <Redo2 size={17} />
-            </IconButton>
+            {!mobile && (
+              <IconButton
+                label={t.redo}
+                disabled={!hist?.redo}
+                onClick={() => redo(doc.id)}
+              >
+                <Redo2 size={17} />
+              </IconButton>
+            )}
             <button
               ref={(el) => {
                 anchors.current.match = el
@@ -490,15 +541,17 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
               {!mobile && <div className='u-pop-title'>{t.versions}</div>}
               <Versions doc={doc} onDone={() => setPanel(null)} />
             </Popover>
-            <IconButton
-              label={t.preview}
-              onClick={() => {
-                setPanel(null)
-                setPreview(true)
-              }}
-            >
-              <Eye size={17} />
-            </IconButton>
+            {!mobile && (
+              <IconButton
+                label={t.preview}
+                onClick={() => {
+                  setPanel(null)
+                  setPreview(true)
+                }}
+              >
+                <Eye size={17} />
+              </IconButton>
+            )}
             <button
               ref={(el) => {
                 anchors.current.export = el
@@ -556,11 +609,21 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
 
       <div className='e-body'>
         {wide && !preview && (
-          <Outline doc={doc} a={a} active={activeSection} onJump={jump} />
+          <Outline
+            doc={doc}
+            a={a}
+            active={activeSection}
+            onJump={jump}
+            collapsed={!outlineOpen}
+          />
         )}
         <div
           className='e-desk'
           ref={deskRef}
+          onScroll={(e) => {
+            const on = e.currentTarget.scrollTop > 4
+            if (on !== scrolled) setScrolled(on)
+          }}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget)
               (document.activeElement as HTMLElement | null)?.blur()
@@ -620,7 +683,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
               />
             )}
           </div>
-          {!preview && !wide && (
+          {!preview && !outline && (
             <div className='e-inline-add'>
               <AddSection doc={doc} a={a} />
             </div>
@@ -678,7 +741,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
               )}
             </>
           )}
-          {!showMarginNotes && (
+          {!showMarginNotes && !preview && (
             <>
               <span className='e-dock-sep' />
               {dockBtn(

@@ -13,7 +13,7 @@ interface Props {
   open: boolean
   onClose(): void
   children: ReactNode
-  placement?: 'top' | 'bottom'
+  placement?: 'top' | 'bottom' | 'right'
   align?: 'start' | 'center' | 'end'
   className?: string
   /** 手机上以底部抽屉呈现时的标题 */
@@ -43,6 +43,13 @@ export function Popover({
       if (!el) return
       const w = el.offsetWidth
       const h = el.offsetHeight
+      const maxTop = window.innerHeight - h - 8
+      if (placement === 'right') {
+        // 贴着锚点右侧，尽量与锚点顶部对齐，放不下时向上移
+        const left = Math.min(a.right + 8, window.innerWidth - w - 8)
+        setPos({ left, top: Math.max(8, Math.min(a.top - 6, maxTop)) })
+        return
+      }
       let left =
         align === 'start'
           ? a.left
@@ -50,9 +57,11 @@ export function Popover({
             ? a.right - w
             : a.left + a.width / 2 - w / 2
       left = Math.max(8, Math.min(left, window.innerWidth - w - 8))
-      let top = placement === 'top' ? a.top - h - 8 : a.bottom + 8
-      if (top < 8) top = a.bottom + 8
-      if (top + h > window.innerHeight - 8) top = Math.max(8, a.top - h - 8)
+      const below = a.bottom + 8
+      const above = a.top - h - 8
+      let top = placement === 'top' ? above : below
+      if (top < 8) top = below
+      if (top > maxTop) top = above >= 8 ? above : Math.max(8, maxTop)
       setPos({ left, top })
     }
     place()

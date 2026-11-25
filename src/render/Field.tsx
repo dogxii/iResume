@@ -172,7 +172,10 @@ function EditableField({
         onKey?.(e, e.currentTarget)
         if (!e.defaultPrevented && e.key === 'Enter') {
           e.preventDefault()
-          e.currentTarget.blur()
+          // 回车跳到同一条目（或页眉）里的下一个字段，最后一个字段才结束编辑
+          const next = nextField(e.currentTarget)
+          if (next) next.focus()
+          else e.currentTarget.blur()
         }
         if (e.key === 'Escape') e.currentTarget.blur()
       }}
@@ -188,4 +191,14 @@ function EditableField({
       }}
     />
   )
+}
+
+/** 同一条目 / 行 / 页眉内，文档顺序上的下一个字段 */
+function nextField(el: HTMLElement): HTMLElement | null {
+  const scope = el.closest('.r-entry, .r-row, .r-header, .r-textblock')
+  if (!scope) return null
+  const fields = [
+    ...scope.querySelectorAll<HTMLElement>('[contenteditable][role=textbox]'),
+  ]
+  return fields[fields.indexOf(el) + 1] ?? null
 }

@@ -1,21 +1,34 @@
 .e-app {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--desk);
 }
 
-/* —— 顶栏 —— */
+/* —— 顶栏：浮在桌面上、透明；纸面滚到下面时才出现磨砂底 —— */
 .e-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 15;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   height: 52px;
   padding: 0 10px 0 8px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+.e-top.is-scrolled {
+  background: color-mix(in srgb, var(--desk) 88%, transparent);
+  border-bottom-color: var(--border);
+  backdrop-filter: saturate(1.6) blur(16px);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px);
 }
 .e-top-left,
 .e-top-right {
@@ -30,7 +43,7 @@
 .e-docname {
   min-width: 60px;
   width: 22ch;
-  max-width: 40vw;
+  max-width: min(40vw, 360px);
   height: 32px;
   padding: 0 8px;
   border: 0;
@@ -38,6 +51,13 @@
   background: none;
   font-weight: 600;
   text-overflow: ellipsis;
+}
+/* 名称框随内容伸缩，「已保存」紧跟在名字后面 */
+@supports (field-sizing: content) {
+  .e-docname {
+    field-sizing: content;
+    width: auto;
+  }
 }
 .e-docname:hover {
   background: var(--hover);
@@ -71,8 +91,8 @@
   flex: 1;
   min-width: 0;
   overflow: auto;
-  padding: 36px 24px 140px;
-  scroll-padding: 80px;
+  padding: 88px 24px 140px;
+  scroll-padding: 100px 0 120px;
 }
 .e-stage {
   position: relative;
@@ -200,12 +220,26 @@
 
 /* —— 大纲 —— */
 .e-outline {
-  width: 232px;
+  width: 224px;
   flex-shrink: 0;
   overflow: auto;
-  padding: 18px 12px 120px;
-  border-right: 1px solid var(--border);
-  background: var(--bg);
+  padding: 70px 8px 120px 12px;
+  transition:
+    width 0.22s ease,
+    padding 0.22s ease,
+    opacity 0.16s ease;
+}
+.e-outline.is-collapsed {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .e-outline {
+    transition: none;
+  }
 }
 .e-outline-label {
   padding: 0 10px 8px;
@@ -335,6 +369,14 @@ button.e-outline-row > .e-outline-name {
   right: 0;
   width: 236px;
 }
+.e-notes-idle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0 12px;
+  color: var(--text-3);
+  font-size: 12px;
+}
 .e-note {
   position: absolute;
   left: 0;
@@ -432,7 +474,7 @@ button.e-outline-row > .e-outline-name {
   max-width: calc(100vw - 24px);
   padding: 5px;
   border-radius: 16px;
-  background: rgb(255 255 255 / 0.86);
+  background: rgb(255 255 255 / 0.94);
   backdrop-filter: saturate(1.8) blur(18px);
   -webkit-backdrop-filter: saturate(1.8) blur(18px);
   box-shadow: var(--shadow-float);
@@ -805,7 +847,7 @@ button.e-outline-row > .e-outline-name {
   display: none;
 }
 .e-app.is-mobile .e-desk {
-  padding: 12px 10px 120px;
+  padding: 60px 10px calc(96px + env(safe-area-inset-bottom));
 }
 .e-app.is-mobile .e-stage {
   width: 100%;
@@ -813,11 +855,19 @@ button.e-outline-row > .e-outline-name {
 .e-app.is-mobile .e-paper {
   border-radius: 6px;
 }
+/* 手机上 Dock 是贴底的标签栏，不压在文字上 */
 .e-app.is-mobile .e-dock {
-  left: 10px;
-  right: 10px;
-  bottom: calc(10px + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   justify-content: space-around;
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transform: none;
   max-width: none;
 }

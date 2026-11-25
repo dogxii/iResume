@@ -44,6 +44,9 @@
   font-weight: 700;
   letter-spacing: -0.03em;
 }
+.h-hero-gap {
+  height: 40px;
+}
 .h-hero p {
   margin: 14px 0 0;
   font-size: 15px;

@@ -8,11 +8,13 @@ const M = defineMessages(
     dismissThis: '忽略这条建议',
     dismiss: '忽略',
     empty: '没有建议了，写得不错。',
+    idle: '写作建议会出现在这里',
   },
   {
     dismissThis: 'Dismiss this suggestion',
     dismiss: 'Dismiss',
     empty: 'No suggestions left. Nicely done.',
+    idle: 'Writing tips will appear here',
   }
 )
 
@@ -99,6 +101,11 @@ export function MarginNotes({
 
   return (
     <div className='e-notes' ref={ref}>
+      {notes.length === 0 && (
+        <p className='e-notes-idle'>
+          <Check size={13} /> {t.idle}
+        </p>
+      )}
       {notes.map((n) => (
         <div
           key={n.id}

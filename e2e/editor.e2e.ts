@@ -59,3 +59,52 @@ test('切换主题与一页适配', async ({ page }) => {
   )
   await expect(page.locator('.e-fit')).toContainText('1 页')
 })
+
+test.describe('笔记本尺寸', () => {
+  test.use({ viewport: { width: 1280, height: 800 } })
+
+  test('大纲默认收起、可展开并记住；批注出现时纸面不缩放；回车跳到下一个字段', async ({
+    page,
+  }) => {
+    await openHome(page)
+    await page.locator('.h-card-name').first().click()
+    const outline = page.locator('nav.e-outline')
+    await expect(outline).toHaveClass(/is-collapsed/)
+    await page.getByRole('button', { name: '展开大纲 (⌘\\)' }).click()
+    await expect(outline).not.toHaveClass(/is-collapsed/)
+    await page.reload()
+    await expect(page.locator('nav.e-outline')).not.toHaveClass(/is-collapsed/)
+    await page.keyboard.press('ControlOrMeta+Backslash')
+    await expect(page.locator('nav.e-outline')).toHaveClass(/is-collapsed/)
+    // 等收起动画结束、纸面缩放稳定
+    await expect
+      .poll(() =>
+        page
+          .locator('nav.e-outline')
+          .evaluate((e) => (e as HTMLElement).offsetWidth)
+      )
+      .toBe(0)
+
+    // 新条目缺少时间会出现批注，纸面宽度保持不变
+    const paper = page.locator('.e-paper')
+    const before = (await paper.boundingBox())?.width
+    await page
+      .locator('.e-paper .r-section[data-kind=experience] .r-entry')
+      .first()
+      .hover()
+    await page
+      .getByRole('button', { name: /在下方/ })
+      .first()
+      .click()
+    await page.keyboard.type('字节跳动')
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('高级前端')
+    await expect(page.locator('.e-note', { hasText: '缺少时间' })).toBeVisible()
+    expect((await paper.boundingBox())?.width).toBe(before)
+    await expect(
+      page
+        .locator('.e-paper .r-entry', { hasText: '字节跳动' })
+        .locator('.r-sub')
+    ).toHaveText('高级前端')
+  })
+})

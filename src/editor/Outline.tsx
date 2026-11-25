@@ -34,6 +34,7 @@ const M = defineMessages(
 )
 
 interface Props {
+  collapsed?: boolean
   doc: ResumeDoc
   a: Actions
   active?: string
@@ -41,12 +42,16 @@ interface Props {
 }
 
 /** 纯文字大纲：跳转、拖动排序、显示 / 隐藏、添加区块 */
-export function Outline({ doc, a, active, onJump }: Props) {
+export function Outline({ doc, a, active, onJump, collapsed }: Props) {
   const t = useT(M)
   const lang = useLang()
   const [drag, setDrag] = useState<{ id: string; over: number } | null>(null)
   return (
-    <nav className='e-outline' aria-label={t.outline}>
+    <nav
+      className={`e-outline ${collapsed ? 'is-collapsed' : ''}`}
+      aria-label={t.outline}
+      inert={collapsed}
+    >
       <div className='e-outline-label'>{t.outline}</div>
       <ol>
         <li>
@@ -114,7 +119,7 @@ export function Outline({ doc, a, active, onJump }: Props) {
           </li>
         ))}
       </ol>
-      <AddSection doc={doc} a={a} />
+      <AddSection doc={doc} a={a} placement='right' />
     </nav>
   )
 }
@@ -123,10 +128,13 @@ export function AddSection({
   doc,
   a,
   compact,
+  placement,
 }: {
   doc: ResumeDoc
   a: Actions
   compact?: boolean
+  /** 大纲里的按钮：菜单向右展开，不盖住大纲 */
+  placement?: 'right'
 }) {
   const t = useT(M)
   const lang = useLang()
@@ -148,6 +156,7 @@ export function AddSection({
         open={open}
         onClose={() => setOpen(false)}
         title={t.addSection}
+        placement={placement}
       >
         <div className='u-menu is-wide' role='menu'>
           {ADDABLE_KINDS.map((kind) => (
