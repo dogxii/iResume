@@ -1,0 +1,129 @@
+[
+  [
+    ["Jordan Lee", 162.4, 775.2, 127.2, 24],
+    ["Front-End Engineer · 3 years of experience", 162.4, 754.9, 217.7, 10.8],
+    [
+      "(415) 555-0132 · jordan.lee@email.com · github.com/jordanlee · San Francisco, CA",
+      162.4,
+      735.4,
+      381,
+      9.4
+    ],
+    [
+      "Front-end engineer focused on web performance and design systems. Led two",
+      165.3,
+      706.2,
+      371.6,
+      10
+    ],
+    [
+      "B2B products from zero to launch, measures user experience with data, and",
+      165.3,
+      691.2,
+      356.6,
+      10
+    ],
+    ["builds reusable engineering foundations.", 165.3, 676.2, 191, 10],
+    ["SUMMARY", 45.4, 709.2, 42.5, 7.2],
+    ["EXPERIENCE", 45.4, 650.7, 50.9, 7.2],
+    ["Starmap Analytics", 165.3, 647.7, 89.6, 10],
+    ["· Front-End Engineer · Data Platform", 260.4, 647.7, 171.3, 10],
+    ["· San Francisco, CA", 165.3, 632.7, 94.3, 10],
+    ["Jul 2023 – Present", 467.8, 647.7, 82.3, 9.4],
+    [
+      "Led a rebuild of the analytics dashboard, cutting first load from",
+      175.8,
+      615.4,
+      294.9,
+      10
+    ],
+    ["3.2s to 1.1s", 473.5, 615.4, 52.2, 10],
+    ["and", 528.5, 615.4, 17.6, 10],
+    ["lifting weekly active users by 18%", 175.8, 600.4, 158.1, 10],
+    ["–", 166.5, 615.4, 5, 10],
+    [
+      "Built a shared component library (40+ components) and design tokens,",
+      175.8,
+      584.7,
+      334.2,
+      10
+    ],
+    ["shortening new-page delivery by ~30%", 175.8, 569.7, 186.6, 10],
+    ["–", 166.5, 584.7, 5, 10],
+    [
+      "Drove adoption of TypeScript and unit testing, reducing production defects by",
+      175.8,
+      553.2,
+      365.5,
+      10
+    ],
+    ["42% quarter over quarter", 175.8, 538.2, 119.5, 10],
+    ["–", 166.5, 553.2, 5, 10],
+    ["Sailcloud", 165.3, 514.9, 44.8, 10],
+    ["· Front-End Engineering Intern · Seattle, WA", 215.6, 514.9, 211.6, 10],
+    ["Jul 2022 – Dec 2022", 458.5, 514.9, 91.7, 9.4],
+    [
+      "Shipped 12 pages of the internal operations console end to end, hitting 100% of",
+      175.8,
+      498.4,
+      372.5,
+      10
+    ],
+    ["delivery dates", 175.8, 483.4, 66, 10],
+    ["–", 166.5, 498.4, 5, 10],
+    [
+      "Designed reusable table-filter and permission components adopted by 3",
+      175.8,
+      466.9,
+      339.9,
+      10
+    ],
+    ["product teams", 175.8, 451.9, 67.9, 10],
+    ["–", 166.5, 466.9, 5, 10],
+    ["PROJECTS", 45.4, 426.4, 43, 7.2],
+    ["Lumen Charts", 165.3, 423.4, 68.1, 10],
+    ["· Author · Open source", 238.9, 423.4, 108.6, 10],
+    ["Jan 2024 – Present", 464.7, 423.4, 85.4, 9.4],
+    ["github.com/jordanlee/lumen", 165.3, 409.2, 121.3, 9.2],
+    ["TypeScript, Canvas, WebGL", 294.9, 409.2, 120.7, 9.2],
+    ["Designed a declarative charting API at", 175.8, 392.7, 179, 10],
+    ["12 KB", 357.6, 392.7, 26.7, 10],
+    ["gzipped that renders 100k points", 387, 392.7, 154, 10],
+    ["at 60fps", 175.8, 377.7, 39.1, 10],
+    ["–", 166.5, 392.7, 5, 10],
+    [
+      "Wrote full docs and an examples site, earning 1.2k GitHub stars and adoption in",
+      175.8,
+      361.2,
+      371.2,
+      10
+    ],
+    ["30+ projects", 175.8, 346.2, 59.7, 10],
+    ["–", 166.5, 361.2, 5, 10],
+    ["EDUCATION", 45.4, 320.7, 47.8, 7.2],
+    ["Northfield University", 165.3, 317.7, 101.7, 10],
+    ["· B.S. in Computer Science", 272.5, 317.7, 127.8, 10],
+    ["Sep 2019 – Jun 2023", 457.3, 317.7, 92.9, 9.4],
+    [
+      "GPA 3.7/4.0 (top 10%), University Merit Scholarship",
+      175.8,
+      300.4,
+      241.5,
+      10
+    ],
+    ["–", 166.5, 300.4, 5, 10],
+    ["SKILLS", 45.4, 274.9, 28, 7.2],
+    ["Languages", 165.3, 271.9, 53, 10],
+    ["TypeScript, JavaScript, HTML/CSS, Node.js", 236.7, 271.9, 205.6, 10],
+    ["Frameworks", 165.3, 255.4, 59.4, 10],
+    ["React, Vue 3, Next.js, Vite", 236.7, 255.4, 121.4, 10],
+    ["Engineering", 165.3, 238.9, 57.7, 10],
+    [
+      "Performance, design systems, unit testing, CI/CD",
+      236.7,
+      238.9,
+      230.9,
+      10
+    ]
+  ]
+]

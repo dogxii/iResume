@@ -37,9 +37,11 @@
     "e2e:browsers": "playwright test --project=functional --project=firefox --project=webkit"
   },
   "dependencies": {
+    "lucide-react": "^0.556.0",
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "lucide-react": "^0.556.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
@@ -50,6 +52,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "fake-indexeddb": "^6.2.5",
+    "jszip": "^3.10.2",
     "typescript": "~5.9.3",
     "vite": "npm:rolldown-vite@7.2.5",
     "vitest": "^4.1.10"

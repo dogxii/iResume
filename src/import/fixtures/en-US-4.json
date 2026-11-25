@@ -1,0 +1,128 @@
+[
+  [
+    ["Jordan Lee", 45.4, 771.4, 148.4, 28],
+    ["Front-End Engineer · 3 years of experience", 45.4, 750.4, 217.7, 10.8],
+    [
+      "(415) 555-0132 · jordan.lee@email.com · github.com/jordanlee · San Francisco, CA",
+      45.4,
+      730.9,
+      381,
+      9.4
+    ],
+    [
+      "Front-end engineer focused on web performance and design systems. Led two B2B products from zero to",
+      45.4,
+      680.7,
+      497.9,
+      10
+    ],
+    [
+      "launch, measures user experience with data, and builds reusable engineering foundations.",
+      45.4,
+      665.7,
+      424.1,
+      10
+    ],
+    ["Summary", 54.9, 700.9, 56.3, 12],
+    ["Experience", 54.9, 636.4, 65.7, 12],
+    ["Starmap Analytics", 45.4, 616.2, 89.6, 10],
+    [
+      "· Front-End Engineer · Data Platform · San Francisco, CA",
+      140.4,
+      616.2,
+      271.1,
+      10
+    ],
+    ["Jul 2023 – Present", 467.8, 616.2, 82.3, 9.4],
+    [
+      "Led a rebuild of the analytics dashboard, cutting first load from",
+      55.9,
+      598.9,
+      294.9,
+      10
+    ],
+    ["3.2s to 1.1s", 353.5, 598.9, 52.2, 10],
+    ["and lifting weekly active users", 408.5, 598.9, 141.4, 10],
+    ["by 18%", 55.9, 583.9, 34.3, 10],
+    ["•", 46.5, 598.9, 5.6, 10],
+    [
+      "Built a shared component library (40+ components) and design tokens, shortening new-page delivery by",
+      55.9,
+      568.2,
+      492.1,
+      10
+    ],
+    ["~30%", 55.9, 553.2, 28.7, 10],
+    ["•", 46.5, 568.2, 5.6, 10],
+    [
+      "Drove adoption of TypeScript and unit testing, reducing production defects by 42% quarter over quarter",
+      55.9,
+      536.7,
+      487.8,
+      10
+    ],
+    ["•", 46.5, 536.7, 5.6, 10],
+    ["Sailcloud", 45.4, 513.4, 44.8, 10],
+    ["· Front-End Engineering Intern · Seattle, WA", 95.6, 513.4, 211.6, 10],
+    ["Jul 2022 – Dec 2022", 458.5, 513.4, 91.7, 9.4],
+    [
+      "Shipped 12 pages of the internal operations console end to end, hitting 100% of delivery dates",
+      55.9,
+      496.9,
+      441.2,
+      10
+    ],
+    ["•", 46.5, 496.9, 5.6, 10],
+    [
+      "Designed reusable table-filter and permission components adopted by 3 product teams",
+      55.9,
+      480.4,
+      410.6,
+      10
+    ],
+    ["•", 46.5, 480.4, 5.6, 10],
+    ["Projects", 54.9, 451.2, 48, 12],
+    ["Lumen Charts", 45.4, 430.9, 68.1, 10],
+    ["· Author · Open source", 118.9, 430.9, 108.6, 10],
+    ["Jan 2024 – Present", 464.7, 430.9, 85.4, 9.4],
+    ["github.com/jordanlee/lumen", 45.4, 416.7, 121.3, 9.2],
+    ["TypeScript, Canvas, WebGL", 174.9, 416.7, 120.7, 9.2],
+    ["Designed a declarative charting API at", 55.9, 400.2, 179, 10],
+    ["12 KB", 237.6, 400.2, 26.7, 10],
+    ["gzipped that renders 100k points at 60fps", 267, 400.2, 195.8, 10],
+    ["•", 46.5, 400.2, 5.6, 10],
+    [
+      "Wrote full docs and an examples site, earning 1.2k GitHub stars and adoption in 30+ projects",
+      55.9,
+      383.7,
+      433.6,
+      10
+    ],
+    ["•", 46.5, 383.7, 5.6, 10],
+    ["Education", 54.9, 354.4, 58.7, 12],
+    ["Northfield University", 45.4, 334.2, 101.7, 10],
+    ["· B.S. in Computer Science", 152.5, 334.2, 127.8, 10],
+    ["Sep 2019 – Jun 2023", 457.3, 334.2, 92.9, 9.4],
+    [
+      "GPA 3.7/4.0 (top 10%), University Merit Scholarship",
+      55.9,
+      316.9,
+      241.5,
+      10
+    ],
+    ["•", 46.5, 316.9, 5.6, 10],
+    ["Skills", 54.9, 287.7, 31.1, 12],
+    ["Languages", 45.4, 267.4, 53, 10],
+    ["TypeScript, JavaScript, HTML/CSS, Node.js", 116.7, 267.4, 205.6, 10],
+    ["Frameworks", 45.4, 250.9, 59.4, 10],
+    ["React, Vue 3, Next.js, Vite", 116.7, 250.9, 121.4, 10],
+    ["Engineering", 45.4, 234.4, 57.7, 10],
+    [
+      "Performance, design systems, unit testing, CI/CD",
+      116.7,
+      234.4,
+      230.9,
+      10
+    ]
+  ]
+]

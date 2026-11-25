@@ -35,6 +35,7 @@ import { Button, Logo, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { ago } from '../ui/time'
 import { toast } from '../ui/toast'
+import { ImportDialog } from './ImportDialog'
 import { SyncButton } from './SyncPanel'
 import './home.css'
 
@@ -43,6 +44,8 @@ const M = defineMessages(
     importFailed: (file: string, reason?: string) =>
       `「${file}」${reason ?? '无法导入'}`,
     imported: (n: number) => `已导入 ${n} 份简历`,
+    importedOne: '已导入，请核对一遍识别结果',
+    importedUnsorted: (n: number) => `已导入；有 ${n} 行放在「待整理」里`,
     import: '导入',
     backupAll: '备份全部',
     backupFile: (date: string) => `iresume-备份-${date}.json`,
@@ -79,6 +82,9 @@ const M = defineMessages(
     importFailed: (file: string, reason?: string) =>
       `“${file}”: ${reason ?? 'Couldn’t import'}`,
     imported: (n: number) => `Imported ${n} ${n === 1 ? 'resume' : 'resumes'}`,
+    importedOne: 'Imported — please review the result',
+    importedUnsorted: (n: number) =>
+      `Imported; ${n} ${n === 1 ? 'line is' : 'lines are'} waiting in “To sort”`,
     import: 'Import',
     backupAll: 'Back up all',
     backupFile: (date: string) => `iresume-backup-${date}.json`,
@@ -128,7 +134,7 @@ export function Home({
   const docs = useApp(selectDocList)
   const returning =
     docs.length > 1 || docs.some((d) => d.updatedAt !== d.createdAt)
-  const file = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
   const lang = useLang()
   const t = useT(M)
   // 缩略图用与「新建」完全一致的示例文档（含英文的日期格式）
@@ -154,8 +160,8 @@ export function Home({
     onOpen(added.id)
   }
 
-  const importFiles = async (files: FileList | null) => {
-    if (!files?.length) return
+  const importFiles = async (files: File[]) => {
+    if (!files.length) return
     let count = 0
     for (const f of files) {
       try {
@@ -183,7 +189,7 @@ export function Home({
         </div>
         <nav className='h-top-actions'>
           <SyncButton />
-          <Button onClick={() => file.current?.click()}>
+          <Button onClick={() => setImporting(true)}>
             <Upload size={15} /> <span className='h-label'>{t.import}</span>
           </Button>
           {docs.length > 0 && (
@@ -218,15 +224,18 @@ export function Home({
             <Github size={17} />
           </a>
         </nav>
-        <input
-          ref={file}
-          type='file'
-          accept='.json,application/json'
-          multiple
-          hidden
-          onChange={(e) => {
-            void importFiles(e.currentTarget.files)
-            e.currentTarget.value = ''
+        <ImportDialog
+          open={importing}
+          onClose={() => setImporting(false)}
+          onJson={(files) => void importFiles(files)}
+          onCreate={({ doc, stats }) => {
+            setImporting(false)
+            create(doc)
+            toast(
+              stats.unsorted
+                ? t.importedUnsorted(stats.unsorted)
+                : t.importedOne
+            )
           }}
         />
       </header>

@@ -29,6 +29,10 @@ test('无障碍：首页', async ({ page }) => {
   await audit(page, '首页')
   await page.locator('.h-sync-btn').click()
   await audit(page, '同步面板')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: '导入', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '导入简历' })).toBeVisible()
+  await audit(page, '导入对话框')
 })
 
 test('无障碍：编辑器与面板', async ({ page }) => {

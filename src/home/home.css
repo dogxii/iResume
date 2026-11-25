@@ -402,3 +402,201 @@
     white-space: nowrap;
   }
 }
+
+/* —— 导入简历 —— */
+.h-import {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+  overflow: auto;
+}
+.h-import[open] {
+  animation: pop-in 0.16s ease-out;
+}
+.h-import::backdrop {
+  background: rgb(0 0 0 / 0.28);
+}
+.h-import-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 6px 22px;
+  background: var(--surface);
+}
+.h-import-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.h-import-body {
+  display: grid;
+  gap: 16px;
+  padding: 8px 22px 20px;
+}
+.h-drop {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--border-2);
+  border-radius: 12px;
+  color: var(--text-3);
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.h-drop.is-over {
+  border-color: var(--text-2);
+  background: var(--hover);
+}
+.h-drop p {
+  margin: 4px 0 0;
+  color: var(--text-2);
+}
+.h-drop small {
+  font-size: 12px;
+}
+.h-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.h-paste {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.h-paste textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.h-paste textarea:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.h-import-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.h-import-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.h-import-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.h-import-reading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 200px;
+  color: var(--text-2);
+}
+.h-import-preview {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.h-import-paper {
+  height: 424px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06),
+    0 6px 20px rgb(0 0 0 / 0.08);
+}
+.h-import-zoom {
+  zoom: 0.378;
+  pointer-events: none;
+}
+.h-import-summary {
+  display: grid;
+  gap: 12px;
+  font-size: 13px;
+}
+.h-import-summary p {
+  margin: 0;
+}
+.h-import-found {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.h-import-summary ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.h-import-summary li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.h-import-summary li span:last-child {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.h-import-warn {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+}
+.h-import-summary .h-import-note {
+  display: block;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .h-import-preview {
+    grid-template-columns: 1fr;
+  }
+  .h-import-paper {
+    width: 100%;
+    max-width: 300px;
+    justify-self: center;
+  }
+}

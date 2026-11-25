@@ -41,9 +41,8 @@
   font-weight: 650;
   color: var(--r-ink);
 }
-.r-paper time {
-  font-variant-numeric: tabular-nums;
-}
+/* 不用 tabular-nums：Chrome 导出 PDF 时，经 OpenType 特性替换的数字字形没有对应的文字，
+   日期在 PDF 里会变成空白——复制不出来，ATS 也读不到。 */
 
 /* —— 页眉 ————————————————————————————————————————— */
 
@@ -236,7 +235,6 @@
   color: var(--r-muted);
   font-size: 0.94em;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 [data-date="below"] .r-entry-head {
   flex-direction: column;
