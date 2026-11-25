@@ -65,6 +65,8 @@ const M = defineMessages(
     myResumes: '我的简历',
     docCount: (n: number) => `${n} 份 · 自动保存在本地`,
     blank: '空白简历',
+    importExisting: '导入已有简历',
+    importFormats: 'PDF · Word · 文本',
     fromTheme: '从主题开始',
     fromThemeHint: '示例内容本身就是一份「好简历」的写法参考',
     footNote:
@@ -106,6 +108,8 @@ const M = defineMessages(
     docCount: (n: number) =>
       `${n} ${n === 1 ? 'resume' : 'resumes'} · Saved automatically on this device`,
     blank: 'Blank resume',
+    importExisting: 'Import a resume',
+    importFormats: 'PDF · Word · text',
     fromTheme: 'Start from a theme',
     fromThemeHint: 'Each sample doubles as a guide to writing a strong resume',
     footNote:
@@ -319,6 +323,20 @@ export function Home({
                 <b>{t.blank}</b>
               </span>
             </button>
+            {/* 新用户：手里已有简历时，从导入开始比从零填写快得多 */}
+            {!returning && (
+              <button
+                type='button'
+                className='h-card is-new'
+                onClick={() => setImporting(true)}
+              >
+                <span className='h-thumb is-blank'>
+                  <Upload size={26} strokeWidth={1.5} />
+                  <b>{t.importExisting}</b>
+                  <small>{t.importFormats}</small>
+                </span>
+              </button>
+            )}
             {docs.map((doc) => (
               <DocCard key={doc.id} doc={doc} onOpen={() => onOpen(doc.id)} />
             ))}

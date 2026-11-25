@@ -504,3 +504,37 @@ kbd {
     transform: rotate(360deg);
   }
 }
+
+/* —— 对话框 —— */
+.u-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+  overflow: auto;
+}
+.u-dialog[open] {
+  animation: pop-in 0.16s ease-out;
+}
+.u-dialog::backdrop {
+  background: rgb(0 0 0 / 0.28);
+}
+.u-dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 6px 22px;
+  background: var(--surface);
+}
+.u-dialog-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}

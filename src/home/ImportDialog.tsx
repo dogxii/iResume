@@ -1,11 +1,12 @@
-import { FileText, LoaderCircle, ShieldCheck, Upload, X } from 'lucide-react'
+import { FileText, LoaderCircle, ShieldCheck, Upload } from 'lucide-react'
 import { type DragEvent, useEffect, useRef, useState } from 'react'
 import { defineMessages, useT } from '../i18n'
 import type { Line } from '../import/lines'
 import type { ParseResult } from '../import/parse'
 import { KIND_META } from '../model/defaults'
 import { Resume } from '../render/Resume'
-import { Button, IconButton } from '../ui/controls'
+import { Button } from '../ui/controls'
+import { Dialog } from '../ui/Dialog'
 
 const M = defineMessages(
   {
@@ -26,7 +27,6 @@ const M = defineMessages(
     items: (n: number) => `${n} 条`,
     back: '重新选择',
     create: '创建简历',
-    close: '关闭',
     noText:
       '没有读到文字。如果是扫描件或图片导出的 PDF，请换成 Word 文件，或者直接粘贴文字。',
     oldWord: '暂不支持旧版 .doc 文件，请在 Word 里另存为 .docx 后再导入。',
@@ -53,7 +53,6 @@ const M = defineMessages(
     items: (n: number) => `${n}`,
     back: 'Choose another',
     create: 'Create resume',
-    close: 'Close',
     noText:
       'No text found. If this PDF is a scan or an image, try a Word file or paste the text instead.',
     oldWord:
@@ -115,20 +114,16 @@ export function ImportDialog({
   onCreate(result: ParseResult): void
 }) {
   const t = useT(M)
-  const ref = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const [state, setState] = useState<State>({ step: 'pick' })
   const [text, setText] = useState('')
   const [over, setOver] = useState(false)
 
+  // 每次打开都从头开始
   useEffect(() => {
-    const d = ref.current
-    if (!d) return
-    if (open && !d.open) {
-      setState({ step: 'pick' })
-      setText('')
-      d.showModal()
-    } else if (!open && d.open) d.close()
+    if (!open) return
+    setState({ step: 'pick' })
+    setText('')
   }, [open])
 
   const take = async (files: File[]) => {
@@ -177,26 +172,13 @@ export function ImportDialog({
   }
 
   return (
-    // 点击遮罩关闭；键盘用户按 Esc（<dialog> 原生支持，由 onCancel 处理）
-    // biome-ignore lint/a11y/useKeyWithClickEvents: Esc 由 onCancel 处理
-    <dialog
-      ref={ref}
-      className='h-import'
-      aria-label={t.title}
+    <Dialog
+      open={open}
       onClose={onClose}
-      onCancel={(e) => {
-        e.preventDefault()
-        onClose()
-      }}
-      onClick={(e) => e.target === ref.current && onClose()}
+      label={t.title}
+      title={state.step === 'preview' ? t.preview : t.title}
+      className='h-import'
     >
-      <div className='h-import-head'>
-        <h2>{state.step === 'preview' ? t.preview : t.title}</h2>
-        <IconButton label={t.close} onClick={onClose}>
-          <X size={17} />
-        </IconButton>
-      </div>
-
       {state.step === 'pick' && (
         <div className='h-import-body'>
           <div
@@ -275,7 +257,7 @@ export function ImportDialog({
           onCreate={() => onCreate(state.result)}
         />
       )}
-    </dialog>
+    </Dialog>
   )
 }
 

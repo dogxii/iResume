@@ -129,6 +129,11 @@
   font-weight: 500;
   color: var(--text-2);
 }
+.h-thumb.is-blank small {
+  margin-top: -6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
 .h-card.is-new:hover .h-thumb.is-blank {
   border-color: var(--text-4);
   color: var(--text);
@@ -406,35 +411,6 @@
 /* —— 导入简历 —— */
 .h-import {
   width: min(720px, calc(100vw - 32px));
-  max-height: calc(100dvh - 48px);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-float);
-  overflow: auto;
-}
-.h-import[open] {
-  animation: pop-in 0.16s ease-out;
-}
-.h-import::backdrop {
-  background: rgb(0 0 0 / 0.28);
-}
-.h-import-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 14px 6px 22px;
-  background: var(--surface);
-}
-.h-import-head h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 650;
 }
 .h-import-body {
   display: grid;

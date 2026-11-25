@@ -1465,3 +1465,154 @@ button.e-outline-row > .e-outline-name {
 .e-app.is-mobile .e-marks-bar select {
   max-width: 120px;
 }
+
+/* —— 上手提示与快捷键 —— */
+.e-help {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.e-help > * {
+  pointer-events: auto;
+}
+.e-help-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.e-help-btn:hover {
+  color: var(--text);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.08),
+    0 4px 12px rgb(0 0 0 / 0.1);
+}
+.e-tips {
+  width: 300px;
+  padding: 12px 12px 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  animation: pop-in 0.18s ease-out;
+}
+.e-tips-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warn);
+}
+.e-tips-head b {
+  flex: 1;
+  color: var(--text);
+  font-weight: 650;
+}
+.e-tips p {
+  margin: 6px 0 10px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.e-tips-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.e-tips-dots {
+  display: flex;
+  gap: 5px;
+}
+.e-tips-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-2);
+}
+.e-tips-dots i.is-on {
+  background: var(--text-2);
+}
+.e-keys-body {
+  display: grid;
+  gap: 18px;
+  padding: 4px 22px 20px;
+}
+.e-keys .u-dialog-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.e-keys h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.e-keys dl {
+  display: grid;
+  margin: 0;
+}
+.e-keys dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.e-keys dt {
+  display: flex;
+  gap: 4px;
+  order: 2;
+}
+.e-keys dd {
+  margin: 0;
+  color: var(--text-2);
+}
+.e-keys kbd {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--border-2);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+.e-keys-tips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.e-keys-tips:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.e-tips code {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}

@@ -55,6 +55,7 @@ import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
 import { actions } from './actions'
+import { HelpButton, ShortcutsDialog, Tips, tipsDone } from './Help'
 import { MarksBar, type MarksBase, MarksLayer, resolveMark } from './Marks'
 import { MatchPanel } from './Match'
 import { FIT_STEPS, FIT_TARGET, type Measure, measurePaper } from './measure'
@@ -248,6 +249,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const [deskW, setDeskW] = useState(1000)
   const [printing, setPrinting] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(readOutlinePref)
+  const [showTips, setShowTips] = useState(() => !tipsDone())
+  const [keysOpen, setKeysOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const paperRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -452,6 +455,10 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
         toggleOutline()
       } else if (e.key === 'Escape' && preview) {
         setPreview(false)
+      } else if (e.key === '?' && !mod && !isTyping(e.target)) {
+        e.preventDefault()
+        setPanel(null)
+        setKeysOpen(true)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -892,6 +899,20 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
           </Popover>
         )
       )}
+      {!preview && !mobile && (
+        <div className='e-help'>
+          {showTips && <Tips onDone={() => setShowTips(false)} />}
+          <HelpButton onClick={() => setKeysOpen(true)} />
+        </div>
+      )}
+      <ShortcutsDialog
+        open={keysOpen}
+        onClose={() => setKeysOpen(false)}
+        onShowTips={() => {
+          setKeysOpen(false)
+          setShowTips(true)
+        }}
+      />
       {printing &&
         createPortal(
           <div className='print-root' aria-hidden>
@@ -901,4 +922,10 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
         )}
     </div>
   )
+}
+
+/** 焦点在可编辑文字里时，「?」是要输入的字符 */
+function isTyping(target: EventTarget | null) {
+  const el = target as HTMLElement | null
+  return !!el?.closest?.('input, textarea, select, [contenteditable]')
 }
