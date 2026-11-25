@@ -4,6 +4,7 @@ import {
   AtSign,
   Eye,
   EyeOff,
+  GripVertical,
   ImagePlus,
   MoreHorizontal,
   Plus,
@@ -26,6 +27,7 @@ import { MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import type { Actions } from './actions'
+import { startItemDrag } from './dragItems'
 
 const M = defineMessages(
   {
@@ -39,6 +41,7 @@ const M = defineMessages(
     text: '段落 / 列表',
     hideSection: '在简历中隐藏',
     deleteSection: '删除区块',
+    drag: '拖动排序',
     moveUp: '上移',
     moveDown: '下移',
     insertBelow: '在下方插入',
@@ -65,6 +68,7 @@ const M = defineMessages(
     text: 'Paragraph / list',
     hideSection: 'Hide from resume',
     deleteSection: 'Delete section',
+    drag: 'Drag to reorder',
     moveUp: 'Move up',
     moveDown: 'Move down',
     insertBelow: 'Insert below',
@@ -197,6 +201,20 @@ function ItemTools({
   const row = section.layout === 'rows'
   return (
     <div className='e-item-tools' onMouseDown={keep} contentEditable={false}>
+      {section.items.length > 1 && (
+        // 键盘用户用旁边的上移 / 下移按钮
+        <span
+          className='e-drag'
+          draggable
+          title={t.drag}
+          aria-hidden
+          // 工具条的 mousedown 会 preventDefault（保留文字焦点），那样 Firefox 无法开始拖动
+          onMouseDown={(e) => e.stopPropagation()}
+          onDragStart={(e) => startItemDrag(e, section.id, item.id)}
+        >
+          <GripVertical size={13} />
+        </span>
+      )}
       <button
         type='button'
         title={t.moveUp}

@@ -1616,3 +1616,31 @@ button.e-outline-row > .e-outline-name {
   font-size: 12px;
   white-space: nowrap;
 }
+
+/* —— 条目拖动排序 —— */
+.e-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  border-radius: 7px;
+  color: var(--text-3);
+  cursor: grab;
+}
+.e-drag:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.e-drag:active {
+  cursor: grabbing;
+}
+[data-dragging] {
+  opacity: 0.35;
+}
+[data-drop="before"] {
+  box-shadow: 0 -2px 0 0 #2563eb;
+}
+[data-drop="after"] {
+  box-shadow: 0 2px 0 0 #2563eb;
+}

@@ -55,6 +55,7 @@ import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
 import { actions } from './actions'
+import { useItemDrop } from './dragItems'
 import { HelpButton, ShortcutsDialog, Tips, tipsDone } from './Help'
 import { MarksBar, type MarksBase, MarksLayer, resolveMark } from './Marks'
 import { MatchPanel } from './Match'
@@ -352,6 +353,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const zoom = mobile
     ? 1
     : Math.max(0.5, Math.min(1.1, (deskW - notesW - (wide ? 96 : 48)) / pageW))
+
+  useItemDrop(paperRef, a)
 
   // —— 测量页数 ——
   useLayoutEffect(() => {

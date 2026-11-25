@@ -120,6 +120,17 @@ export function actions(docId: string) {
         s.items.splice(to, 0, item)
       })
     },
+    /** 拖动排序：把条目放到区块中的第 to 个位置 */
+    moveItemTo(sectionId: string, itemId: string, to: number) {
+      u((d) => {
+        const s = sec(d, sectionId)
+        if (!s) return
+        const from = s.items.findIndex((i) => i.id === itemId)
+        if (from < 0 || from === to) return
+        const [item] = s.items.splice(from, 1)
+        s.items.splice(Math.max(0, Math.min(to, s.items.length)), 0, item)
+      })
+    },
     removeItem(sectionId: string, itemId: string) {
       u((d) => {
         const s = sec(d, sectionId)
