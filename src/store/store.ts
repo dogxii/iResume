@@ -15,6 +15,7 @@ const M = defineMessages(
     auto: '自动保存',
     beforeRestore: '恢复前的版本',
     beforeSync: '同步覆盖前的本机版本',
+    exported: '导出 PDF 时',
   },
   {
     tailored: 'Tailored',
@@ -22,6 +23,7 @@ const M = defineMessages(
     auto: 'Auto-save',
     beforeRestore: 'Before restore',
     beforeSync: 'Local version before sync',
+    exported: 'At last PDF export',
   }
 )
 
@@ -371,6 +373,27 @@ export async function saveSnapshot(docId: string, label: string, auto = false) {
     },
   ])
   await pruneAuto(docId)
+  bumpSnapshots(docId)
+}
+
+/** 导出 PDF 时留底，替换掉上一份导出快照 */
+export async function markExported(docId: string) {
+  const doc = state.docs[docId]
+  if (!db || !doc) return
+  const old = (await db.listSnapshots(docId)).filter((x) => x.exported)
+  if (old[0] && old[0].doc.updatedAt === doc.updatedAt) return
+  await db.putSnapshots([
+    {
+      id: uid('v'),
+      docId,
+      label: tr(M).exported,
+      auto: false,
+      exported: true,
+      createdAt: new Date().toISOString(),
+      doc,
+    },
+  ])
+  if (old.length) await db.deleteSnapshots(old.map((x) => x.id))
   bumpSnapshots(docId)
 }
 

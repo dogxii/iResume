@@ -100,6 +100,8 @@ export interface Snapshot {
   label: string
   /** 自动快照会被定期清理，手动快照永久保留 */
   auto: boolean
+  /** 导出 PDF 时留的底：修改标记可以以它为基准；每份简历只保留最新一份 */
+  exported?: boolean
   createdAt: string
   doc: ResumeDoc
 }

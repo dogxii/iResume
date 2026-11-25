@@ -5,6 +5,7 @@ import {
   Columns3,
   Download,
   Eye,
+  FileDiff,
   FileJson,
   FileText,
   History,
@@ -35,16 +36,26 @@ import { toMarkdown, toPlainText } from '../export/markdown'
 import { defineMessages, useLang, useT } from '../i18n'
 import { lint } from '../lint'
 import { toBundle } from '../migrate'
-import type { ResumeDoc } from '../model/types'
+import { computeMarks } from '../model/marks'
+import type { ResumeDoc, Snapshot } from '../model/types'
 import { type EditApi, EditContext } from '../render/Field'
 import { Resume } from '../render/Resume'
-import { flushNow, getState, redo, undo, useApp } from '../store/store'
+import {
+  flushNow,
+  getState,
+  listSnapshots,
+  markExported,
+  redo,
+  undo,
+  useApp,
+} from '../store/store'
 import { pagePx } from '../theme/css'
 import { IconButton, MenuItem } from '../ui/controls'
 import { Popover } from '../ui/Popover'
 import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
 import { actions } from './actions'
+import { MarksBar, type MarksBase, MarksLayer, resolveMark } from './Marks'
 import { MatchPanel } from './Match'
 import { FIT_STEPS, FIT_TARGET, type Measure, measurePaper } from './measure'
 import { focusTarget, MarginNotes, NotesList } from './Notes'
@@ -91,6 +102,7 @@ const M = defineMessages(
     redo: '重做 (⇧⌘Z)',
     preview: '预览',
     hideOutline: '收起大纲 (⌘\\)',
+    marks: '修订标记',
     showOutline: '展开大纲 (⌘\\)',
     pdfHint: '在打印对话框中选择「存储为 PDF」，文字可选中、可被 ATS 解析',
     jsonTitle: 'iResume 文件（JSON）',
@@ -140,6 +152,7 @@ const M = defineMessages(
     redo: 'Redo (⇧⌘Z)',
     preview: 'Preview',
     hideOutline: 'Hide outline (⌘\\)',
+    marks: 'Change marks',
     showOutline: 'Show outline (⌘\\)',
     pdfHint:
       'Choose “Save as PDF” in the print dialog — text stays selectable and ATS-readable',
@@ -194,6 +207,29 @@ function writeOutlinePref(open: boolean) {
   }
 }
 
+const MARKS_KEY = 'iresume-marks'
+type MarksPref = { on: boolean; base: MarksBase }
+/** 修订标记默认关闭；开关与对比基准按简历记住 */
+function readMarksPref(docId: string): MarksPref {
+  try {
+    const all = JSON.parse(localStorage.getItem(MARKS_KEY) ?? '{}')
+    const p = all[docId]
+    if (p && typeof p.on === 'boolean' && typeof p.base === 'string') return p
+  } catch {
+    /* 忽略 */
+  }
+  return { on: false, base: 'session' }
+}
+function writeMarksPref(docId: string, pref: MarksPref) {
+  try {
+    const all = JSON.parse(localStorage.getItem(MARKS_KEY) ?? '{}')
+    all[docId] = pref
+    localStorage.setItem(MARKS_KEY, JSON.stringify(all))
+  } catch {
+    /* 忽略 */
+  }
+}
+
 export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const t = useT(M)
   const lang = useLang()
@@ -219,6 +255,60 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
   const anchors = useRef<Partial<Record<PanelId, HTMLButtonElement | null>>>({})
 
   const notes = useMemo(() => lint(doc), [doc])
+
+  // —— 修订标记 ——
+  const sessionBase = useRef(doc)
+  const [marksPref, setMarksPrefState] = useState(() => readMarksPref(doc.id))
+  const setMarksPref = (p: MarksPref) => {
+    setMarksPrefState(p)
+    writeMarksPref(doc.id, p)
+  }
+  const snapVersion = useApp((s) => s.snapshots[doc.id] ?? 0)
+  const [snaps, setSnaps] = useState<Snapshot[] | null>(null)
+  useEffect(() => {
+    if (!marksPref.on) return
+    let alive = true
+    void listSnapshots(doc.id).then((l) => alive && setSnaps(l))
+    return () => {
+      alive = false
+    }
+  }, [marksPref.on, doc.id, snapVersion])
+  const exportSnap = snaps?.find((x) => x.exported)
+  const baseDoc = !marksPref.on
+    ? null
+    : marksPref.base === 'session'
+      ? sessionBase.current
+      : !snaps
+        ? null
+        : ((marksPref.base === 'export'
+            ? exportSnap
+            : snaps.find((x) => x.id === marksPref.base)
+          )?.doc ?? sessionBase.current)
+  const marks = useMemo(
+    () => (baseDoc && !preview ? computeMarks(baseDoc, doc, lang) : []),
+    [baseDoc, doc, lang, preview]
+  )
+  const markStep = useRef(-1)
+  const stepMark = (dir: 1 | -1) => {
+    const paper = paperRef.current
+    if (!paper) return
+    const located = marks
+      .map((m) => ({ m, hit: resolveMark(paper, m) }))
+      .filter((x) => x.hit)
+      .map((x) => ({ ...x, y: x.hit?.el.getBoundingClientRect().top ?? 0 }))
+      .sort((p, q) => p.y - q.y)
+    if (!located.length) return
+    markStep.current =
+      (markStep.current + dir + located.length) % located.length
+    const { m, hit } = located[markStep.current]
+    hit?.el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const bar = document.querySelector<HTMLElement>(
+      `.e-mark[data-mark="${CSS.escape(m.id)}"]`
+    )
+    bar?.classList.remove('is-flash')
+    void bar?.offsetWidth
+    bar?.classList.add('is-flash')
+  }
   // 离开编辑器时立即写入，不等防抖
   useEffect(() => () => void flushNow(), [])
   useEffect(() => {
@@ -303,7 +393,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
 
   const exportPdf = () => {
     setPanel(null)
-    void flushNow()
+    void flushNow().then(() => markExported(doc.id))
     flushSync(() => setPrinting(true))
     printResume(
       doc.theme,
@@ -517,6 +607,14 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
                 }}
               />
             </Popover>
+            <IconButton
+              label={t.marks}
+              aria-pressed={marksPref.on}
+              className={marksPref.on ? 'is-on' : ''}
+              onClick={() => setMarksPref({ ...marksPref, on: !marksPref.on })}
+            >
+              <FileDiff size={17} />
+            </IconButton>
             <button
               ref={(el) => {
                 anchors.current.versions = el
@@ -607,6 +705,20 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
         </header>
       )}
 
+      {marksPref.on && !preview && (
+        <MarksBar
+          count={marks.length}
+          base={marksPref.base}
+          exportSnap={exportSnap}
+          snapshots={snaps ?? []}
+          onBase={(base) => {
+            markStep.current = -1
+            setMarksPref({ ...marksPref, base })
+          }}
+          onStep={stepMark}
+          onClose={() => setMarksPref({ ...marksPref, on: false })}
+        />
+      )}
       <div className='e-body'>
         {wide && !preview && (
           <Outline
@@ -671,6 +783,15 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
                   ))
                 )}
             </div>
+            {marksPref.on && !preview && (
+              <MarksLayer
+                marks={marks}
+                paper={paperRef.current}
+                stage={stageRef.current}
+                layoutKey={`${zoom}|${doc.updatedAt}|${outlineOpen}`}
+                onRevert={(m) => a.update((d) => m.revert(d))}
+              />
+            )}
             {showMarginNotes && (
               <MarginNotes
                 notes={notes}

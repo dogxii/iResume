@@ -1292,3 +1292,176 @@ button.e-outline-row > .e-outline-name {
   font: 500 11px / 18px var(--font);
   font-variant-numeric: tabular-nums;
 }
+
+/* —— 修订标记：纸面左侧页边的竖条，不进入打印 —— */
+.e-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.e-mark {
+  position: absolute;
+  z-index: 3;
+  width: 3px;
+  min-height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    width 0.12s,
+    transform 0.12s;
+}
+/* 扩大点击范围 */
+.e-mark::before {
+  content: "";
+  position: absolute;
+  inset: -2px -6px;
+}
+.e-mark.is-added {
+  background: #16a34a;
+}
+.e-mark.is-changed {
+  background: #d97706;
+}
+.e-mark.is-removed {
+  width: 8px;
+  height: 8px;
+  min-height: 0;
+  margin: -4px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 0 2px #fff;
+}
+.e-mark:hover,
+.e-mark.is-on {
+  width: 5px;
+  transform: translateX(-1px);
+}
+.e-mark.is-removed:hover,
+.e-mark.is-removed.is-on {
+  width: 8px;
+  transform: scale(1.25);
+}
+.e-mark:focus-visible {
+  outline: 2px solid var(--focus, #2456d6);
+  outline-offset: 2px;
+}
+.e-mark.is-flash {
+  animation: mark-flash 0.9s ease-out;
+}
+@keyframes mark-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgb(217 119 6 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(217 119 6 / 0);
+  }
+}
+.is-mark-hover {
+  border-radius: 3px;
+  background: rgb(253 230 138 / 0.28);
+  box-shadow: 0 0 0 3px rgb(253 230 138 / 0.28);
+}
+
+.u-pop.e-mark-pop {
+  width: 320px;
+}
+.e-mark-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 6px 4px;
+}
+.e-mark-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.e-mark-kind {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.e-mark-kind.is-added {
+  background: #dcfce7;
+  color: #166534;
+}
+.e-mark-kind.is-changed {
+  background: #fef3c7;
+  color: #92400e;
+}
+.e-mark-kind.is-removed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.e-mark-diff {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.e-mark-diff del {
+  border-radius: 3px;
+  background: #fee2e2;
+  color: #991b1b;
+  text-decoration: line-through;
+  text-decoration-color: rgb(153 27 27 / 0.5);
+}
+.e-mark-diff ins {
+  border-radius: 3px;
+  background: #dcfce7;
+  color: #166534;
+  text-decoration: none;
+}
+
+.e-marks-bar {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.95);
+  box-shadow: var(--shadow-float);
+  transform: translateX(-50%);
+  font-size: 13px;
+  white-space: nowrap;
+  animation: fade-in 0.2s;
+}
+.e-marks-bar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+}
+.e-marks-bar select {
+  max-width: 220px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.e-marks-count {
+  margin: 0 6px 0 8px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.e-app.is-mobile .e-marks-bar {
+  top: 54px;
+  max-width: calc(100vw - 20px);
+}
+.e-app.is-mobile .e-marks-bar select {
+  max-width: 120px;
+}
