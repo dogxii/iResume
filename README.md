@@ -110,6 +110,7 @@ React 19 · TypeScript · Vite · IndexedDB · Lucide · Vitest · Biome · Bun�
 ```bash
 bunx playwright install chromium   # 首次
 bun run e2e                         # 功能 + 无障碍
+bun run e2e:browsers                # 同一套功能测试跑 Chromium / Firefox / WebKit
 bun run e2e:visual -- --update-snapshots   # 首次生成本机截图基线
 bun run e2e:visual                  # 之后对比截图
 ```

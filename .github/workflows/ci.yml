@@ -22,19 +22,25 @@ jobs:
         run: bunx vite build
 
   e2e:
+    name: e2e (${{ matrix.browser }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: Install ${{ matrix.browser }}
+        run: bunx playwright install --with-deps ${{ matrix.browser }}
       - name: End-to-end tests
-        run: bun run e2e
+        # Chromium 跑 functional 项目；另外两个引擎跑同一套功能测试
+        run: bunx playwright test --project=${{ matrix.browser == 'chromium' && 'functional' || matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: |
             playwright-report/
             test-results/

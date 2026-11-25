@@ -61,8 +61,8 @@ export function watchErrors(page: Page) {
 export const pdfPages = (pdf: Buffer) =>
   (pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length
 
-/** 触发「导出 PDF」，在打印对话框出现前生成 PDF */
-export async function exportPdf(page: Page): Promise<Buffer> {
+/** 点「导出 PDF」，拦下系统打印对话框，等打印用的纸面渲染出来 */
+export async function startExport(page: Page) {
   await page.evaluate(() => {
     window.print = () =>
       setTimeout(() => window.dispatchEvent(new Event('afterprint')), 2000)
@@ -70,5 +70,32 @@ export async function exportPdf(page: Page): Promise<Buffer> {
   await page.getByRole('button', { name: '导出' }).click()
   await page.getByRole('menuitem', { name: /PDF/ }).click()
   await page.locator('.print-root .r-paper').waitFor({ state: 'attached' })
+}
+
+/** 触发「导出 PDF」，在打印对话框出现前生成 PDF（只有 Chromium 能生成 PDF） */
+export async function exportPdf(page: Page): Promise<Buffer> {
+  await startExport(page)
   return page.pdf({ preferCSSPageSize: true, printBackground: true })
+}
+
+/**
+ * 等页面上正在进行的过渡 / 动画结束（无障碍检查不应测到颜色过渡的中间值）。
+ * 无头 WebKit 即使在减少动态效果下也要隔几帧才结束过渡，而且点击后的重绘可能在下一帧才开始，所以循环等到连续两帧都没有动画。
+ */
+export async function settle(page: Page) {
+  await page.evaluate(async () => {
+    const frame = () => new Promise((r) => requestAnimationFrame(r))
+    const running = () =>
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+    for (let quiet = 0, i = 0; quiet < 2 && i < 60; i++) {
+      await frame()
+      const list = running()
+      if (list.length) {
+        quiet = 0
+        await Promise.all(list.map((a) => a.finished.catch(() => {})))
+      } else quiet++
+    }
+  })
 }

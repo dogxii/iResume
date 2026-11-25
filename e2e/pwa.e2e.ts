@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { openHome } from './helpers'
 
-test('离线可用：断网后仍能打开并编辑', async ({ page, context }) => {
+test('离线可用：断网后仍能打开并编辑', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  // Playwright 的 WebKit 在断网模拟下不经过 Service Worker 重新加载页面（Safari 本身没有这个问题，见手工核对清单）
+  test.skip(browserName === 'webkit', 'WebKit 的断网模拟不支持 Service Worker')
   await openHome(page)
   await page.evaluate(() => navigator.serviceWorker.ready)
   await page.reload()

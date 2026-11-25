@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paginate, type Unit } from './measure'
+import { headingBreaks, paginate, type Unit } from './measure'
 
 const o = { start: 50, pageContent: 1000, linePx: 20 }
 const u = (top: number, h: number, kind: Unit['kind'] = 'block'): Unit => ({
@@ -53,5 +53,35 @@ describe('paginate · 侧标题', () => {
       [50, 870],
       [870, 1170],
     ])
+  })
+})
+
+describe('headingBreaks', () => {
+  it('被移到下一页开头的标题，打印时对它所在的区块显式换页', () => {
+    const el = (id: string) =>
+      ({
+        closest: () => ({ dataset: { section: id } }),
+      }) as unknown as HTMLElement
+    const units: Unit[] = [
+      { ...u(50, 30, 'heading'), el: el('a') },
+      u(80, 770),
+      { ...u(870, 30, 'heading'), el: el('b') },
+      u(900, 300),
+    ]
+    const ranges = paginate(units, { ...o, end: 1200 })
+    expect(headingBreaks(units, ranges, o.pageContent)).toEqual(['b'])
+    // 第一页开头的标题不算
+    expect(headingBreaks(units, [[50, 1200]], o.pageContent)).toEqual([])
+  })
+  it('标题本身就在页尾之外：浏览器自然会换页，不强制', () => {
+    const el = { closest: () => ({ dataset: { section: 'c' } }) }
+    const units: Unit[] = [
+      u(50, 1000),
+      { ...u(1060, 30, 'heading'), el: el as unknown as HTMLElement },
+      u(1090, 100),
+    ]
+    const ranges = paginate(units, { ...o, end: 1190 })
+    expect(ranges[1][0]).toBe(1060)
+    expect(headingBreaks(units, ranges, o.pageContent)).toEqual([])
   })
 })

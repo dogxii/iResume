@@ -33,7 +33,8 @@
     "check": "biome check . && tsc --noEmit && vitest run && vite build",
     "preview": "vite preview",
     "e2e": "playwright test --project=functional",
-    "e2e:visual": "playwright test --project=visual"
+    "e2e:visual": "playwright test --project=visual",
+    "e2e:browsers": "playwright test --project=functional --project=firefox --project=webkit"
   },
   "dependencies": {
     "react": "^19.2.0",

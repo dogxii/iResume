@@ -26,6 +26,11 @@ export interface Measure {
   /** 单页可用高度，px（未缩放） */
   pageContent: number
   marginPx: number
+  /**
+   * 因「标题跟随内容」被整体移到下一页的区块 id。只有 Chromium 支持 break-after: avoid，
+   * 打印时对这些区块显式 break-before: page，Firefox / Safari 才会得到同样的分页。
+   */
+  breaks: string[]
 }
 
 /** 测量简历内容占几页。所有数值是未缩放的 CSS 像素。 */
@@ -47,6 +52,7 @@ export function measurePaper(paper: HTMLElement, theme: Theme): Measure {
   }
 
   let frames: Frame[][]
+  let breaks: string[] = []
   let content: number
   let lastPage: number
   if (columns.length > 0) {
@@ -81,12 +87,14 @@ export function measurePaper(paper: HTMLElement, theme: Theme): Measure {
     lastPage = lr[1] - lr[0]
   } else {
     content = endOf(paper) - marginPx
-    const ranges = paginate(collectUnits(paper, paper), {
+    const units = collectUnits(paper, paper)
+    const ranges = paginate(units, {
       start: marginPx,
       end: marginPx + content,
       pageContent,
       linePx,
     })
+    breaks = headingBreaks(units, ranges, pageContent)
     frames = ranges.map(([from, to]) => [
       { left: 0, width: paper.offsetWidth, top: marginPx, from, to },
     ])
@@ -101,7 +109,32 @@ export function measurePaper(paper: HTMLElement, theme: Theme): Measure {
     overflowLines: pages > 1 ? Math.max(1, Math.ceil(lastPage / linePx)) : 0,
     pageContent,
     marginPx,
+    breaks,
   }
+}
+
+/**
+ * 被「标题跟随内容」移到下一页开头的标题所在的区块。只算真正会成为孤行的标题：
+ * 标题本身在上一页放得下（只是后面的内容放不下）。标题本来就在页尾之外时浏览器自然会换页，
+ * 不需要也不应该强制换页——测量与打印有亚像素差异，前一页提前换页时多出的强制换页会凭空多出一页。
+ */
+export function headingBreaks(
+  units: Unit[],
+  ranges: [number, number][],
+  pageContent: number
+) {
+  const out: string[] = []
+  for (let k = 1; k < ranges.length; k++) {
+    const from = ranges[k][0]
+    const limit = ranges[k - 1][0] + pageContent
+    for (const u of units) {
+      if (u.kind !== 'heading' || Math.abs(u.top - from) > 0.5) continue
+      if (u.bottom > limit) continue
+      const id = u.el?.closest<HTMLElement>('.r-section')?.dataset.section
+      if (id) out.push(id)
+    }
+  }
+  return out
 }
 
 // —— 分页模拟 ————————————————————————————————————————————————
@@ -111,6 +144,7 @@ export interface Unit {
   bottom: number
   /** heading：不能留在页尾；text：可以按行拆开；block：整体不拆 */
   kind: 'heading' | 'text' | 'block'
+  el?: HTMLElement
 }
 
 /** 元素相对纸面顶部的位置与高度（亚像素精度，已扣除缩放） */
@@ -127,6 +161,7 @@ function collectUnits(scope: HTMLElement, paper: HTMLElement): Unit[] {
   return [...els].map((el) => {
     const { top, height } = boxIn(el, paper)
     return {
+      el,
       top,
       bottom: top + height,
       kind: el.classList.contains('r-heading')

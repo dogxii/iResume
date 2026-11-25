@@ -11,7 +11,8 @@ import {
 
 // 逐页预览、编辑器页数与导出的 PDF 必须一致
 for (const { theme } of PRESETS) {
-  test(`分页一致：${theme.name}`, async ({ page }) => {
+  test(`分页一致：${theme.name}`, async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', '只有 Chromium 能自动生成 PDF')
     await openHome(page)
     const doc = longDoc(theme)
     await importDocs(page, [doc])
@@ -24,6 +25,7 @@ for (const { theme } of PRESETS) {
     await expect(page.locator('.e-page')).toHaveCount(pages)
     await page.keyboard.press('Escape')
 
+    // 孤行标题的显式换页（给 Firefox / Safari 用）在 Chromium 上必须与它自己的分页一致
     const pdf = await exportPdf(page)
     expect(pdfPages(pdf)).toBe(pages)
   })

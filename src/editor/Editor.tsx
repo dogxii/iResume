@@ -399,7 +399,8 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       doc.theme,
       safeFilename(doc.name),
       () => setPrinting(false),
-      measure?.pages
+      measure?.pages,
+      measure?.breaks
     )
   }
   const exportJson = () => {

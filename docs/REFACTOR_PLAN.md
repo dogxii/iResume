@@ -202,7 +202,7 @@ Theme {
 - 开关：顶栏按钮，默认关闭，按简历记住。
 - 验收：条目 / 要点 / 行 / 区块 / 页眉五级 diff 的单元测试；e2e 覆盖开关、计数、撤回一处、导出后基准切换。
 
-#### M4.2 跨浏览器与打印一致性
+#### M4.2 跨浏览器与打印一致性 ✅
 - 现状：分页模拟只在 Chromium 上与 PDF 对过。调研结论：
   - Safari 18.2 起支持 `@page` 的 size 与 margin，iOS 上仍有问题；
   - Safari 支持 `break-inside: avoid`，但**不支持** `break-after: avoid`，且 `CSS.supports()` 会误报支持。所以「标题跟随内容」在 Safari / Firefox 上靠不住。
@@ -211,6 +211,12 @@ Theme {
   - Playwright 增加 Firefox / WebKit 项目，在 CI 跑功能 e2e（编辑、`contenteditable="plaintext-only"`、弹层、同步）；
   - Safari / Firefox 的打印结果整理成手工核对清单（PDF 生成只有 Chromium 能自动化）。
 - 验收：三个浏览器功能 e2e 全绿；8 套预设在 Chromium 上的分页结果不变。
+- 实际做法（与原计划不同）：没有改 DOM 结构。把「标题 + 第一个条目」包进容器会破坏侧标题的网格、技能表格的 subgrid 和时间线的 `:last-child`。改为复用编辑器的分页计算：
+  - 找出真正会成为孤行的标题——标题在上一页放得下，后面的内容放不下；
+  - 导出时对这些区块写 `break-before: page; margin-top: 0`。强制换页在所有引擎都支持。
+  - 标题本来就在页尾之外的不强制，否则测量与打印的亚像素差异会多出一页（时间线预设上验证过）；
+  - 8 套预设中有 4 套触发了显式换页，Chromium 的 PDF 页数仍然一致；
+  - 手工核对清单见 `docs/PRINT_CHECKLIST.md`。
 
 #### M4.3 导入已有简历（PDF / Word / 纯文本）
 - 为什么：新用户手里大多已经有一份简历，从零填写是最大的上手门槛。

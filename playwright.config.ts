@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * 端到端测试跑在生产构建上（含 Service Worker）。
  * - functional：功能、分页一致性、同步、离线、无障碍，CI 必跑；
+ * - firefox / webkit：同一套功能测试在另外两个引擎上跑（PDF 生成只有 Chromium 支持，相关用例会跳过）；
  * - visual：8 套预设的截图回归，依赖字体环境，只在本地运行（bun run e2e:visual）。
  */
 const PORT = 4317
@@ -28,6 +29,22 @@ export default defineConfig({
       grepInvert: /@visual/,
       use: {
         ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 960 },
+      },
+    },
+    {
+      name: 'firefox',
+      grepInvert: /@visual/,
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1440, height: 960 },
+      },
+    },
+    {
+      name: 'webkit',
+      grepInvert: /@visual/,
+      use: {
+        ...devices['Desktop Safari'],
         viewport: { width: 1440, height: 960 },
       },
     },

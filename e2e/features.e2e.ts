@@ -40,13 +40,21 @@ test('岗位匹配：派生定制版并分析 JD', async ({ page }) => {
   await expect(page.locator('.e-docname')).toHaveValue(/云帆科技$/)
 })
 
-test('主题分享链接', async ({ page, context, browser }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+test('主题分享链接', async ({ page, browser }) => {
+  // 剪贴板权限各浏览器的自动化接口不同，这里直接记下写入的内容
+  await page.addInitScript(() => {
+    const w = window as unknown as { copied?: string }
+    navigator.clipboard.writeText = async (text: string) => {
+      w.copied = text
+    }
+  })
   await openHome(page)
   await page.locator('.h-grid.is-themes .h-card').nth(2).click()
   await page.getByRole('button', { name: '主题' }).click()
   await page.getByLabel('复制主题分享链接').click()
-  const link = await page.evaluate(() => navigator.clipboard.readText())
+  const link = await page.evaluate(
+    () => (window as unknown as { copied?: string }).copied ?? ''
+  )
   expect(link).toMatch(/#\/theme\/[\w-]+$/)
 
   const other = await browser.newPage()

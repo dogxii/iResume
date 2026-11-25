@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { exportPdf, openHome, watchErrors } from './helpers'
+import { openHome, startExport, watchErrors } from './helpers'
 
 test('修订标记：默认关闭；修改后显示在页边，可撤回；导出 PDF 后可以以导出时为基准', async ({
   page,
@@ -33,7 +33,7 @@ test('修订标记：默认关闭；修改后显示在页边，可撤回；导�
   await expect(page.locator('.e-marks-bar')).toBeVisible()
 
   // 导出后再改：以「上次导出」为基准只看到导出之后的修改
-  await exportPdf(page)
+  await startExport(page)
   await expect(
     page.locator('.e-marks-bar option', { hasText: '上次导出 PDF 时' })
   ).toHaveCount(1)

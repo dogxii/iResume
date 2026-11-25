@@ -6,7 +6,8 @@ export function printResume(
   theme: Theme,
   title: string,
   onDone?: () => void,
-  pages = 1
+  pages = 1,
+  breaks: string[] = []
 ) {
   const [w, h] = PAGE_MM[theme.page]
   const aside = theme.layout === 'aside-left' || theme.layout === 'aside-right'
@@ -15,6 +16,10 @@ export function printResume(
   // 双栏：纸张撑满整数页，侧栏色带才能通到最后一页底部
   if (aside)
     style.textContent += `.print-root .r-paper { min-height: ${h * Math.max(1, pages) - 1}mm !important; }`
+  // 编辑器分页时「标题跟随内容」移到下一页的区块：显式换页（Firefox / Safari 不支持 break-after: avoid）。
+  // 强制换页后的外边距会保留，去掉它才与编辑器的分页一致。
+  for (const id of breaks)
+    style.textContent += `.print-root .r-section[data-section="${CSS.escape(id)}"] { break-before: page; margin-top: 0; }`
   document.head.append(style)
   const previous = document.title
   document.title = title

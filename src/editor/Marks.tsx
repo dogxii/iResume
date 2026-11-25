@@ -218,13 +218,10 @@ function MarkDetail({ mark, onRevert }: { mark: Mark; onRevert(): void }) {
       <p className='e-mark-diff'>
         {parts.map((p, i) =>
           p.type === 'same' ? (
-            // biome-ignore lint/suspicious/noArrayIndexKey: 片段顺序固定
             <span key={i}>{p.text}</span>
           ) : p.type === 'del' ? (
-            // biome-ignore lint/suspicious/noArrayIndexKey: 片段顺序固定
             <del key={i}>{p.text || t.empty}</del>
           ) : (
-            // biome-ignore lint/suspicious/noArrayIndexKey: 片段顺序固定
             <ins key={i}>{p.text || t.empty}</ins>
           )
         )}

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
-import { watchErrors } from './helpers'
+import { settle, watchErrors } from './helpers'
 
 /** 英文浏览器：界面、示例简历、新建简历都应是英文 */
 test.use({ locale: 'en-US', colorScheme: 'light', reducedMotion: 'reduce' })
@@ -33,6 +33,7 @@ async function chromeText(page: Page) {
 }
 
 async function audit(page: Page, label: string) {
+  await settle(page)
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()

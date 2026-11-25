@@ -1,9 +1,10 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
-import { openHome } from './helpers'
+import { openHome, settle } from './helpers'
 
 /** 只拦截严重与关键级别的问题；简历纸面本身是打印内容，单独放宽对比度规则 */
 async function audit(page: Page, label: string) {
+  await settle(page)
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()
