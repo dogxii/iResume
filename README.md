@@ -17,7 +17,15 @@
 
 ## 👀 预览
 
-https://resume.dogxi.me
+在线体验：https://resume.dogxi.me
+
+![直接在纸面上编辑](docs/screenshots/editor.webp)
+
+| 主题与版式 | 修订标记 |
+| --- | --- |
+| ![8 套主题预设](docs/screenshots/theme.webp) | ![修订标记：页边标出修改，可逐处撤回](docs/screenshots/marks.webp) |
+| **导入已有简历** | **首页** |
+| ![导入 PDF 后预览识别结果](docs/screenshots/import.webp) | ![首页：我的简历与主题](docs/screenshots/home.webp) |
 
 ## 📚 简介
 
@@ -30,7 +38,9 @@ iResume 3 是一次彻底的重写。没有表单，也没有左边填写、右�
 - **所见即所得编辑**：
   - 直接在纸面上输入；
   - 回车新起一条要点，在行首按退格会和上一条合并；
-  - 支持 `**粗体**` 和 `[链接](url)`。
+  - 支持 `**粗体**` 和 `[链接](url)`；
+  - 鼠标悬停出现条目工具：拖动排序、上移下移、插入、隐藏、删除；
+  - 第一次打开有三条轻提示，右下角「?」随时查看快捷键。
 - **主题引擎**：
   - 8 套预设：清简、经典、侧标题、双栏、现代、紧凑、时间线、书卷；
   - 版式、标题样式、字体、颜色、间距、日期写法都可以单独调整；
@@ -95,16 +105,18 @@ bun run preview
 
 - 导出 PDF 时，在打印对话框里选择「存储为 PDF」，并关闭「页眉和页脚」
 - 简历默认只保存在当前浏览器；换设备或清理浏览器数据前，先在首页点击「备份全部」，或开启「同步」
-- 快捷键：
+- 快捷键（编辑器里按 `?` 查看全部）：
   - `⌘/Ctrl + Z` 撤销，`⇧⌘Z` 重做
+  - `⌘/Ctrl + S` 立即保存（平时自动保存）
   - `⌘/Ctrl + P` 导出 PDF
+  - `⌘/Ctrl + \` 展开 / 收起大纲
   - 预览模式下按 `Esc` 返回编辑
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · IndexedDB · Lucide · Vitest · Biome · Bun（运行时依赖只有 react、react-dom、lucide-react）
+React 19 · TypeScript · Vite · IndexedDB · Lucide · Vitest · Biome · Bun（运行时依赖：react、react-dom、lucide-react，以及导入时才加载的 pdf.js 与 mammoth）
 
-开发前请先阅读 [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md)，里面有架构说明和路线图。提交前请运行 `bun run check`。
+开发前请先阅读 [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md)，里面有架构说明和路线图；版本变化见 [`CHANGELOG.md`](CHANGELOG.md)。提交前请运行 `bun run check`。
 
 端到端测试（Playwright，基于生产构建）：
 
