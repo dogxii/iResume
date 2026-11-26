@@ -37,17 +37,17 @@ import { defineMessages, useLang, useT } from '../i18n'
 import { lint } from '../lint'
 import { toBundle } from '../migrate'
 import { computeMarks } from '../model/marks'
-import type { ResumeDoc, Snapshot } from '../model/types'
+import type { ResumeDoc } from '../model/types'
 import { type EditApi, EditContext } from '../render/Field'
 import { Resume } from '../render/Resume'
 import {
   flushNow,
   getState,
-  listSnapshots,
   markExported,
   redo,
   undo,
   useApp,
+  useSnapshots,
 } from '../store/store'
 import { pagePx } from '../theme/css'
 import { IconButton, MenuItem } from '../ui/controls'
@@ -56,8 +56,8 @@ import { toast } from '../ui/toast'
 import { useMedia } from '../ui/useMedia'
 import { actions } from './actions'
 import { useItemDrop } from './dragItems'
-import { HelpButton, ShortcutsDialog, Tips, tipsDone } from './Help'
-import { MarksBar, type MarksBase, MarksLayer, resolveMark } from './Marks'
+import { HelpButton, hotkey, ShortcutsDialog, Tips, tipsDone } from './Help'
+import { MarksBar, type MarksBase, MarksLayer } from './Marks'
 import { MatchPanel } from './Match'
 import { FIT_STEPS, FIT_TARGET, type Measure, measurePaper } from './measure'
 import { focusTarget, MarginNotes, NotesList } from './Notes'
@@ -100,12 +100,12 @@ const M = defineMessages(
     saving: '保存中…',
     saveFailed: '保存失败',
     saved: '已保存',
-    undo: '撤销 (⌘Z)',
-    redo: '重做 (⇧⌘Z)',
+    undo: `撤销 (${hotkey('Z')})`,
+    redo: `重做 (${hotkey('Z', true)})`,
     preview: '预览',
-    hideOutline: '收起大纲 (⌘\\)',
+    hideOutline: `收起大纲 (${hotkey('\\')})`,
     marks: '修订标记',
-    showOutline: '展开大纲 (⌘\\)',
+    showOutline: `展开大纲 (${hotkey('\\')})`,
     pdfHint: '在打印对话框中选择「存储为 PDF」，文字可选中、可被 ATS 解析',
     jsonTitle: 'iResume 文件（JSON）',
     jsonHint: '完整备份内容与主题，可在任何设备导入',
@@ -150,12 +150,12 @@ const M = defineMessages(
     saving: 'Saving…',
     saveFailed: 'Save failed',
     saved: 'Saved',
-    undo: 'Undo (⌘Z)',
-    redo: 'Redo (⇧⌘Z)',
+    undo: `Undo (${hotkey('Z')})`,
+    redo: `Redo (${hotkey('Z', true)})`,
     preview: 'Preview',
-    hideOutline: 'Hide outline (⌘\\)',
+    hideOutline: `Hide outline (${hotkey('\\')})`,
     marks: 'Change marks',
-    showOutline: 'Show outline (⌘\\)',
+    showOutline: `Show outline (${hotkey('\\')})`,
     pdfHint:
       'Choose “Save as PDF” in the print dialog — text stays selectable and ATS-readable',
     jsonTitle: 'iResume file (JSON)',
@@ -267,17 +267,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     setMarksPrefState(p)
     writeMarksPref(doc.id, p)
   }
-  const snapVersion = useApp((s) => s.snapshots[doc.id] ?? 0)
-  const [snaps, setSnaps] = useState<Snapshot[] | null>(null)
-  useEffect(() => {
-    if (!marksPref.on) return
-    let alive = true
-    void listSnapshots(doc.id).then((l) => alive && setSnaps(l))
-    return () => {
-      alive = false
-    }
-  }, [marksPref.on, doc.id, snapVersion])
-  const exportSnap = snaps?.find((x) => x.exported)
+  const snaps = useSnapshots(doc.id, marksPref.on)
   const baseDoc = !marksPref.on
     ? null
     : marksPref.base === 'session'
@@ -285,7 +275,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
       : !snaps
         ? null
         : ((marksPref.base === 'export'
-            ? exportSnap
+            ? snaps.find((x) => x.exported)
             : snaps.find((x) => x.id === marksPref.base)
           )?.doc ?? sessionBase.current)
   const marks = useMemo(
@@ -293,25 +283,18 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
     [baseDoc, doc, lang, preview]
   )
   const markStep = useRef(-1)
+  /** 「上一处 / 下一处」：按页边已经画出的标记从上到下轮换 */
   const stepMark = (dir: 1 | -1) => {
-    const paper = paperRef.current
-    if (!paper) return
-    const located = marks
-      .map((m) => ({ m, hit: resolveMark(paper, m) }))
-      .filter((x) => x.hit)
-      .map((x) => ({ ...x, y: x.hit?.el.getBoundingClientRect().top ?? 0 }))
-      .sort((p, q) => p.y - q.y)
-    if (!located.length) return
-    markStep.current =
-      (markStep.current + dir + located.length) % located.length
-    const { m, hit } = located[markStep.current]
-    hit?.el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    const bar = document.querySelector<HTMLElement>(
-      `.e-mark[data-mark="${CSS.escape(m.id)}"]`
-    )
-    bar?.classList.remove('is-flash')
-    void bar?.offsetWidth
-    bar?.classList.add('is-flash')
+    const bars = [
+      ...(stageRef.current?.querySelectorAll<HTMLElement>('.e-mark') ?? []),
+    ].sort((p, q) => p.offsetTop - q.offsetTop)
+    if (!bars.length) return
+    markStep.current = (markStep.current + dir + bars.length) % bars.length
+    const bar = bars[markStep.current]
+    bar.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    bar.classList.remove('is-flash')
+    void bar.offsetWidth
+    bar.classList.add('is-flash')
   }
   // 离开编辑器时立即写入，不等防抖
   useEffect(() => () => void flushNow(), [])
@@ -681,7 +664,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
               <div className='u-menu is-wide' role='menu'>
                 <MenuItem
                   icon={<Printer size={16} />}
-                  hint='⌘P'
+                  hint={hotkey('P')}
                   onClick={exportPdf}
                 >
                   <b>PDF</b>
@@ -720,7 +703,6 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
         <MarksBar
           count={marks.length}
           base={marksPref.base}
-          exportSnap={exportSnap}
           snapshots={snaps ?? []}
           onBase={(base) => {
             markStep.current = -1
@@ -799,7 +781,7 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
                 marks={marks}
                 paper={paperRef.current}
                 stage={stageRef.current}
-                layoutKey={`${zoom}|${doc.updatedAt}|${outlineOpen}`}
+                layoutKey={`${zoom}|${outlineOpen}`}
                 onRevert={(m) => a.update((d) => m.revert(d))}
               />
             )}
@@ -930,5 +912,6 @@ export function Editor({ doc, onExit }: { doc: ResumeDoc; onExit(): void }) {
 /** 焦点在可编辑文字里时，「?」是要输入的字符 */
 function isTyping(target: EventTarget | null) {
   const el = target as HTMLElement | null
-  return !!el?.closest?.('input, textarea, select, [contenteditable]')
+  // 不能用 [contenteditable]：工具条是 contenteditable="false"，在那里按 ? 也应打开面板
+  return !!(el?.isContentEditable || el?.closest?.('input, textarea, select'))
 }

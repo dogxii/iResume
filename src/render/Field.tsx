@@ -220,7 +220,7 @@ function nextField(el: HTMLElement): HTMLElement | null {
   if (next) return next
   // 区块标题、或者条目的最后一个字段：跳到后面第一个条目的第一个字段
   for (const s of paper.querySelectorAll(SCOPE)) {
-    if (s === scope || !after(s)) continue
+    if (!after(s)) continue
     const first = s.querySelector<HTMLElement>(FIELD)
     if (first) return first
   }

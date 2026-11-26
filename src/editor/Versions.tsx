@@ -1,14 +1,13 @@
 import { ArrowLeft, RotateCcw, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { defineMessages, intlLocale, useLang, useT } from '../i18n'
 import { type Change, diffDocs } from '../model/diff'
 import type { ResumeDoc, Snapshot } from '../model/types'
 import {
   deleteSnapshot,
-  listSnapshots,
   restoreSnapshot,
   saveSnapshot,
-  useApp,
+  useSnapshots,
 } from '../store/store'
 import { Button } from '../ui/controls'
 import { ago, stamp } from '../ui/time'
@@ -64,19 +63,9 @@ const M = defineMessages(
 export function Versions({ doc, onDone }: { doc: ResumeDoc; onDone(): void }) {
   const t = useT(M)
   const lang = useLang()
-  const version = useApp((s) => s.snapshots[doc.id] ?? 0)
-  const [list, setList] = useState<Snapshot[] | null>(null)
+  const list = useSnapshots(doc.id)
   const [label, setLabel] = useState('')
   const [viewing, setViewing] = useState<Snapshot | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    void listSnapshots(doc.id).then((l) => alive && setList(l))
-    return () => {
-      alive = false
-    }
-    // version 变化即重新读取
-  }, [doc.id, version])
 
   if (viewing)
     return (

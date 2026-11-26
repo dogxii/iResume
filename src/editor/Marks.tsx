@@ -46,7 +46,7 @@ const M = defineMessages(
 export type MarksBase = 'session' | 'export' | (string & {})
 
 /** 找到一处修改在纸面上对应的元素与纵向位置 */
-export function resolveMark(paper: HTMLElement, m: Mark) {
+function resolveMark(paper: HTMLElement, m: Mark) {
   const find = (sel?: string) => {
     if (!sel) return null
     const el = paper.querySelector<HTMLElement>(sel)
@@ -237,7 +237,6 @@ function MarkDetail({ mark, onRevert }: { mark: Mark; onRevert(): void }) {
 export function MarksBar({
   count,
   base,
-  exportSnap,
   snapshots,
   onBase,
   onStep,
@@ -245,13 +244,13 @@ export function MarksBar({
 }: {
   count: number
   base: MarksBase
-  exportSnap?: Snapshot
   snapshots: Snapshot[]
   onBase(b: MarksBase): void
   onStep(dir: 1 | -1): void
   onClose(): void
 }) {
   const t = useT(M)
+  const exportSnap = snapshots.find((s) => s.exported)
   const versions = snapshots.filter((s) => !s.exported)
   return (
     <div className='e-marks-bar' role='toolbar' aria-label={t.title}>

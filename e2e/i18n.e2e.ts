@@ -59,7 +59,7 @@ test('英文界面：首页、示例简历与新建简历', async ({ page }) => 
   await expect(
     page.locator('.e-paper .r-section[data-kind=experience] .r-heading')
   ).toContainText('Experience')
-  await expect(page.getByRole('button', { name: 'Undo (⌘Z)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Undo \(/ })).toBeVisible()
   expect((await chromeText(page)).filter((t) => CJK.test(t))).toEqual([])
   for (const name of ['Theme', 'Layout', 'Version history', 'Job match']) {
     await page.getByRole('button', { name, exact: true }).first().click()

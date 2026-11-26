@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { defineMessages, getLang, type Lang, tr } from '../i18n'
 import { type ImportResult, importAny } from '../migrate'
 import { createDoc, duplicateDoc } from '../model/defaults'
@@ -357,6 +357,21 @@ const bumpSnapshots = (docId: string) =>
 
 export async function listSnapshots(docId: string): Promise<Snapshot[]> {
   return (await db?.listSnapshots(docId)) ?? []
+}
+
+/** 某份简历的历史版本；有新快照时自动重新读取。enabled 为 false 时不读 */
+export function useSnapshots(docId: string, enabled = true) {
+  const version = useApp((s) => s.snapshots[docId] ?? 0)
+  const [list, setList] = useState<Snapshot[] | null>(null)
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    void listSnapshots(docId).then((l) => alive && setList(l))
+    return () => {
+      alive = false
+    }
+  }, [docId, enabled, version])
+  return list
 }
 
 export async function saveSnapshot(docId: string, label: string, auto = false) {

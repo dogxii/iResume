@@ -12,6 +12,19 @@ import type { Theme } from '../theme/types'
 
 const sec = (d: ResumeDoc, id: string) => d.sections.find((s) => s.id === id)
 
+/** 把条目挪到 to(当前位置) 处；越界或没动就什么也不做 */
+function placeItem(
+  s: Section | undefined,
+  itemId: string,
+  to: (from: number) => number
+) {
+  const from = s?.items.findIndex((i) => i.id === itemId) ?? -1
+  if (!s || from < 0) return
+  const at = to(from)
+  if (at === from || at < 0 || at >= s.items.length) return
+  s.items.splice(at, 0, ...s.items.splice(from, 1))
+}
+
 /** 某个文档上的所有编辑动作 */
 export function actions(docId: string) {
   const u = (recipe: (d: ResumeDoc) => void, coalesce?: string) =>
@@ -109,27 +122,13 @@ export function actions(docId: string) {
       })
       if (focusKey) requestFocus(focusKey, 0)
     },
+    /** 上移 / 下移一格 */
     moveItem(sectionId: string, itemId: string, delta: number) {
-      u((d) => {
-        const s = sec(d, sectionId)
-        if (!s) return
-        const from = s.items.findIndex((i) => i.id === itemId)
-        const to = from + delta
-        if (from < 0 || to < 0 || to >= s.items.length) return
-        const [item] = s.items.splice(from, 1)
-        s.items.splice(to, 0, item)
-      })
+      u((d) => placeItem(sec(d, sectionId), itemId, (from) => from + delta))
     },
     /** 拖动排序：把条目放到区块中的第 to 个位置 */
     moveItemTo(sectionId: string, itemId: string, to: number) {
-      u((d) => {
-        const s = sec(d, sectionId)
-        if (!s) return
-        const from = s.items.findIndex((i) => i.id === itemId)
-        if (from < 0 || from === to) return
-        const [item] = s.items.splice(from, 1)
-        s.items.splice(Math.max(0, Math.min(to, s.items.length)), 0, item)
-      })
+      u((d) => placeItem(sec(d, sectionId), itemId, () => to))
     },
     removeItem(sectionId: string, itemId: string) {
       u((d) => {

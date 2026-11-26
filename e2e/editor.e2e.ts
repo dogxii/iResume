@@ -30,7 +30,7 @@ test('新建空白简历：直接在纸面上编辑、拆分要点、撤销', as
   // 撤销是逐步的：先撤掉新输入的文字，再撤掉拆分
   const items = page.locator('.r-section[data-kind=experience] .r-bullets li')
   await page.locator('.e-desk').click({ position: { x: 8, y: 300 } })
-  const undo = page.getByRole('button', { name: '撤销 (⌘Z)' })
+  const undo = page.getByRole('button', { name: /^撤销 \(/ })
   await undo.click()
   await expect(items.nth(1)).not.toContainText('搭建组件库')
   await undo.click()
@@ -70,7 +70,7 @@ test.describe('笔记本尺寸', () => {
     await page.locator('.h-card-name').first().click()
     const outline = page.locator('nav.e-outline')
     await expect(outline).toHaveClass(/is-collapsed/)
-    await page.getByRole('button', { name: '展开大纲 (⌘\\)' }).click()
+    await page.getByRole('button', { name: /^展开大纲/ }).click()
     await expect(outline).not.toHaveClass(/is-collapsed/)
     await page.reload()
     await expect(page.locator('nav.e-outline')).not.toHaveClass(/is-collapsed/)

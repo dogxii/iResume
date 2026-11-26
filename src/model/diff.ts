@@ -1,5 +1,6 @@
 import { defineMessages, getLang, type Lang } from '../i18n'
 import { themeName } from '../theme/presets'
+import { align } from './align'
 import { formatRange } from './dates'
 import { plainText } from './inline'
 import type { Item, ResumeDoc, Section } from './types'
@@ -94,29 +95,11 @@ const sectionName = (t: Msg, s: Section) => s.title.trim() || t.untitledSection
 
 /** 最长公共子序列：返回两侧未匹配的元素下标 */
 function lcsDiff(a: string[], b: string[]) {
-  const dp = Array.from({ length: a.length + 1 }, () =>
-    new Array<number>(b.length + 1).fill(0)
-  )
-  for (let i = a.length - 1; i >= 0; i--)
-    for (let j = b.length - 1; j >= 0; j--)
-      dp[i][j] =
-        a[i] === b[j]
-          ? dp[i + 1][j + 1] + 1
-          : Math.max(dp[i + 1][j], dp[i][j + 1])
-  const removed: number[] = []
-  const added: number[] = []
-  let i = 0
-  let j = 0
-  while (i < a.length && j < b.length) {
-    if (a[i] === b[j]) {
-      i++
-      j++
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) removed.push(i++)
-    else added.push(j++)
+  const ops = align(a, b)
+  return {
+    removed: ops.flatMap((o) => (o.op === 'del' ? [o.a as number] : [])),
+    added: ops.flatMap((o) => (o.op === 'add' ? [o.b as number] : [])),
   }
-  while (i < a.length) removed.push(i++)
-  while (j < b.length) added.push(j++)
-  return { removed, added }
 }
 
 const FIELDS = ['title', 'subtitle', 'location', 'tags', 'text'] as const

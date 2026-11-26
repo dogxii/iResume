@@ -1,4 +1,5 @@
 import { defineMessages, getLang, type Lang } from '../i18n'
+import { align } from './align'
 import { plainText } from './inline'
 import type { Item, ResumeDoc, Section } from './types'
 
@@ -86,33 +87,21 @@ const ITEM_FIELDS = [
   'end',
 ] as const
 
-/** 对齐两个序列：返回按顺序排列的相同 / 删除 / 新增操作 */
-export function align<T>(
-  a: T[],
-  b: T[],
-  same: (x: T, y: T) => boolean = (x, y) => x === y
-): { op: 'eq' | 'del' | 'add'; a?: number; b?: number }[] {
-  const n = a.length
-  const m = b.length
-  const dp = Array.from({ length: n + 1 }, () =>
-    new Array<number>(m + 1).fill(0)
-  )
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i][j] = same(a[i], b[j])
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1])
-  const ops: { op: 'eq' | 'del' | 'add'; a?: number; b?: number }[] = []
-  let i = 0
-  let j = 0
-  while (i < n && j < m) {
-    if (same(a[i], b[j])) ops.push({ op: 'eq', a: i++, b: j++ })
-    else if (dp[i + 1][j] >= dp[i][j + 1]) ops.push({ op: 'del', a: i++ })
-    else ops.push({ op: 'add', b: j++ })
+/**
+ * 按 id 配对：两边都有的是同一个（可能挪了位置，只比内容，不算增删），
+ * 只在一边的才是新增或删除。
+ */
+function pairById<T extends { id: string }>(a: T[], b: T[]) {
+  const before = new Map(a.map((x) => [x.id, x]))
+  const after = new Set(b.map((x) => x.id))
+  return {
+    pairs: b.flatMap((x) => {
+      const old = before.get(x.id)
+      return old ? [[old, x] as const] : []
+    }),
+    added: (x: T) => !before.has(x.id),
+    removed: (x: T) => !after.has(x.id),
   }
-  while (i < n) ops.push({ op: 'del', a: i++ })
-  while (j < m) ops.push({ op: 'add', b: j++ })
-  return ops
 }
 
 /** 词级对比：中文按字、英文按词，用于弹层里的前后对照 */
@@ -315,8 +304,10 @@ function itemMarks(
         after: plainText(text),
         revert: (d) => {
           const it = findItem(d, sid, iid)
-          const at = it?.bullets.indexOf(text) ?? -1
-          if (it && at >= 0) it.bullets.splice(at, 1)
+          if (!it) return
+          // 先看记录的位置（同样文字的要点可能不止一条），挪动过再按文字找
+          const at = it.bullets[raw] === text ? raw : it.bullets.indexOf(text)
+          if (at >= 0) it.bullets.splice(at, 1)
         },
       })
     }
@@ -377,19 +368,12 @@ function sectionMarks(
     })
   }
   const ops = align(base.items, cur.items, (x, y) => x.id === y.id)
-  for (const o of ops) {
-    if (o.op === 'eq')
-      itemMarks(
-        t,
-        sid,
-        base.items[o.a as number],
-        cur.items[o.b as number],
-        out
-      )
-  }
+  const ids = pairById(base.items, cur.items)
+  for (const [old, it] of ids.pairs) itemMarks(t, sid, old, it, out)
   for (const h of hunks(ops)) {
     for (const k of h.add) {
       const it = cur.items[k]
+      if (!ids.added(it)) continue
       out.push({
         id: `${it.id}:item`,
         kind: 'added',
@@ -404,6 +388,7 @@ function sectionMarks(
     }
     for (const k of h.del) {
       const it = base.items[k]
+      if (!ids.removed(it)) continue
       const nextId = h.nextB !== undefined ? cur.items[h.nextB].id : undefined
       const prevId = h.prevB !== undefined ? cur.items[h.prevB].id : undefined
       out.push({
@@ -452,11 +437,9 @@ export function computeMarks(
       },
     })
   }
-  const cops = align(pa.contacts, pb.contacts, (x, y) => x.id === y.id)
-  for (const o of cops) {
-    const c = o.b !== undefined ? pb.contacts[o.b] : undefined
-    const old = o.a !== undefined ? pa.contacts[o.a] : undefined
-    if (o.op === 'eq' && c && old && c.value !== old.value) {
+  const cids = pairById(pa.contacts, pb.contacts)
+  for (const [old, c] of cids.pairs) {
+    if (c.value !== old.value)
       out.push({
         id: `contact:${c.id}`,
         kind: c.value.trim()
@@ -477,7 +460,9 @@ export function computeMarks(
           if (x) x.value = old.value
         },
       })
-    } else if (o.op === 'add' && c?.value.trim()) {
+  }
+  for (const c of pb.contacts)
+    if (cids.added(c) && c.value.trim())
       out.push({
         id: `contact:${c.id}`,
         kind: 'added',
@@ -491,7 +476,8 @@ export function computeMarks(
           d.profile.contacts = d.profile.contacts.filter((y) => y.id !== c.id)
         },
       })
-    } else if (o.op === 'del' && old?.value.trim()) {
+  for (const old of pa.contacts)
+    if (cids.removed(old) && old.value.trim())
       out.push({
         id: `contact-del:${old.id}`,
         kind: 'removed',
@@ -503,21 +489,14 @@ export function computeMarks(
             d.profile.contacts.push(structuredClone(old))
         },
       })
-    }
-  }
 
   const sops = align(base.sections, cur.sections, (x, y) => x.id === y.id)
-  for (const o of sops)
-    if (o.op === 'eq')
-      sectionMarks(
-        t,
-        base.sections[o.a as number],
-        cur.sections[o.b as number],
-        out
-      )
+  const sids = pairById(base.sections, cur.sections)
+  for (const [old, s] of sids.pairs) sectionMarks(t, old, s, out)
   for (const h of hunks(sops)) {
     for (const k of h.add) {
       const s = cur.sections[k]
+      if (!sids.added(s)) continue
       out.push({
         id: `${s.id}:section`,
         kind: 'added',
@@ -531,6 +510,7 @@ export function computeMarks(
     }
     for (const k of h.del) {
       const s = base.sections[k]
+      if (!sids.removed(s)) continue
       const nextId =
         h.nextB !== undefined ? cur.sections[h.nextB].id : undefined
       const prevId =

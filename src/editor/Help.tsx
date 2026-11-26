@@ -8,8 +8,13 @@ const isMac =
   typeof navigator !== 'undefined' &&
   /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 /** 修饰键：苹果设备是 ⌘，其他是 Ctrl */
-export const MOD = isMac ? '⌘' : 'Ctrl'
+const MOD = isMac ? '⌘' : 'Ctrl'
 const SHIFT = isMac ? '⇧' : 'Shift'
+/** 提示文字里的快捷键：苹果设备写成 ⇧⌘Z，其他写成 Ctrl+Shift+Z */
+export const hotkey = (key: string, shift = false) =>
+  isMac
+    ? `${shift ? SHIFT : ''}${MOD}${key}`
+    : `${MOD}+${shift ? `${SHIFT}+` : ''}${key}`
 
 const M = defineMessages(
   {
@@ -139,7 +144,7 @@ export const tipsDone = () => {
     return true
   }
 }
-export const setTipsDone = (done: boolean) => {
+const setTipsDone = (done: boolean) => {
   try {
     if (done) localStorage.setItem(TIPS_KEY, 'done')
     else localStorage.removeItem(TIPS_KEY)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { align } from './align'
 import { createDoc, newItem, newSection } from './defaults'
-import { align, computeMarks, wordDiff } from './marks'
+import { computeMarks, wordDiff } from './marks'
 import type { ResumeDoc } from './types'
 
 const base = () => createDoc({ sample: true })
@@ -60,6 +61,39 @@ describe('修改标记', () => {
       marks.find((m) => m.label === '条目' && m.kind === 'removed')?.before
     ).toBe(gone?.title)
     expect(content(revertAll(b, c))).toEqual(content(b))
+  })
+
+  it('挪动条目、区块、联系方式只是换了位置：不算增删，里面的修改照常标出', () => {
+    const b = base()
+    const c = structuredClone(b)
+    exp(c).items.reverse()
+    c.sections.reverse()
+    c.profile.contacts.reverse()
+    exp(c).items[0].title = '改过的公司'
+    const marks = computeMarks(b, c, 'zh')
+    expect(marks.map((m) => m.kind)).toEqual(['changed'])
+    // 撤回只改回文字，不会删掉被挪动的条目
+    const draft = revertAll(b, c)
+    expect(exp(draft).items).toHaveLength(exp(b).items.length)
+    expect(exp(draft).items.map((i) => i.title)).toEqual(
+      [...exp(b).items].reverse().map((i) => i.title)
+    )
+  })
+
+  it('撤回新增的要点时，同样文字的另一条不受影响', () => {
+    const b = base()
+    const c = structuredClone(b)
+    const item = exp(c).items[0]
+    item.bullets = ['重复', ...item.bullets, '重复']
+    const last = computeMarks(b, c, 'zh').at(-1)
+    expect(last).toMatchObject({ kind: 'added', after: '重复' })
+    const draft = structuredClone(c)
+    last?.revert(draft)
+    // 撤回的是最后一条，开头那条还在
+    expect(exp(draft).items[0].bullets).toEqual([
+      '重复',
+      ...exp(b).items[0].bullets,
+    ])
   })
 
   it('字段、联系方式、区块标题的修改', () => {
