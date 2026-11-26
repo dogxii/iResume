@@ -223,6 +223,52 @@ Research: Interviews, Usability testing`
   })
 })
 
+describe('容易误判的写法', () => {
+  it('数量区间、电话号码不是日期；带逗号的句子不是职位', () => {
+    const { doc } = parseResume(
+      textToLines(
+        '张三\n138-0013-8000  zs@mail.com\n工作经历\n星图科技  2021.03 - 至今\n前端工程师\n负责数据平台，服务 1000-2000 家企业客户'
+      )
+    )
+    const exp = doc.sections.find((s) => s.kind === 'experience')
+    expect(exp?.items).toHaveLength(1)
+    expect(exp?.items[0].subtitle).toBe('前端工程师')
+    expect(exp?.items[0].text).toContain('1000-2000 家企业客户')
+    expect(doc.profile.contacts.map((c) => c.value)).toContain('138-0013-8000')
+  })
+
+  it('带逗号的整句是描述，不是关键词', () => {
+    const { doc } = parseResume(
+      textToLines(
+        'Jordan Lee\nExperience\nStripe  2021 - Present\nEngineer\nLed design, research, and delivery.'
+      )
+    )
+    const item = doc.sections[0].items[0]
+    expect(item.tags).toBe('')
+    expect(item.text).toBe('Led design, research, and delivery.')
+  })
+
+  it('PDF 里字号最大的一行是姓名；「个人简历」这样的文档标题丢掉', () => {
+    const line = (text: string, size: number) => ({
+      text,
+      cells: [text],
+      size,
+      x: 0,
+      bullet: false,
+    })
+    const { doc } = parseResume([
+      line('个人简历', 10),
+      line('张三', 24),
+      line('前端工程师', 10),
+      line('zs@mail.com', 10),
+      line('工作经历', 13),
+      line('星图科技  2021.03 - 至今', 10),
+    ])
+    expect(doc.profile.name).toBe('张三')
+    expect(doc.profile.headline).toBe('前端工程师')
+  })
+})
+
 describe('工具函数', () => {
   it('区块标题词典', () => {
     expect(titleKind('工作经历')).toBe('experience')

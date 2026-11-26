@@ -522,7 +522,6 @@
 }
 .h-import-zoom {
   zoom: 0.378;
-  pointer-events: none;
 }
 .h-import-summary {
   display: grid;

@@ -18,15 +18,17 @@ export interface Line {
   bullet: boolean
   /** 来源明确标记为标题（Word 的标题样式、Markdown 的 #、整行加粗的短行） */
   heading?: boolean
-  /** 与上一行之间的空白（以行高为单位）；未知时为 0 */
-  gap: number
   /** 这一行与上一行属于同一段落被自动换行切开（PDF 中按位置判断；纯文本为 false） */
   wrapped?: boolean
 }
 
-/** 项目符号：•●○◦▪▫■□◆◇►▶✓✔➢➤· 、后面跟空格的 -–—*，以及「1.」「1）」「(1)」「①」 */
-const BULLET =
-  /^\s*(?:[•●○◦▪▫■□◆◇►▶✓✔➢➤·]|[-–—*](?=\s)|\(?\d{1,2}[.)）、](?!\d)|[①-⑳])\s*/
+/** 项目符号字形（PDF 里常常单独成为一个文字项） */
+export const GLYPHS = '•●○◦▪▫■□◆◇►▶✓✔➢➤'
+
+/** 项目符号：上面的字形与「·」、后面跟空格的 -–—*，以及「1.」「1）」「(1)」「①」 */
+const BULLET = new RegExp(
+  `^\\s*(?:[${GLYPHS}·]|[-–—*](?=\\s)|\\(?\\d{1,2}[.)）、](?!\\d)|[①-⑳])\\s*`
+)
 
 export function stripBullet(text: string): { text: string; bullet: boolean } {
   const m = text.match(BULLET)
@@ -57,12 +59,8 @@ export function isCjk(text: string) {
 /** 纯文本 / Markdown：每行一条，Markdown 的 # 与 ** 作为标题提示 */
 export function textToLines(input: string): Line[] {
   const out: Line[] = []
-  let blank = 0
   for (const raw of input.replace(/\r\n?/g, '\n').split('\n')) {
-    if (!raw.trim()) {
-      blank++
-      continue
-    }
+    if (!raw.trim()) continue
     let text = raw.trim()
     let heading = false
     const md = text.match(/^#{1,6}\s+(.*)$/)
@@ -92,9 +90,7 @@ export function textToLines(input: string): Line[] {
       x: 0,
       bullet: b.bullet,
       heading,
-      gap: blank,
     })
-    blank = 0
   }
   return out
 }

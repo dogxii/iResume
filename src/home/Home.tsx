@@ -228,20 +228,21 @@ export function Home({
             <Github size={17} />
           </a>
         </nav>
-        <ImportDialog
-          open={importing}
-          onClose={() => setImporting(false)}
-          onJson={(files) => void importFiles(files)}
-          onCreate={({ doc, stats }) => {
-            setImporting(false)
-            create(doc)
-            toast(
-              stats.unsorted
-                ? t.importedUnsorted(stats.unsorted)
-                : t.importedOne
-            )
-          }}
-        />
+        {importing && (
+          <ImportDialog
+            onClose={() => setImporting(false)}
+            onJson={(files) => void importFiles(files)}
+            onCreate={({ doc, stats }) => {
+              setImporting(false)
+              create(doc)
+              toast(
+                stats.unsorted
+                  ? t.importedUnsorted(stats.unsorted)
+                  : t.importedOne
+              )
+            }}
+          />
+        )}
       </header>
 
       <main className='h-main'>

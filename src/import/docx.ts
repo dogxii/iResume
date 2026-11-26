@@ -42,7 +42,6 @@ export function htmlToLines(html: string): Line[] {
       x: 0,
       bullet: b.bullet,
       heading: o.heading,
-      gap: 0,
     })
   }
   const blocks =

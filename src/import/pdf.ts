@@ -1,5 +1,4 @@
-import type { Line } from './lines'
-import { stripBullet } from './lines'
+import { GLYPHS, type Line, stripBullet } from './lines'
 
 /** pdf.js 文字项的精简形式（坐标单位 pt，y 轴向上） */
 export interface PdfItem {
@@ -16,7 +15,8 @@ interface Raw {
   y: number
 }
 
-const BULLET_GLYPH = /^[•●○◦▪▫■□◆◇►▶✓✔➢➤]$/
+const BULLET_GLYPH = new RegExp(`^[${GLYPHS}]$`)
+const LEADING_GLYPH = new RegExp(`^[${GLYPHS}]`)
 
 /**
  * 把一页页的文字项还原成行。
@@ -53,7 +53,6 @@ export function itemsToLines(pages: PdfItem[][]): Line[] {
         const prev = lines[i - 1]
         if (prev) {
           const dy = prev.y - l.y
-          l.line.gap = dy > 0 ? Math.max(0, dy / Math.max(1, l.size) - 1.6) : 0
           l.line.wrapped =
             !l.line.bullet &&
             dy > 0 &&
@@ -165,7 +164,7 @@ function toLines(raw: Raw): Built[] {
     // 「– 」也是常见的列表符号，但「– 至今」是被换到下一行的结束时间
     const dash =
       /^[-–—]\s/.test(kept[0].text) && !/^(?:\d{4}|至今|present)/i.test(b.text)
-    if (b.bullet && (dash || /^[•●○◦▪▫■□◆◇►▶✓✔➢➤]/.test(kept[0].text))) {
+    if (b.bullet && (dash || LEADING_GLYPH.test(kept[0].text))) {
       bullet = true
       kept[0].text = b.text
     }
@@ -177,7 +176,6 @@ function toLines(raw: Raw): Built[] {
       size: Math.round(Math.max(...cs.map((c) => c.size)) * 10) / 10,
       x: Math.round(x),
       bullet: isBullet,
-      gap: 0,
     },
     y: raw.y,
     size: Math.max(...cs.map((c) => c.size)),

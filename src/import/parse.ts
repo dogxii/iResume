@@ -197,6 +197,8 @@ export function titleKind(text: string): SectionKind | null {
   return DICT.get(t) ?? DICT.get(t.replace(/\s+/g, '')) ?? null
 }
 
+const DOC_TITLE = /^(?:个人简历|简历|resume|résumé|cv|curriculum vitae)$/i
+
 // —— 日期 ——————————————————————————————————————————————————
 
 const MONTH =
@@ -214,18 +216,21 @@ const DATE_ONLY = new RegExp(
   'i'
 )
 
+const PRESENT_ONLY = new RegExp(`^${PRESENT}$`, 'i')
+
+/** 年份要在合理范围里：排除「1000-2000 家客户」、电话号码「0013-8000」这类数字 */
+const yearOk = (d: string) => {
+  const y = Number(d.match(/\d{4}/)?.[0] ?? 2000)
+  return y >= 1950 && y <= 2100
+}
+
 /** 统一成「2023.07」「2023」，识别不了的保持原样 */
 export function normDate(s: string) {
   const t = s.trim().replace(/\s+/g, ' ')
-  if (new RegExp(`^${PRESENT}$`, 'i').test(t)) return t
+  if (PRESENT_ONLY.test(t)) return t
   const m = t.match(/^(\d{1,2})\/(\d{4})$/)
   if (m) return `${m[2]}.${m[1].padStart(2, '0')}`
-  const p = parseDate(
-    t
-      .replace(/\s*月$/, '')
-      .replace(/\s*年\s*/, '.')
-      .replace(/\.$/, '')
-  )
+  const p = parseDate(t)
   if (p?.kind === 'date')
     return p.month
       ? `${p.year}.${String(p.month).padStart(2, '0')}`
@@ -271,7 +276,11 @@ function dateCell(text: string): Dated | null {
 
 function findDates(text: string): Dated | null {
   const r = text.match(RANGE)
-  if (r && r.index !== undefined) {
+  if (
+    r &&
+    r.index !== undefined &&
+    [r[1], r[2], r[3]].every((d) => !d || yearOk(d))
+  ) {
     const rest = (text.slice(0, r.index) + text.slice(r.index + r[0].length))
       .replace(/\s*[·|｜,，]\s*$/, '')
       .replace(/^\s*[·|｜,，]\s*/, '')
@@ -282,8 +291,7 @@ function findDates(text: string): Dated | null {
   const s = text.match(SINGLE)
   // 单个年份只在短行里当作日期（避免把「2 个从 0 到 1」里的数字当成年份）
   if (s && s.index !== undefined && /\d{4}/.test(s[1])) {
-    const year = Number(s[1].match(/\d{4}/)?.[0])
-    if (year < 1950 || year > 2100) return null
+    if (!yearOk(s[1])) return null
     const rest = (
       text.slice(0, s.index) + text.slice(s.index + s[0].length)
     ).trim()
@@ -417,28 +425,27 @@ export function parseResume(
 
   // 4. 页眉：第一个区块之前的行；双栏版式里姓名可能在后面，它与紧随其后的行也算页眉
   const header = new Set<number>()
-  const end = firstHeading < 0 ? lines.length : firstHeading
-  for (let i = 0; i < end; i++) header.add(i)
   let nameAt = -1
   if (body) {
     const biggest = Math.max(...lines.map((l) => l.size))
     if (biggest > body * 1.5)
       nameAt = lines.findIndex((l) => l.size === biggest)
   }
-  if (nameAt < 0) nameAt = header.size ? 0 : -1
-  if (nameAt >= 0 && !header.has(nameAt)) {
-    // 双栏版式：姓名所在的一段（直到下一个区块标题）
-    for (let i = nameAt; i < lines.length && !kinds[i]; i++) header.add(i)
-  }
   if (firstHeading < 0) {
     // 没有任何标题：页眉只取到第一处日期或要点之前
-    header.clear()
-    for (let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < lines.length && header.size < 6; i++) {
       if (lines[i].bullet || findDates(lines[i].text)) break
       header.add(i)
-      if (header.size >= 6) break
     }
+  } else {
+    for (let i = 0; i < firstHeading; i++) header.add(i)
+    // 双栏版式：姓名可能在第一个标题之后，它所在的一段（直到下一个标题）也算页眉
+    if (nameAt > firstHeading)
+      for (let i = nameAt; i < lines.length && !kinds[i]; i++) header.add(i)
   }
+  if (nameAt < 0) nameAt = header.size ? 0 : -1
+  // 姓名行：字号最大的那行（在页眉里时），否则页眉第一行
+  const nameLine = header.has(nameAt) ? nameAt : Math.min(...header)
 
   const profile = {
     name: '',
@@ -447,10 +454,13 @@ export function parseResume(
     contacts: [] as Contact[],
   }
   const summary: string[] = []
-  const unsorted: Line[] = []
+  /** 认不出位置的行（只留文字），放进最后的「待整理」 */
+  const unsorted: string[] = []
   for (const i of [...header].sort((a, b) => a - b)) {
     const l = lines[i]
-    if (i === nameAt || (!profile.name && i === Math.min(...header))) {
+    // 「个人简历」「Resume」这样的文档标题不是内容
+    if (DOC_TITLE.test(l.text.replace(/\s+/g, ' ').trim())) continue
+    if (i === nameLine) {
       const [first, ...rest] = splitSegments(l.text)
       if (!profile.name && first && first.length <= 30 && !contactOf(first)) {
         profile.name = first
@@ -483,14 +493,12 @@ export function parseResume(
       profile.contacts.push(newContact('location', segs[0]))
       continue
     }
-    // 紧跟姓名的一行是头衔；其余较长的句子是没有标题的个人简介
-    // 姓名之后第一行不是联系方式的文字（右侧可能先排着几行联系方式）
+    // 头衔：第一行不是联系方式、也不是整句的文字（姓名之后可以长一些，右侧可能先排着几行联系方式）
     const afterName = nameAt < 0 || i > nameAt
     if (
       !profile.headline &&
       !l.bullet &&
-      afterName &&
-      l.text.length <= 80 &&
+      l.text.length <= (afterName ? 80 : 40) &&
       !/[，。；]/.test(l.text)
     ) {
       profile.headline = l.text.replace(/\s{2,}/g, ' · ')
@@ -501,15 +509,11 @@ export function parseResume(
       summary.push(l.text)
       continue
     }
-    if (!profile.headline && !l.bullet) {
-      profile.headline = l.text.replace(/\s{2,}/g, ' · ')
-      continue
-    }
     const labelled = contactOf(l.text)
     if (labelled) profile.contacts.push(labelled)
     else if (l.text.length <= 30 && !l.bullet)
       profile.contacts.push(newContact('text', l.text))
-    else unsorted.push(l)
+    else unsorted.push(l.text)
   }
 
   // 5. 区块
@@ -526,10 +530,10 @@ export function parseResume(
         lines: [],
       })
     else if (groups.length) groups[groups.length - 1].lines.push(l)
-    else unsorted.push(l)
+    else unsorted.push(l.text)
   }
   for (const g of groups) {
-    const section = buildSection(g.kind, g.title, g.lines, locale, unsorted)
+    const section = buildSection(g.kind, g.title, g.lines, locale)
     if (section) sections.push(section)
   }
   if (summary.length && !sections.some((s) => s.kind === 'summary')) {
@@ -537,7 +541,7 @@ export function parseResume(
       items: [newItem({ text: summary.reduce(joinWrapped, '') })],
     })
     sections.unshift(s)
-  } else unsorted.push(...summary.map((text) => ({ ...lineOf(text) })))
+  } else unsorted.push(...summary)
 
   if (unsorted.length) {
     sections.push(
@@ -546,7 +550,7 @@ export function parseResume(
         layout: 'text',
         items: [
           newItem({
-            bullets: unsorted.map((l) => l.text.replace(/\s{2,}/g, ' · ')),
+            bullets: unsorted.map((t) => t.replace(/\s{2,}/g, ' · ')),
           }),
         ],
       })
@@ -557,7 +561,7 @@ export function parseResume(
     locale,
     name: options.name || profile.name || M[locale].imported,
   })
-  doc.profile = { ...doc.profile, ...profile }
+  doc.profile = profile
   doc.sections = sections
   return {
     doc,
@@ -569,21 +573,11 @@ export function parseResume(
   }
 }
 
-const lineOf = (text: string): Line => ({
-  text,
-  cells: [text],
-  size: 0,
-  x: 0,
-  bullet: false,
-  gap: 0,
-})
-
 function buildSection(
   kind: SectionKind,
   title: string,
   lines: Line[],
-  locale: Locale,
-  unsorted: Line[]
+  locale: Locale
 ): Section | null {
   const layout =
     kind === 'custom'
@@ -598,7 +592,7 @@ function buildSection(
       ? textItems(lines)
       : layout === 'rows'
         ? rowItems(lines)
-        : entryItems(lines, unsorted)
+        : entryItems(lines)
   if (!items.length) return null
   return newSection(kind, locale, { title, layout, items })
 }
@@ -667,7 +661,7 @@ function rowItems(lines: Line[]): Item[] {
 }
 
 /** 条目：以带日期的行或要点之后的第一行开头；之后的行依次是副标题、链接 / 标签、描述、要点 */
-function entryItems(lines: Line[], unsorted: Line[]): Item[] {
+function entryItems(lines: Line[]): Item[] {
   const items: Item[] = []
   let cur: Item | null = null
   let open: Dated | null = null
@@ -750,21 +744,23 @@ function entryItems(lines: Line[], unsorted: Line[]): Item[] {
       !c.subtitle &&
       !c.links.length &&
       text.length <= 40 &&
-      !/[。.!！]$/.test(text)
+      !/[。.!！]$|[，；]/.test(text)
     ) {
       c.subtitle = text.replace(/\s{2,}/g, ' · ')
       continue
     }
+    // 「React, Vue, TypeScript」这样的短词列表是关键词；以句号结尾的是句子
     const tokens = text.split(/\s*[,，、/]\s*/)
-    if (!c.tags && tokens.length >= 3 && tokens.every((x) => x.length <= 24)) {
+    if (
+      !c.tags &&
+      tokens.length >= 3 &&
+      tokens.every((x) => x.length <= 24) &&
+      !/[。.!！]$/.test(text)
+    ) {
       c.tags = tokens.join(', ')
       continue
     }
-    if (text) {
-      c.text = c.text ? joinWrapped(c.text, text) : text
-      continue
-    }
-    unsorted.push(l)
+    c.text = c.text ? joinWrapped(c.text, text) : text
   }
   return items.filter(
     (i) => i.title || i.subtitle || i.text || i.bullets.length || i.start

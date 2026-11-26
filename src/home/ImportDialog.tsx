@@ -1,5 +1,5 @@
 import { FileText, LoaderCircle, ShieldCheck, Upload } from 'lucide-react'
-import { type DragEvent, useEffect, useRef, useState } from 'react'
+import { type DragEvent, useRef, useState } from 'react'
 import { defineMessages, useT } from '../i18n'
 import type { Line } from '../import/lines'
 import type { ParseResult } from '../import/parse'
@@ -81,13 +81,16 @@ async function readFile(file: File, t: (typeof M)['zh']) {
     const { readDocx } = await import('../import/docx')
     lines = await readDocx(await file.arrayBuffer())
   } else if (/\.doc$/i.test(file.name)) {
-    throw new Error(t.oldWord)
+    throw new ImportError(t.oldWord)
   } else {
     const { textToLines } = await import('../import/lines')
     lines = textToLines(await file.text())
   }
   return parse(lines, name, t)
 }
+
+/** 已知原因的失败：直接显示消息，不再包一层「无法读取」 */
+class ImportError extends Error {}
 
 async function parse(lines: Line[], name: string, t: (typeof M)['zh']) {
   if (
@@ -96,18 +99,17 @@ async function parse(lines: Line[], name: string, t: (typeof M)['zh']) {
       .join('')
       .trim().length < 10
   )
-    throw new Error(t.noText)
+    throw new ImportError(t.noText)
   const { parseResume } = await import('../import/parse')
   return parseResume(lines, { name })
 }
 
+/** 每次打开时挂载（关闭即卸载），所以状态总是从头开始 */
 export function ImportDialog({
-  open,
   onClose,
   onJson,
   onCreate,
 }: {
-  open: boolean
   onClose(): void
   /** iResume 备份交给原来的导入流程 */
   onJson(files: File[]): void
@@ -119,13 +121,6 @@ export function ImportDialog({
   const [text, setText] = useState('')
   const [over, setOver] = useState(false)
 
-  // 每次打开都从头开始
-  useEffect(() => {
-    if (!open) return
-    setState({ step: 'pick' })
-    setText('')
-  }, [open])
-
   const take = async (files: File[]) => {
     if (!files.length) return
     const json = files.filter(isJson)
@@ -136,31 +131,26 @@ export function ImportDialog({
       return
     }
     setState({ step: 'reading', name: file.name })
+    await run(() => readFile(file, t))
+  }
+
+  const readText = () =>
+    run(async () => {
+      const { textToLines } = await import('../import/lines')
+      return parse(textToLines(text), '', t)
+    })
+
+  /** 文件与粘贴共用：成功进入预览，失败回到选择并显示原因 */
+  const run = async (read: () => Promise<ParseResult>) => {
     try {
-      setState({ step: 'preview', result: await readFile(file, t) })
+      setState({ step: 'preview', result: await read() })
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
       setState({
         step: 'pick',
         error:
-          reason === t.noText || reason === t.oldWord
-            ? reason
-            : t.failed(reason),
-      })
-    }
-  }
-
-  const readText = async () => {
-    const { textToLines } = await import('../import/lines')
-    try {
-      setState({
-        step: 'preview',
-        result: await parse(textToLines(text), '', t),
-      })
-    } catch (error) {
-      setState({
-        step: 'pick',
-        error: error instanceof Error ? error.message : String(error),
+          error instanceof ImportError
+            ? error.message
+            : t.failed(error instanceof Error ? error.message : String(error)),
       })
     }
   }
@@ -173,7 +163,7 @@ export function ImportDialog({
 
   return (
     <Dialog
-      open={open}
+      open
       onClose={onClose}
       label={t.title}
       title={state.step === 'preview' ? t.preview : t.title}

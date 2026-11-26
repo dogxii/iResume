@@ -34,11 +34,15 @@ export async function openHome(page: Page) {
 
 /** 通过首页的「导入」导入简历 */
 export async function importDocs(page: Page, docs: ResumeDoc[]) {
-  await page.locator('input[type=file][multiple]').setInputFiles({
-    name: 'docs.iresume.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(toBundle(docs))),
-  })
+  await page.getByRole('button', { name: '导入', exact: true }).click()
+  await page
+    .getByRole('dialog')
+    .locator('input[type=file]')
+    .setInputFiles({
+      name: 'docs.iresume.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(toBundle(docs))),
+    })
   await expect(page.getByText(`已导入 ${docs.length} 份简历`)).toBeVisible()
 }
 
