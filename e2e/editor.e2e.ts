@@ -40,10 +40,10 @@ test('新建空白简历：直接在纸面上编辑、拆分要点、撤销', as
   // 自动保存后回到首页，刷新仍在
   await expect(page.locator('.e-save')).toHaveText('已保存')
   await page.getByRole('button', { name: '返回简历库' }).click()
-  await expect(page.locator('.h-card-name')).toContainText(['未命名简历'])
+  await expect(page.locator('.h-card-name')).toContainText(['王小雨的简历'])
   await page.reload()
   await expect(
-    page.locator('.h-card').filter({ hasText: '未命名简历' })
+    page.locator('.h-card').filter({ hasText: '王小雨的简历' })
   ).toBeVisible()
   expect(errors).toEqual([])
 })
@@ -107,4 +107,55 @@ test.describe('笔记本尺寸', () => {
         .locator('.r-sub')
     ).toHaveText('高级前端')
   })
+})
+
+test('只用键盘从头写：回车一路往下走，跳过空的可选字段；名称跟着姓名', async ({
+  page,
+}) => {
+  const errors = watchErrors(page)
+  await openHome(page)
+  await page.getByRole('button', { name: '空白简历' }).click()
+  const focused = () =>
+    page.evaluate(() => document.activeElement?.getAttribute('data-ph'))
+  await page.locator('.e-paper .r-name').click()
+  for (const text of [
+    '张三',
+    '产品经理',
+    'zs@mail.com',
+    '13800000000',
+    '北京',
+  ]) {
+    await page.keyboard.type(text)
+    await page.keyboard.press('Enter')
+  }
+  // 页眉写完接着写第一段经历
+  expect(await focused()).toBe('公司名称')
+  for (const text of ['字节跳动', '产品经理', '2021.03', '至今']) {
+    await page.keyboard.type(text)
+    await page.keyboard.press('Enter')
+  }
+  // 城市、链接、技术栈是空的可选字段，直接到要点
+  await page.keyboard.type('主导推荐系统改版')
+  const exp = page.locator('.e-paper .r-section[data-kind=experience]')
+  await expect(exp.locator('.r-bullets li').first()).toHaveText(
+    '主导推荐系统改版'
+  )
+  await expect(exp.locator('.r-loc')).toHaveText('')
+
+  // 区块标题回车进入区块的第一个字段
+  const skills = page.locator('.e-paper .r-section[data-kind=skills]')
+  await skills.locator('.r-heading .f').click()
+  await page.keyboard.press('End')
+  await page.keyboard.press('Enter')
+  expect(await focused()).toBe('类别')
+
+  // 纸面最后一个字段回车结束编辑，之后的按键不会写进任何字段
+  await page.keyboard.press('Tab')
+  await page.keyboard.type('Figma')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('不应出现')
+  await expect(page.locator('.e-paper')).not.toContainText('不应出现')
+
+  await expect(page.locator('.e-docname')).toHaveValue('张三的简历')
+  expect(errors).toEqual([])
 })

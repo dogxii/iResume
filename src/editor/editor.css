@@ -1635,6 +1635,12 @@ button.e-outline-row > .e-outline-name {
 .e-drag:active {
   cursor: grabbing;
 }
+/* 触屏上原生拖放不可用，用上移 / 下移按钮 */
+@media (pointer: coarse) {
+  .e-drag {
+    display: none;
+  }
+}
 [data-dragging] {
   opacity: 0.35;
 }

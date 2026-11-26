@@ -172,12 +172,12 @@ function EditableField({
         onKey?.(e, e.currentTarget)
         if (!e.defaultPrevented && e.key === 'Enter') {
           e.preventDefault()
-          // 回车跳到同一条目（或页眉）里的下一个字段，最后一个字段才结束编辑
+          // 回车跳到下一个字段（跨到下一个条目），纸面上最后一个字段才结束编辑
           const next = nextField(e.currentTarget)
           if (next) next.focus()
-          else e.currentTarget.blur()
+          else endEditing(e.currentTarget)
         }
-        if (e.key === 'Escape') e.currentTarget.blur()
+        if (e.key === 'Escape') endEditing(e.currentTarget)
       }}
       onPaste={(e) => {
         const text = e.clipboardData.getData('text/plain')
@@ -193,12 +193,36 @@ function EditableField({
   )
 }
 
-/** 同一条目 / 行 / 页眉内，文档顺序上的下一个字段 */
+/** 结束编辑：除了失焦还要清掉选区，否则 Chrome 会把之后的按键又送回这个字段 */
+function endEditing(el: HTMLElement) {
+  el.blur()
+  window.getSelection()?.removeAllRanges()
+}
+
+const SCOPE = '.r-entry, .r-row, .r-header, .r-textblock'
+/** 空着的可选字段（城市、链接、技术栈）是「+ 添加」入口，回车时跳过；Tab 仍能到达 */
+const FIELD = '[contenteditable][role=textbox]:not(.r-opt[data-empty])'
+
+/**
+ * 回车的去处：同一条目 / 行 / 页眉里的下一个字段；已经是最后一个时，
+ * 跳到纸面上下一个条目的第一个字段（填完页眉接着写第一段经历）。
+ */
 function nextField(el: HTMLElement): HTMLElement | null {
-  const scope = el.closest('.r-entry, .r-row, .r-header, .r-textblock')
-  if (!scope) return null
-  const fields = [
-    ...scope.querySelectorAll<HTMLElement>('[contenteditable][role=textbox]'),
-  ]
-  return fields[fields.indexOf(el) + 1] ?? null
+  const paper = el.closest('[data-editable]')
+  if (!paper) return null
+  // 当前字段可能自己就是空的可选字段（不在 FIELD 里），所以按文档位置往后找
+  const after = (n: Node) =>
+    el.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING
+  const scope = el.closest(SCOPE)
+  const next = scope
+    ? [...scope.querySelectorAll<HTMLElement>(FIELD)].find(after)
+    : undefined
+  if (next) return next
+  // 区块标题、或者条目的最后一个字段：跳到后面第一个条目的第一个字段
+  for (const s of paper.querySelectorAll(SCOPE)) {
+    if (s === scope || !after(s)) continue
+    const first = s.querySelector<HTMLElement>(FIELD)
+    if (first) return first
+  }
+  return null
 }

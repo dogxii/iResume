@@ -218,6 +218,24 @@ const M = defineMessages(
   { copyName: (name: string) => `${name} copy` }
 )
 
+/** 由姓名生成的简历名称，跟随简历语言 */
+const nameFor = (locale: Locale, person: string) =>
+  locale === 'en' ? `${person} – Resume` : `${person}的简历`
+
+/**
+ * 修改姓名：简历还叫默认的「未命名简历」（或者是上次由姓名生成的名称）时，
+ * 名称跟着姓名走，导出的文件名和首页卡片就不会都是「未命名简历」。用户自己改过名称则不动。
+ */
+export function setPersonName(doc: ResumeDoc, person: string) {
+  const blank = DOC_NAMES[doc.locale].blank
+  const old = doc.profile.name.trim()
+  const follows =
+    doc.name === blank || (old !== '' && doc.name === nameFor(doc.locale, old))
+  doc.profile.name = person
+  if (follows)
+    doc.name = person.trim() ? nameFor(doc.locale, person.trim()) : blank
+}
+
 interface CreateOptions {
   name?: string
   locale?: Locale

@@ -6,7 +6,7 @@ import {
 } from 'react'
 import { defineMessages } from '../i18n'
 import { formatDate } from '../model/dates'
-import { CONTACT_META, KIND_META } from '../model/defaults'
+import { CONTACT_META, KIND_META, setPersonName } from '../model/defaults'
 import { toHref } from '../model/inline'
 import type { Contact, Item, Locale, ResumeDoc, Section } from '../model/types'
 import { themeAttrs, themeVars } from '../theme/css'
@@ -172,9 +172,7 @@ function Header({
           placeholder={ph.name}
           target={target}
           onChange={(v) =>
-            edit?.update((d) => {
-              d.profile.name = v
-            }, 'profile:name')
+            edit?.update((d) => setPersonName(d, v), 'profile:name')
           }
         />
         <Field
